@@ -1,0 +1,11 @@
+export type JsonPrimitive = string | number | boolean | null;
+
+export type JsonArray = JsonValue[];
+
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+
+export type JsonValue = JsonPrimitive | JsonArray | JsonObject;
+
+export type ScalarJsonKind = "string" | "integer" | "number" | "boolean";

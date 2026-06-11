@@ -5,3 +5,4 @@ coverage
 .pnpm-home/
 .pnpm-state/
 .phpm-state/
+.VSCodeCounter

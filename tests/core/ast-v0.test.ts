@@ -6,8 +6,8 @@ import {
   objectType,
   scalarType,
   schemaDocument,
-  unknownType
-} from "../packages/core/src/index.js";
+  unknownType,
+} from "../../packages/core/src/index.js";
 
 describe("core ast v0", () => {
   it("builds a scalar root document", () => {
@@ -17,8 +17,8 @@ describe("core ast v0", () => {
       name: identifierName("ScalarString"),
       root: {
         kind: "scalar",
-        scalar: "string"
-      }
+        scalar: "string",
+      },
     });
   });
 
@@ -31,11 +31,11 @@ describe("core ast v0", () => {
             fieldNode("id", scalarType("integer")),
             fieldNode("name", scalarType("string"), {
               required: false,
-              nullable: true
-            })
-          ])
-        )
-      )
+              nullable: true,
+            }),
+          ]),
+        ),
+      ),
     ).toEqual({
       version: "0.1",
       kind: "document",
@@ -52,8 +52,8 @@ describe("core ast v0", () => {
               nullable: false,
               type: {
                 kind: "scalar",
-                scalar: "integer"
-              }
+                scalar: "integer",
+              },
             },
             {
               kind: "field",
@@ -62,19 +62,26 @@ describe("core ast v0", () => {
               nullable: true,
               type: {
                 kind: "scalar",
-                scalar: "string"
-              }
-            }
-          ]
-        }
-      }
+                scalar: "string",
+              },
+            },
+          ],
+        },
+      },
     });
   });
 
   it("supports unknown type nodes for unresolved semantics", () => {
-    expect(schemaDocument("EmptyArray", arrayType(unknownType({
-      reason: "empty-array-element"
-    })))).toEqual({
+    expect(
+      schemaDocument(
+        "EmptyArray",
+        arrayType(
+          unknownType({
+            reason: "empty-array-element",
+          }),
+        ),
+      ),
+    ).toEqual({
       version: "0.1",
       kind: "document",
       name: identifierName("EmptyArray"),
@@ -83,9 +90,9 @@ describe("core ast v0", () => {
         elementType: {
           kind: "unknown",
           reason: "empty-array-element",
-          nullable: false
-        }
-      }
+          nullable: false,
+        },
+      },
     });
   });
 });

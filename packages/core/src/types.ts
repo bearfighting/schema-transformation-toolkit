@@ -43,7 +43,11 @@ export interface ArrayTypeNode extends BaseNode {
   elementType: TypeNode;
 }
 
-export type TypeNode = ScalarTypeNode | UnknownTypeNode | ObjectTypeNode | ArrayTypeNode;
+export type TypeNode =
+  | ScalarTypeNode
+  | UnknownTypeNode
+  | ObjectTypeNode
+  | ArrayTypeNode;
 
 export interface SchemaDocument {
   version: "0.1";

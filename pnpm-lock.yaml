@@ -7,15 +7,9 @@ settings:
 importers:
   .:
     dependencies:
-      "@iarna/toml":
-        specifier: ^2.2.5
-        version: 2.2.5
       cac:
         specifier: ^6.7.14
         version: 6.7.14
-      yaml:
-        specifier: ^2.8.0
-        version: 2.9.0
     devDependencies:
       "@typescript-eslint/eslint-plugin":
         specifier: ^8.34.1
@@ -65,23 +59,17 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/parser-toml:
+  packages/sdk:
     dependencies:
       "@aio/core":
         specifier: workspace:*
         version: link:../core
-      "@iarna/toml":
-        specifier: ^2.2.5
-        version: 2.2.5
-
-  packages/parser-yaml:
-    dependencies:
-      "@aio/core":
+      "@aio/generator-typescript":
         specifier: workspace:*
-        version: link:../core
-      yaml:
-        specifier: ^2.8.0
-        version: 2.9.0
+        version: link:../generator-typescript
+      "@aio/parser-json":
+        specifier: workspace:*
+        version: link:../parser-json
 
 packages:
   "@esbuild/aix-ppc64@0.27.7":
@@ -417,12 +405,6 @@ packages:
         integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==,
       }
     engines: { node: ">=18.18" }
-
-  "@iarna/toml@2.2.5":
-    resolution:
-      {
-        integrity: sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==,
-      }
 
   "@jridgewell/gen-mapping@0.3.13":
     resolution:
@@ -2045,8 +2027,6 @@ snapshots:
 
   "@humanwhocodes/retry@0.4.3": {}
 
-  "@iarna/toml@2.2.5": {}
-
   "@jridgewell/gen-mapping@0.3.13":
     dependencies:
       "@jridgewell/sourcemap-codec": 1.5.5
@@ -2902,7 +2882,8 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  yaml@2.9.0: {}
+  yaml@2.9.0:
+    optional: true
 
   yocto-queue@0.1.0: {}
 

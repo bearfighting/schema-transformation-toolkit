@@ -2,15 +2,15 @@ import type {
   ConfiguredParser,
   PreparedOptions,
   ParseOptions,
-  SchemaParser
+  SchemaParser,
 } from "@aio/core";
 import type { JsonInferenceResult } from "./parse.js";
 
-export type JsonParseStrictness = "strict" | "best-effort";
+export type JsonParseStrictness = "strict";
 export type JsonNumericMode = "distinguish" | "number-only";
-export type JsonEmptyArrayMode = "error" | "unknown-array";
-export type JsonMixedTypeMode = "error" | "union" | "unknown";
-export type JsonNullHandling = "strict" | "nullable";
+export type JsonEmptyArrayMode = "unknown-array";
+export type JsonMixedTypeMode = "error";
+export type JsonNullHandling = "nullable";
 
 export interface JsonInferenceOptions {
   numericMode?: JsonNumericMode;
@@ -20,7 +20,7 @@ export interface JsonInferenceOptions {
 }
 
 export interface JsonDiagnosticsOptions {
-  preserveSourceInfo?: boolean;
+  preserveSourceInfo?: false;
 }
 
 export interface JsonParseOptions extends ParseOptions {
@@ -39,7 +39,7 @@ export interface ResolvedJsonParseOptions {
     nullHandling: JsonNullHandling;
   };
   diagnostics: {
-    preserveSourceInfo: boolean;
+    preserveSourceInfo: false;
   };
 }
 
@@ -48,40 +48,46 @@ export const DEFAULT_JSON_PARSE_OPTIONS: ResolvedJsonParseOptions = {
   strictness: "strict",
   inference: {
     numericMode: "distinguish",
-    emptyArrayMode: "error",
+    emptyArrayMode: "unknown-array",
     mixedTypeMode: "error",
-    nullHandling: "strict"
+    nullHandling: "nullable",
   },
   diagnostics: {
-    preserveSourceInfo: false
-  }
+    preserveSourceInfo: false,
+  },
 };
 
 export function resolveJsonParseOptions(
-  options: JsonParseOptions = {}
+  options: JsonParseOptions = {},
 ): ResolvedJsonParseOptions {
   return {
     name: options.name ?? DEFAULT_JSON_PARSE_OPTIONS.name,
     strictness: options.strictness ?? DEFAULT_JSON_PARSE_OPTIONS.strictness,
     inference: {
       numericMode:
-        options.inference?.numericMode ?? DEFAULT_JSON_PARSE_OPTIONS.inference.numericMode,
+        options.inference?.numericMode ??
+        DEFAULT_JSON_PARSE_OPTIONS.inference.numericMode,
       emptyArrayMode:
-        options.inference?.emptyArrayMode ?? DEFAULT_JSON_PARSE_OPTIONS.inference.emptyArrayMode,
+        options.inference?.emptyArrayMode ??
+        DEFAULT_JSON_PARSE_OPTIONS.inference.emptyArrayMode,
       mixedTypeMode:
-        options.inference?.mixedTypeMode ?? DEFAULT_JSON_PARSE_OPTIONS.inference.mixedTypeMode,
+        options.inference?.mixedTypeMode ??
+        DEFAULT_JSON_PARSE_OPTIONS.inference.mixedTypeMode,
       nullHandling:
-        options.inference?.nullHandling ?? DEFAULT_JSON_PARSE_OPTIONS.inference.nullHandling
+        options.inference?.nullHandling ??
+        DEFAULT_JSON_PARSE_OPTIONS.inference.nullHandling,
     },
     diagnostics: {
       preserveSourceInfo:
         options.diagnostics?.preserveSourceInfo ??
-        DEFAULT_JSON_PARSE_OPTIONS.diagnostics.preserveSourceInfo
-    }
+        DEFAULT_JSON_PARSE_OPTIONS.diagnostics.preserveSourceInfo,
+    },
   };
 }
 
-export function assertSupportedJsonParseOptions(options: ResolvedJsonParseOptions): void {
+export function assertSupportedJsonParseOptions(
+  options: ResolvedJsonParseOptions,
+): void {
   const errors = validateJsonParseOptions(options);
 
   if (errors.length > 0) {
@@ -89,40 +95,38 @@ export function assertSupportedJsonParseOptions(options: ResolvedJsonParseOption
   }
 }
 
-export function validateJsonParseOptions(options: ResolvedJsonParseOptions): string[] {
+export function validateJsonParseOptions(
+  options: ResolvedJsonParseOptions,
+): string[] {
   const errors: string[] = [];
 
-  if (options.inference.numericMode !== "distinguish") {
+  if (options.inference.emptyArrayMode !== "unknown-array") {
     errors.push(
-      'Unsupported json parse option: inference.numericMode must currently be "distinguish".'
-    );
-  }
-
-  if (options.inference.emptyArrayMode !== "error") {
-    errors.push(
-      'Unsupported json parse option: inference.emptyArrayMode must currently be "error".'
+      'Unsupported json parse option: inference.emptyArrayMode must currently be "unknown-array".',
     );
   }
 
   if (options.inference.mixedTypeMode !== "error") {
     errors.push(
-      'Unsupported json parse option: inference.mixedTypeMode must currently be "error".'
+      'Unsupported json parse option: inference.mixedTypeMode must currently be "error".',
     );
   }
 
-  if (options.inference.nullHandling !== "strict") {
+  if (options.inference.nullHandling !== "nullable") {
     errors.push(
-      'Unsupported json parse option: inference.nullHandling must currently be "strict".'
+      'Unsupported json parse option: inference.nullHandling must currently be "nullable".',
     );
   }
 
   if (options.strictness !== "strict") {
-    errors.push('Unsupported json parse option: strictness must currently be "strict".');
+    errors.push(
+      'Unsupported json parse option: strictness must currently be "strict".',
+    );
   }
 
   if (options.diagnostics.preserveSourceInfo) {
     errors.push(
-      "Unsupported json parse option: diagnostics.preserveSourceInfo is not implemented yet."
+      "Unsupported json parse option: diagnostics.preserveSourceInfo is not implemented yet.",
     );
   }
 
@@ -130,20 +134,23 @@ export function validateJsonParseOptions(options: ResolvedJsonParseOptions): str
 }
 
 export function prepareJsonParseOptions(
-  options: JsonParseOptions = {}
+  options: JsonParseOptions = {},
 ): PreparedOptions<ResolvedJsonParseOptions> {
   const resolved = resolveJsonParseOptions(options);
 
   return {
     resolved,
     warnings: [],
-    errors: validateJsonParseOptions(resolved)
+    errors: validateJsonParseOptions(resolved),
   };
 }
 
 export function createJsonParser(
-  parseWithOptions: (input: string, options: ResolvedJsonParseOptions) => JsonInferenceResult,
-  options: JsonParseOptions = {}
+  parseWithOptions: (
+    input: string,
+    options: ResolvedJsonParseOptions,
+  ) => JsonInferenceResult,
+  options: JsonParseOptions = {},
 ): SchemaParser<string, JsonParseOptions, JsonInferenceResult> {
   return {
     format: "json",
@@ -155,21 +162,24 @@ export function createJsonParser(
           ...runtimeOptions,
           inference: {
             ...options.inference,
-            ...runtimeOptions?.inference
+            ...runtimeOptions?.inference,
           },
           diagnostics: {
             ...options.diagnostics,
-            ...runtimeOptions?.diagnostics
-          }
-        })
+            ...runtimeOptions?.diagnostics,
+          },
+        }),
       );
-    }
+    },
   };
 }
 
 export function configureJsonParser(
-  parseWithOptions: (input: string, options: ResolvedJsonParseOptions) => JsonInferenceResult,
-  options: JsonParseOptions = {}
+  parseWithOptions: (
+    input: string,
+    options: ResolvedJsonParseOptions,
+  ) => JsonInferenceResult,
+  options: JsonParseOptions = {},
 ): ConfiguredParser<
   SchemaParser<string, JsonParseOptions, JsonInferenceResult>,
   ResolvedJsonParseOptions
@@ -177,11 +187,13 @@ export function configureJsonParser(
   const prepared = prepareJsonParseOptions(options);
 
   if (prepared.errors.length > 0) {
-    throw new Error(`Invalid JSON parser options: ${prepared.errors.join("; ")}`);
+    throw new Error(
+      `Invalid JSON parser options: ${prepared.errors.join("; ")}`,
+    );
   }
 
   return {
     prepared,
-    parser: createJsonParser(parseWithOptions, options)
+    parser: createJsonParser(parseWithOptions, options),
   };
 }

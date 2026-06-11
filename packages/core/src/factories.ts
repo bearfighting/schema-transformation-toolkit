@@ -8,7 +8,7 @@ import type {
   SchemaDocument,
   UnknownReason,
   UnknownTypeNode,
-  TypeNode
+  TypeNode,
 } from "./types.js";
 
 type IdentifierInput = string | IdentifierName;
@@ -16,7 +16,7 @@ type IdentifierInput = string | IdentifierName;
 export function scalarType(scalar: ScalarKind): ScalarTypeNode {
   return {
     kind: "scalar",
-    scalar
+    scalar,
   };
 }
 
@@ -27,7 +27,7 @@ export function unknownType(options?: {
   return {
     kind: "unknown",
     ...(options?.reason ? { reason: options.reason } : {}),
-    nullable: options?.nullable ?? false
+    nullable: options?.nullable ?? false,
   };
 }
 
@@ -35,13 +35,13 @@ export function identifierName(name: IdentifierInput): IdentifierName {
   if (typeof name !== "string") {
     return {
       source: name.source,
-      words: normalizeWords(name.words, name.source)
+      words: normalizeWords(name.words, name.source),
     };
   }
 
   return {
     source: name,
-    words: splitIdentifierWords(name)
+    words: splitIdentifierWords(name),
   };
 }
 
@@ -51,37 +51,40 @@ export function fieldNode(
   options?: {
     required?: boolean;
     nullable?: boolean;
-  }
+  },
 ): FieldNode {
   return {
     kind: "field",
     name: identifierName(name),
     required: options?.required ?? true,
     nullable: options?.nullable ?? false,
-    type
+    type,
   };
 }
 
 export function objectType(fields: FieldNode[]): ObjectTypeNode {
   return {
     kind: "object",
-    fields
+    fields,
   };
 }
 
 export function arrayType(elementType: TypeNode): ArrayTypeNode {
   return {
     kind: "array",
-    elementType
+    elementType,
   };
 }
 
-export function schemaDocument(name: IdentifierInput, root: TypeNode): SchemaDocument {
+export function schemaDocument(
+  name: IdentifierInput,
+  root: TypeNode,
+): SchemaDocument {
   return {
     version: "0.1",
     kind: "document",
     name: identifierName(name),
-    root
+    root,
   };
 }
 

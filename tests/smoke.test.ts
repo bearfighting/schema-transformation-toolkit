@@ -8,7 +8,7 @@ describe("workspace smoke test", () => {
       kind: "document",
       name: {
         source: "Example",
-        words: ["example"]
+        words: ["example"],
       },
       root: {
         kind: "scalar",

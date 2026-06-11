@@ -1,0 +1,73 @@
+Date : 2026-06-10 20:38:17
+Directory : /home/florent/codes/all_in_one_data_type_converter/packages
+Total : 31 files,  1877 codes, 0 comments, 364 blanks, all 2241 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| TypeScript         |         19 |      1,568 |          0 |        266 |      1,834 |
+| Markdown           |          2 |        190 |          0 |         88 |        278 |
+| JSON               |          5 |         99 |          0 |          5 |        104 |
+| JSON with Comments |          5 |         20 |          0 |          5 |         25 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                           | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                              |         31 |      1,877 |          0 |        364 |      2,241 |
+| cli                                                                                            |          4 |         30 |          0 |          7 |         37 |
+| cli (Files)                                                                                    |          2 |         20 |          0 |          2 |         22 |
+| cli/src                                                                                        |          2 |         10 |          0 |          5 |         15 |
+| core                                                                                           |          8 |        437 |          0 |         76 |        513 |
+| core (Files)                                                                                   |          2 |         22 |          0 |          2 |         24 |
+| core/src                                                                                       |          6 |        415 |          0 |         74 |        489 |
+| generator-typescript                                                                           |          5 |        621 |          0 |        124 |        745 |
+| generator-typescript (Files)                                                                   |          3 |        135 |          0 |         52 |        187 |
+| generator-typescript/src                                                                       |          2 |        486 |          0 |         72 |        558 |
+| parser-json                                                                                    |         11 |        759 |          0 |        154 |        913 |
+| parser-json (Files)                                                                            |          3 |        105 |          0 |         40 |        145 |
+| parser-json/src                                                                                |          8 |        654 |          0 |        114 |        768 |
+| sdk                                                                                            |          3 |         30 |          0 |          3 |         33 |
+| sdk (Files)                                                                                    |          2 |         27 |          0 |          2 |         29 |
+| sdk/src                                                                                        |          1 |          3 |          0 |          1 |          4 |
++------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                       | language           | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| /home/florent/codes/all_in_one_data_type_converter/packages/cli/package.json                   | JSON               |         16 |          0 |          1 |         17 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/cli/src/globals.d.ts               | TypeScript         |          3 |          0 |          1 |          4 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/cli/src/index.ts                   | TypeScript         |          7 |          0 |          4 |         11 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/cli/tsconfig.json                  | JSON with Comments |          4 |          0 |          1 |          5 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/package.json                  | JSON               |         18 |          0 |          1 |         19 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/contracts.ts              | TypeScript         |         64 |          0 |         14 |         78 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/factories.ts              | TypeScript         |         98 |          0 |         14 |        112 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/guards.ts                 | TypeScript         |         19 |          0 |          5 |         24 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/index.ts                  | TypeScript         |         59 |          0 |          6 |         65 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/naming.ts                 | TypeScript         |        127 |          0 |         25 |        152 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/src/types.ts                  | TypeScript         |         48 |          0 |         10 |         58 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/core/tsconfig.json                 | JSON with Comments |          4 |          0 |          1 |          5 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/README.md     | Markdown           |        110 |          0 |         50 |        160 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/package.json  | JSON               |         21 |          0 |          1 |         22 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/src/index.ts  | TypeScript         |         18 |          0 |          1 |         19 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/src/render.ts | TypeScript         |        468 |          0 |         71 |        539 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/tsconfig.json | JSON with Comments |          4 |          0 |          1 |          5 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/README.md              | Markdown           |         80 |          0 |         38 |        118 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/package.json           | JSON               |         21 |          0 |          1 |         22 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/errors.ts          | TypeScript         |         16 |          0 |          4 |         20 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/index.ts           | TypeScript         |         39 |          0 |          1 |         40 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/infer.ts           | TypeScript         |        176 |          0 |         33 |        209 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/merge.ts           | TypeScript         |        102 |          0 |         20 |        122 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/options.ts         | TypeScript         |        177 |          0 |         23 |        200 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/parse.ts           | TypeScript         |        123 |          0 |         22 |        145 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/shared.ts          | TypeScript         |         14 |          0 |          6 |         20 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/types.ts           | TypeScript         |          7 |          0 |          5 |         12 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/parser-json/tsconfig.json          | JSON with Comments |          4 |          0 |          1 |          5 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/sdk/package.json                   | JSON               |         23 |          0 |          1 |         24 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/sdk/src/index.ts                   | TypeScript         |          3 |          0 |          1 |          4 |
+| /home/florent/codes/all_in_one_data_type_converter/packages/sdk/tsconfig.json                  | JSON with Comments |          4 |          0 |          1 |          5 |
+| Total                                                                                          |                    |      1,877 |          0 |        364 |      2,241 |
++------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

@@ -7,10 +7,10 @@
     "paths": {
       "@aio/cli": ["packages/cli/src/index.ts"],
       "@aio/core": ["packages/core/src/index.ts"],
-      "@aio/generator-typescript": ["packages/generator-typescript/src/index.ts"],
+      "@aio/generator-typescript": [
+        "packages/generator-typescript/src/index.ts"
+      ],
       "@aio/parser-json": ["packages/parser-json/src/index.ts"],
-      "@aio/parser-toml": ["packages/parser-toml/src/index.ts"],
-      "@aio/parser-yaml": ["packages/parser-yaml/src/index.ts"],
       "@aio/sdk": ["packages/sdk/src/index.ts"]
     },
     "lib": ["ES2022"],

@@ -9,7 +9,7 @@ export type {
   SchemaDocument,
   UnknownReason,
   UnknownTypeNode,
-  TypeNode
+  TypeNode,
 } from "./types.js";
 
 export {
@@ -19,14 +19,14 @@ export {
   objectType,
   scalarType,
   schemaDocument,
-  unknownType
+  unknownType,
 } from "./factories.js";
 
 export {
   isArrayTypeNode,
   isObjectTypeNode,
   isScalarTypeNode,
-  isUnknownTypeNode
+  isUnknownTypeNode,
 } from "./guards.js";
 
 export {
@@ -37,14 +37,14 @@ export {
   renderIdentifierName,
   toCamelCase,
   toPascalCase,
-  toSnakeCase
+  toSnakeCase,
 } from "./naming.js";
 
 export type {
   NamingStrategy,
   NamingStrategyOptions,
   NamingStyle,
-  RenderIdentifierOptions
+  RenderIdentifierOptions,
 } from "./naming.js";
 
 export type {
@@ -60,5 +60,5 @@ export type {
   ParseResult,
   ParseSuccessResult,
   SchemaGenerator,
-  SchemaParser
+  SchemaParser,
 } from "./contracts.js";

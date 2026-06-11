@@ -10,7 +10,7 @@ export {
   tryInferJsonDocumentWithOptions,
   type JsonInferenceFailureResult,
   type JsonInferenceResult,
-  type JsonInferenceSuccessResult
+  type JsonInferenceSuccessResult,
 } from "./parse.js";
 export {
   DEFAULT_JSON_PARSE_OPTIONS,
@@ -28,12 +28,12 @@ export {
   type JsonNumericMode,
   type JsonParseOptions,
   type JsonParseStrictness,
-  type ResolvedJsonParseOptions
+  type ResolvedJsonParseOptions,
 } from "./options.js";
 export type {
   JsonArray,
   JsonObject,
   JsonPrimitive,
   JsonValue,
-  ScalarJsonKind
+  ScalarJsonKind,
 } from "./types.js";

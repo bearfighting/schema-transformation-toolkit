@@ -47,17 +47,17 @@ importers:
 
   packages/core: {}
 
-  packages/generator-typescript:
+  packages/generators/typescript:
     dependencies:
       "@aio/core":
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
 
-  packages/parser-json:
+  packages/parsers/json:
     dependencies:
       "@aio/core":
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
 
   packages/sdk:
     dependencies:
@@ -66,10 +66,10 @@ importers:
         version: link:../core
       "@aio/generator-typescript":
         specifier: workspace:*
-        version: link:../generator-typescript
+        version: link:../generators/typescript
       "@aio/parser-json":
         specifier: workspace:*
-        version: link:../parser-json
+        version: link:../parsers/json
 
 packages:
   "@esbuild/aix-ppc64@0.27.7":

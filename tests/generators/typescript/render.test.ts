@@ -8,8 +8,8 @@ import {
   scalarType,
   schemaDocument,
   unknownType,
-} from "../../packages/core/src/index.js";
-import { generateTypeScript } from "../../packages/generator-typescript/src/index.js";
+} from "../../../packages/core/src/index.js";
+import { generateTypeScript } from "../../../packages/generators/typescript/src/index.js";
 import {
   DEFAULT_TYPESCRIPT_GENERATOR_OPTIONS,
   configureTypeScriptGenerator,
@@ -19,8 +19,8 @@ import {
   resolveTypeScriptGeneratorOptions,
   tryGenerateTypeScript,
   typeScriptGenerator,
-} from "../../packages/generator-typescript/src/index.js";
-import { inferJsonDocument } from "../../packages/parser-json/src/index.js";
+} from "../../../packages/generators/typescript/src/index.js";
+import { inferJsonDocument } from "../../../packages/parsers/json/src/index.js";
 
 describe("generator-typescript", () => {
   it("generates a root interface for object documents", () => {

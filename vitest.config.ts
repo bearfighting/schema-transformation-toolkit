@@ -6,8 +6,8 @@ export default defineConfig({
       "@aio/cli": "/packages/cli/src/index.ts",
       "@aio/core": "/packages/core/src/index.ts",
       "@aio/generator-typescript":
-        "/packages/generator-typescript/src/index.ts",
-      "@aio/parser-json": "/packages/parser-json/src/index.ts",
+        "/packages/generators/typescript/src/index.ts",
+      "@aio/parser-json": "/packages/parsers/json/src/index.ts",
       "@aio/sdk": "/packages/sdk/src/index.ts",
     },
   },

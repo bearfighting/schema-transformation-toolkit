@@ -4,12 +4,12 @@ import {
   configureTypeScriptGenerator,
   tryGenerateTypeScript,
   typeScriptGenerator,
-} from "../../packages/generator-typescript/src/index.js";
+} from "../../packages/generators/typescript/src/index.js";
 import {
   configureJsonParser,
   jsonSchemaParser,
   preparedJsonSchemaParserOptions,
-} from "../../packages/parser-json/src/index.js";
+} from "../../packages/parsers/json/src/index.js";
 
 describe("integration: json -> ir -> typescript", () => {
   it("converts supported json samples into TypeScript with default parser/generator instances", () => {

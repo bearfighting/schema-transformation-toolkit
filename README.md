@@ -1,4 +1,4 @@
-# all-in-one-data-type-converter
+# type-schema-converter
 
 A TypeScript-first toolkit for parsing structured input into a shared schema IR and generating typed output from that IR.
 
@@ -47,15 +47,15 @@ if (parsed.ok) {
 
 User-facing documentation:
 
-- Root overview: [README.md](/home/florent/codes/all_in_one_data_type_converter/README.md)
-- JSON parser usage: [packages/parser-json/README.md](/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/README.md)
-- TypeScript generator usage: [packages/generator-typescript/README.md](/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/README.md)
+- Root overview: [README.md](README.md)
+- JSON parser usage: [packages/parser-json/README.md](packages/parser-json/README.md)
+- TypeScript generator usage: [packages/generator-typescript/README.md](packages/generator-typescript/README.md)
 
 Development documentation:
 
-- Development index: [docs/development/README.md](/home/florent/codes/all_in_one_data_type_converter/docs/development/README.md)
-- Current development notes: [docs/development/progress.md](/home/florent/codes/all_in_one_data_type_converter/docs/development/progress.md)
-- IR v0 working cases: [docs/development/ir-v0-cases.md](/home/florent/codes/all_in_one_data_type_converter/docs/development/ir-v0-cases.md)
+- Development index: [docs/development/README.md](docs/development/README.md)
+- Current development notes: [docs/development/progress.md](docs/development/progress.md)
+- IR v0 working cases: [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md)
 
 ## Development
 

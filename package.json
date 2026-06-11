@@ -1,5 +1,5 @@
 {
-  "name": "all-in-one-data-type-converter",
+  "name": "type-schema-converter",
   "version": "0.1.0",
   "private": true,
   "description": "A schema and data model conversion toolkit for structured data formats and typed languages.",

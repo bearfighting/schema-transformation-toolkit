@@ -11,8 +11,8 @@ It should answer questions like:
 
 ## Suggested Structure
 
-- [progress.md](/home/florent/codes/all_in_one_data_type_converter/docs/development/progress.md): current milestones, completed work, next steps
-- [ir-v0-cases.md](/home/florent/codes/all_in_one_data_type_converter/docs/development/ir-v0-cases.md): IR scope and test-oriented working cases
+- [progress.md](progress.md): current milestones, completed work, next steps
+- [ir-v0-cases.md](ir-v0-cases.md): IR scope and test-oriented working cases
 
 ## Documentation Rule
 

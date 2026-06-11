@@ -1,4 +1,9 @@
-import type { IdentifierName, ObjectTypeNode, SchemaDocument, TypeNode } from "@aio/core";
+import type {
+  IdentifierName,
+  SchemaDocument,
+  SchemaNode,
+  SchemaObjectNode,
+} from "@aio/core";
 import type { ResolvedTypeScriptGeneratorOptions } from "./options.js";
 import type { TypeScriptGenerateFailureResult } from "./failure.js";
 import { TYPESCRIPT_RESERVED_WORDS } from "./naming.js";
@@ -21,15 +26,44 @@ export function validateRenderableDocument(
 }
 
 function validateRenderableTypeNode(
-  node: TypeNode,
+  node: SchemaNode,
   options: ResolvedTypeScriptGeneratorOptions,
 ): TypeScriptGenerateFailureResult | null {
   switch (node.kind) {
     case "scalar":
+    case "literal":
+    case "null":
     case "unknown":
       return null;
     case "array":
       return validateRenderableTypeNode(node.elementType, options);
+    case "tuple":
+      for (const element of node.elements) {
+        const elementFailure = validateRenderableTypeNode(element.type, options);
+
+        if (elementFailure !== null) {
+          return elementFailure;
+        }
+      }
+      return null;
+    case "record": {
+      const keyFailure = validateRenderableTypeNode(node.key, options);
+
+      if (keyFailure !== null) {
+        return keyFailure;
+      }
+
+      return validateRenderableTypeNode(node.value, options);
+    }
+    case "union":
+      for (const member of node.members) {
+        const memberFailure = validateRenderableTypeNode(member, options);
+
+        if (memberFailure !== null) {
+          return memberFailure;
+        }
+      }
+      return null;
     case "object":
       return validateRenderableObjectType(node, options);
     default:
@@ -42,7 +76,7 @@ function validateRenderableTypeNode(
 }
 
 function validateRenderableObjectType(
-  node: ObjectTypeNode,
+  node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
 ): TypeScriptGenerateFailureResult | null {
   for (const field of node.fields) {

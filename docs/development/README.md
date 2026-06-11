@@ -5,14 +5,31 @@ This directory is for project-internal documentation.
 It should answer questions like:
 
 - what decisions have already been made
-- what v0 currently supports
-- what is intentionally postponed
-- what risks or open design questions still exist
+- what the project explicitly supports
+- what development workflow we follow
+- how we decide a feature is complete
+- what the current plan and progress are
 
-## Suggested Structure
+## Index
 
-- [progress.md](progress.md): current milestones, completed work, next steps
-- [ir-v0-cases.md](ir-v0-cases.md): IR scope and test-oriented working cases
+### Principles And Scope
+
+- [scope.md](scope.md): project boundary and supported vs unsupported feature classes
+- [decisions.md](decisions.md): durable design decisions and guardrails
+
+### Delivery Process
+
+- [workflow.md](workflow.md): default implementation flow and testing order
+- [acceptance.md](acceptance.md): definition of done and per-layer acceptance criteria
+
+### Planning And Tracking
+
+- [roadmap.md](roadmap.md): near-term development direction
+- [progress.md](progress.md): current phase, completed work, next milestones
+
+### Reference
+
+- [ir-v0-cases.md](ir-v0-cases.md): test-oriented working cases for current schema IR support
 
 ## Documentation Rule
 

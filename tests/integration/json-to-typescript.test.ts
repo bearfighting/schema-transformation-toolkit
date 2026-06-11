@@ -80,14 +80,14 @@ describe("integration: json -> ir -> typescript", () => {
 
     expect(typeScriptGenerator.generate(topLevelNull.document)).toEqual({
       ok: true,
-      output: "export type StandaloneNull = unknown | null;",
+      output: "export type StandaloneNull = null;",
     });
 
     expect(typeScriptGenerator.generate(partialShape.document)).toEqual({
       ok: true,
       output: [
         "export interface PartialShape {",
-        "  name: unknown | null;",
+        "  name: null;",
         "  tags: unknown[];",
         "}",
       ].join("\n"),
@@ -170,6 +170,49 @@ describe("integration: json -> ir -> typescript", () => {
         "  value: number;",
         "})[];",
       ].join("\n"),
+    });
+  });
+
+  it("preserves inferred tuples across the full pipeline when tuple inference is enabled", () => {
+    const parsed = jsonSchemaParser.parse('{"pair":[1,"north"]}', {
+      name: "coordinate-pair",
+      inference: {
+        tupleInferenceMode: "heterogeneous-only",
+      },
+    });
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON parser to succeed.");
+    }
+
+    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+      ok: true,
+      output: [
+        "export interface CoordinatePair {",
+        "  pair: [number, string];",
+        "}",
+      ].join("\n"),
+    });
+  });
+
+  it("preserves inferred records across the full pipeline when record inference is enabled", () => {
+    const parsed = jsonSchemaParser.parse(
+      '[{"en":"Hello","fr":"Bonjour"},{"de":"Hallo","es":"Hola"}]',
+      {
+        name: "translation-table",
+        inference: {
+          recordInferenceMode: "shared-value-type",
+        },
+      },
+    );
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON parser to succeed.");
+    }
+
+    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+      ok: true,
+      output: "export type TranslationTable = Array<Record<string, string>>;",
     });
   });
 

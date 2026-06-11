@@ -48,14 +48,21 @@ if (parsed.ok) {
 User-facing documentation:
 
 - Root overview: [README.md](README.md)
+- Core package overview and schema IR roadmap: [packages/core/README.md](packages/core/README.md)
 - JSON parser usage: [packages/parsers/json/README.md](packages/parsers/json/README.md)
 - TypeScript generator usage: [packages/generators/typescript/README.md](packages/generators/typescript/README.md)
+- Examples: [examples/README.md](examples/README.md)
 
 Development documentation:
 
 - Development index: [docs/development/README.md](docs/development/README.md)
-- Current development notes: [docs/development/progress.md](docs/development/progress.md)
-- IR v0 working cases: [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md)
+- Development scope: [docs/development/scope.md](docs/development/scope.md)
+- Development workflow: [docs/development/workflow.md](docs/development/workflow.md)
+- Acceptance criteria: [docs/development/acceptance.md](docs/development/acceptance.md)
+- Design decisions: [docs/development/decisions.md](docs/development/decisions.md)
+- Roadmap: [docs/development/roadmap.md](docs/development/roadmap.md)
+- Progress: [docs/development/progress.md](docs/development/progress.md)
+- IR working cases: [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md)
 
 ## Development
 

@@ -3,11 +3,24 @@ export {
   configureTypeScriptGenerator,
   createTypeScriptGenerator,
   generateTypeScript,
-  prepareTypeScriptGeneratorOptions,
   preparedTypeScriptGeneratorOptions,
-  resolveTypeScriptGeneratorOptions,
+  tryGenerateTypeScript,
   typeScriptGenerator,
+} from "./api.js";
+export {
+  prepareTypeScriptGeneratorOptions,
+  resolveTypeScriptGeneratorOptions,
   validateTypeScriptGeneratorOptions,
-  type ResolvedTypeScriptGeneratorOptions,
-  type TypeScriptGeneratorOptions
-} from "./render.js";
+} from "./options.js";
+export type {
+  ConfiguredTypeScriptGenerator,
+  ResolvedTypeScriptGeneratorOptions,
+  TypeScriptArrayStyle,
+  TypeScriptGeneratorOptions,
+  TypeScriptRootObjectMode,
+} from "./options.js";
+export type {
+  TypeScriptGenerateFailureResult,
+  TypeScriptGenerateResult,
+  TypeScriptGeneratorFailureCode,
+} from "./failure.js";

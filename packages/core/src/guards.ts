@@ -3,7 +3,7 @@ import type {
   ObjectTypeNode,
   ScalarTypeNode,
   UnknownTypeNode,
-  TypeNode
+  TypeNode,
 } from "./types.js";
 
 export function isScalarTypeNode(node: TypeNode): node is ScalarTypeNode {

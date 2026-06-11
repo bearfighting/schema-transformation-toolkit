@@ -27,7 +27,7 @@ export interface NamingStrategyOptions {
 
 export function renderIdentifierName(
   name: IdentifierName,
-  options: RenderIdentifierOptions
+  options: RenderIdentifierOptions,
 ): string {
   const words = getRenderableWords(name);
 
@@ -53,7 +53,7 @@ export function renderIdentifierName(
 }
 
 export function getRenderableWords(name: IdentifierName): string[] {
-  return name.words.filter((word) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(word));
+  return name.words.filter((word) => /^[A-Za-z0-9_$]+$/.test(word));
 }
 
 export function toCamelCase(words: string[]): string {
@@ -78,14 +78,16 @@ export function capitalizeWord(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-export function createNamingStrategy(options: NamingStrategyOptions): NamingStrategy {
+export function createNamingStrategy(
+  options: NamingStrategyOptions,
+): NamingStrategy {
   return {
     renderTypeName(name) {
       return renderIdentifierName(name, options.typeName);
     },
     renderFieldName(name) {
       return renderIdentifierName(name, options.fieldName);
-    }
+    },
   };
 }
 
@@ -99,7 +101,7 @@ export function normalizeIdentifier(
     | "reservedWordSuffix"
     | "reservedWordPrefix"
     | "rawIdentifierPrefix"
-  >
+  >,
 ): string {
   let normalizedIdentifier = identifier;
 
@@ -118,8 +120,11 @@ function normalizeReservedWord(
   identifier: string,
   options: Pick<
     RenderIdentifierOptions,
-    "reservedWordHandling" | "reservedWordSuffix" | "reservedWordPrefix" | "rawIdentifierPrefix"
-  >
+    | "reservedWordHandling"
+    | "reservedWordSuffix"
+    | "reservedWordPrefix"
+    | "rawIdentifierPrefix"
+  >,
 ): string {
   switch (options.reservedWordHandling) {
     case "prefix":
@@ -136,7 +141,7 @@ function normalizeReservedWord(
 
 function renderIdentifierFallback(
   name: IdentifierName,
-  options: RenderIdentifierOptions
+  options: RenderIdentifierOptions,
 ): string {
   if (options.fallback === "quoted") {
     return JSON.stringify(name.source);

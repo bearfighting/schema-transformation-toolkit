@@ -13,14 +13,14 @@ TypeScript generator for the shared schema IR.
 
 The current generator supports:
 
-- object root documents as `export interface`
+- object root documents as `export interface` or `export type`
 - scalar root documents as `export type`
 - array root documents as `export type`
 - nested inline object types
 - `optional` fields as `?`
 - `nullable` fields as `| null`
 - `unknown` nodes as `unknown`
-- `array<unknown>` as `unknown[]`
+- configurable array rendering with `T[]` / `Array<T>`
 - normalized identifier naming for type names and field names
 - reserved-word and invalid-identifier handling
 
@@ -38,15 +38,22 @@ These rules come from the configured naming strategy and can be replaced.
 
 ## API
 
-`generateTypeScript(document)`
+`generateTypeScript(document, options?)`
 
 - convenience function using the default TypeScript generator configuration
+- accepts the same generator options as configured instances
+- throws when generation fails
 - returns the generated TypeScript source as a string
 
 `createTypeScriptGenerator(options?)`
 
 - returns a configured generator instance
-- the returned instance exposes `.generate(document)`
+- the returned instance exposes `.generate(document, runtimeOptions?)`
+
+`tryGenerateTypeScript(document, options?)`
+
+- returns `{ ok: true, output }` on success
+- returns `{ ok: false, code, message }` on generation failure
 
 `resolveTypeScriptGeneratorOptions(options?)`
 
@@ -67,11 +74,15 @@ These rules come from the configured naming strategy and can be replaced.
 The current public options are still intentionally small:
 
 - `namingStrategy`
+- `rootObjectMode`
+- `arrayStyle`
 
 This is already enough to support:
 
 - default TypeScript naming
 - custom snake_case output
+- choosing `interface` or `type` for root object emission
+- choosing smart, compact, or generic array rendering
 - future target-specific naming experiments without changing the parser or IR
 
 More TypeScript-specific generation controls are expected later, such as choosing between `interface`, `type`, or `class` emission for compatible shapes.
@@ -87,13 +98,22 @@ export interface User {
 }
 ```
 
+Object root as type alias:
+
+```ts
+export type User = {
+  id: number;
+  name?: string | null;
+};
+```
+
 Array root:
 
 ```ts
-export type UserList = ({
+export type UserList = Array<{
   id: number;
   name?: string;
-})[];
+}>;
 ```
 
 Unresolved semantics:
@@ -111,13 +131,29 @@ export interface user_profile {
 }
 ```
 
+Compact array style:
+
+```ts
+export type NumberList = number[];
+```
+
 ## Current Limitations
 
 The generator does not yet support:
 
-- choosing `interface` vs `type` vs `class` via configuration
+- choosing `class` emission via configuration
 - `enum`
 - `union`
 - references/shared named models
 - imports/exports beyond the current single-document output
-- target-specific formatting families beyond naming strategy
+- target-specific formatting families beyond the current naming/object-root/array-style options
+
+## Failure Model
+
+The current generator can return structured failures for:
+
+- invalid rendered type names
+- invalid rendered field names
+- unsupported runtime node kinds
+
+This is mainly intended to protect callers from custom naming strategies that produce invalid TypeScript syntax, and to give the generator room to grow as the IR expands.

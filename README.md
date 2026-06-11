@@ -52,7 +52,10 @@ interface SchemaParser<TInput = string> {
 
 interface SchemaGenerator<TOutput = string> {
   target: string;
-  generate(document: SchemaDocument, options?: GenerateOptions): GenerateResult<TOutput>;
+  generate(
+    document: SchemaDocument,
+    options?: GenerateOptions,
+  ): GenerateResult<TOutput>;
 }
 ```
 
@@ -110,8 +113,6 @@ This boundary is especially important for future work such as unresolved types, 
 
 - `@aio/core`: shared IR and core utilities
 - `@aio/parser-json`: JSON to IR parsing
-- `@aio/parser-yaml`: YAML to IR parsing
-- `@aio/parser-toml`: TOML to IR parsing
 - `@aio/generator-typescript`: IR to TypeScript generation
 - `@aio/sdk`: optional aggregate package that re-exports core, parsers, and generators
 - `@aio/cli`: command line entry point
@@ -142,8 +143,6 @@ Concrete implementations should live in their own packages and depend only on `@
 Examples:
 
 - `@aio/parser-json`
-- `@aio/parser-yaml`
-- `@aio/parser-toml`
 - `@aio/generator-typescript`
 
 These packages should be installable and usable independently. A consumer should be able to choose only the pieces they need:
@@ -223,4 +222,3 @@ import { jsonSchemaParser, typeScriptGenerator } from "@aio/sdk";
 - `@aio/parser-json` supports AST v0 inference for the current supported JSON subset
 - `@aio/parser-json` also reports unsupported-but-valid JSON cases with structured result codes
 - `@aio/generator-typescript` supports the current AST v0 subset and naming/configuration experiments
-- `@aio/parser-yaml` and `@aio/parser-toml` are still placeholders

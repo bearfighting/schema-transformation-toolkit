@@ -6,14 +6,14 @@ import {
   renderIdentifierName,
   toCamelCase,
   toPascalCase,
-  toSnakeCase
-} from "../packages/core/src/index.js";
+  toSnakeCase,
+} from "../../packages/core/src/index.js";
 
 describe("core naming", () => {
   it("renders camel, pascal, and snake case from normalized words", () => {
     const name = identifierName({
       source: "user-profile",
-      words: ["user", "profile"]
+      words: ["user", "profile"],
     });
 
     expect(renderIdentifierName(name, { style: "camel" })).toBe("userProfile");
@@ -31,12 +31,12 @@ describe("core naming", () => {
     const strategy = createNamingStrategy({
       typeName: {
         style: "pascal",
-        emptyFallback: "GeneratedType"
+        emptyFallback: "GeneratedType",
       },
       fieldName: {
         style: "snake",
-        fallback: "quoted"
-      }
+        fallback: "quoted",
+      },
     });
 
     const typeName = identifierName("user-profile");
@@ -48,40 +48,45 @@ describe("core naming", () => {
 
   it("supports fallback strategies when words are not renderable", () => {
     const name = identifierName({
-      source: "123",
-      words: ["123"]
+      source: "---",
+      words: ["---"],
     });
 
     expect(
       renderIdentifierName(name, {
         style: "camel",
-        fallback: "quoted"
-      })
-    ).toBe('"123"');
+        fallback: "quoted",
+      }),
+    ).toBe('"---"');
 
     expect(
       renderIdentifierName(name, {
         style: "pascal",
-        emptyFallback: "GeneratedType"
-      })
+        emptyFallback: "GeneratedType",
+      }),
     ).toBe("GeneratedType");
   });
 
   it("normalizes identifiers for numeric prefixes and reserved words", () => {
     expect(
-      renderIdentifierName(identifierName({ source: "123-name", words: ["123", "name"] }), {
-        style: "camel",
-        invalidPrefix: "_"
-      })
-    ).toBe("name");
+      renderIdentifierName(
+        identifierName({ source: "123-name", words: ["123", "name"] }),
+        {
+          style: "camel",
+          invalidPrefix: "_",
+        },
+      ),
+    ).toBe("_123Name");
 
-    expect(normalizeIdentifier("123Name", { invalidPrefix: "_" })).toBe("_123Name");
+    expect(normalizeIdentifier("123Name", { invalidPrefix: "_" })).toBe(
+      "_123Name",
+    );
     expect(
       normalizeIdentifier("type", {
         reservedWords: ["type"],
         reservedWordHandling: "suffix",
-        reservedWordSuffix: "_"
-      })
+        reservedWordSuffix: "_",
+      }),
     ).toBe("type_");
   });
 
@@ -90,23 +95,23 @@ describe("core naming", () => {
       normalizeIdentifier("type", {
         reservedWords: ["type"],
         reservedWordHandling: "prefix",
-        reservedWordPrefix: "_"
-      })
+        reservedWordPrefix: "_",
+      }),
     ).toBe("_type");
 
     expect(
       normalizeIdentifier("type", {
         reservedWords: ["type"],
-        reservedWordHandling: "quoted"
-      })
+        reservedWordHandling: "quoted",
+      }),
     ).toBe('"type"');
 
     expect(
       normalizeIdentifier("type", {
         reservedWords: ["type"],
         reservedWordHandling: "raw",
-        rawIdentifierPrefix: "r#"
-      })
+        rawIdentifierPrefix: "r#",
+      }),
     ).toBe("r#type");
   });
 });

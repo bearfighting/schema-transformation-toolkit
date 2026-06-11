@@ -14,9 +14,7 @@
   "dependencies": {
     "@aio/core": "workspace:*",
     "@aio/generator-typescript": "workspace:*",
-    "@aio/parser-json": "workspace:*",
-    "@aio/parser-toml": "workspace:*",
-    "@aio/parser-yaml": "workspace:*"
+    "@aio/parser-json": "workspace:*"
   },
   "scripts": {
     "build": "tsup --config ../../tsup.config.ts",

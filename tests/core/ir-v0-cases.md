@@ -100,7 +100,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarString", scalarType("string"))
+schemaDocument("ScalarString", scalarType("string"));
 ```
 
 ### 2. scalar-integer
@@ -114,7 +114,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarInteger", scalarType("integer"))
+schemaDocument("ScalarInteger", scalarType("integer"));
 ```
 
 ### 3. scalar-number
@@ -128,7 +128,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarNumber", scalarType("number"))
+schemaDocument("ScalarNumber", scalarType("number"));
 ```
 
 ### 4. scalar-boolean
@@ -142,7 +142,7 @@ true
 Expected AST:
 
 ```ts
-schemaDocument("ScalarBoolean", scalarType("boolean"))
+schemaDocument("ScalarBoolean", scalarType("boolean"));
 ```
 
 ### 5. simple-object
@@ -165,9 +165,9 @@ schemaDocument(
   objectType([
     fieldNode("name", scalarType("string")),
     fieldNode("age", scalarType("integer")),
-    fieldNode("active", scalarType("boolean"))
-  ])
-)
+    fieldNode("active", scalarType("boolean")),
+  ]),
+);
 ```
 
 ### 6. nested-object
@@ -193,11 +193,11 @@ schemaDocument(
       "user",
       objectType([
         fieldNode("name", scalarType("string")),
-        fieldNode("age", scalarType("integer"))
-      ])
-    )
-  ])
-)
+        fieldNode("age", scalarType("integer")),
+      ]),
+    ),
+  ]),
+);
 ```
 
 ### 7. array-of-string
@@ -211,7 +211,7 @@ Source Sample:
 Expected AST Sketch:
 
 ```ts
-schemaDocument("ArrayOfString", arrayType(scalarType("string")))
+schemaDocument("ArrayOfString", arrayType(scalarType("string")));
 ```
 
 ### 8. array-of-object
@@ -239,10 +239,10 @@ schemaDocument(
   arrayType(
     objectType([
       fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"))
-    ])
-  )
-)
+      fieldNode("name", scalarType("string")),
+    ]),
+  ),
+);
 ```
 
 ### 9. object-field-optional
@@ -269,10 +269,10 @@ schemaDocument(
   arrayType(
     objectType([
       fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"), { required: false })
-    ])
-  )
-)
+      fieldNode("name", scalarType("string"), { required: false }),
+    ]),
+  ),
+);
 ```
 
 ### 10. object-field-nullable
@@ -300,10 +300,10 @@ schemaDocument(
   arrayType(
     objectType([
       fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"), { nullable: true })
-    ])
-  )
-)
+      fieldNode("name", scalarType("string"), { nullable: true }),
+    ]),
+  ),
+);
 ```
 
 ### 11. object-field-optional-and-nullable
@@ -336,11 +336,11 @@ schemaDocument(
       fieldNode("id", scalarType("integer")),
       fieldNode("name", scalarType("string"), {
         required: false,
-        nullable: true
-      })
-    ])
-  )
-)
+        nullable: true,
+      }),
+    ]),
+  ),
+);
 ```
 
 ### 12. nested-optional-field
@@ -374,12 +374,12 @@ schemaDocument(
         "user",
         objectType([
           fieldNode("id", scalarType("integer")),
-          fieldNode("name", scalarType("string"), { required: false })
-        ])
-      )
-    ])
-  )
-)
+          fieldNode("name", scalarType("string"), { required: false }),
+        ]),
+      ),
+    ]),
+  ),
+);
 ```
 
 ### 13. explicit-null-without-other-sample
@@ -417,10 +417,7 @@ Expected AST Note:
 Source Sample:
 
 ```json
-[
-  { "id": 1 },
-  "a"
-]
+[{ "id": 1 }, "a"]
 ```
 
 Expected AST Note:
@@ -441,7 +438,7 @@ Expected AST Note:
 
 - this is valid JSON
 - there is no element type evidence
-- parser result should be `unsupported-empty-array`
+- parser result should be a valid AST containing `array<unknown>`
 
 ### 17. standalone-null-is-valid-but-not-inferable
 
@@ -454,8 +451,8 @@ null
 Expected AST Note:
 
 - this is valid JSON
-- a standalone `null` does not produce a stable schema in AST v0
-- parser result should be `unsupported-top-level-null`
+- a standalone `null` is preserved as unresolved semantics in AST v0
+- parser result should be a valid AST containing `unknown | null`
 
 ## AST and Inference Rules Locked By These Cases
 

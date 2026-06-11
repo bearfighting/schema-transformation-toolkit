@@ -3,16 +3,20 @@ import type {
   ObjectTypeNode,
   ScalarTypeNode,
   UnknownTypeNode,
-  TypeNode
+  TypeNode,
 } from "@aio/core";
 import { isNumericScalar } from "./shared.js";
 import { JsonInferenceError } from "./errors.js";
 
-export function mergeTypeNodes(left: TypeNode, right: TypeNode, context: string): TypeNode {
+export function mergeTypeNodes(
+  left: TypeNode,
+  right: TypeNode,
+  context: string,
+): TypeNode {
   if (left.kind !== right.kind) {
     throw new JsonInferenceError(
       "unsupported-mixed-types",
-      `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`
+      `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
     );
   }
 
@@ -25,7 +29,11 @@ export function mergeTypeNodes(left: TypeNode, right: TypeNode, context: string)
   }
 
   if (left.kind === "array" && right.kind === "array") {
-    left.elementType = mergeTypeNodes(left.elementType, right.elementType, context);
+    left.elementType = mergeTypeNodes(
+      left.elementType,
+      right.elementType,
+      context,
+    );
     return left;
   }
 
@@ -35,14 +43,14 @@ export function mergeTypeNodes(left: TypeNode, right: TypeNode, context: string)
 
   throw new JsonInferenceError(
     "unsupported-mixed-types",
-    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`
+    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
   );
 }
 
 function mergeScalarTypeNodes(
   left: ScalarTypeNode,
   right: ScalarTypeNode,
-  context: string
+  context: string,
 ): ScalarTypeNode {
   if (left.scalar === right.scalar) {
     return left;
@@ -55,14 +63,14 @@ function mergeScalarTypeNodes(
 
   throw new JsonInferenceError(
     "unsupported-mixed-types",
-    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`
+    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
   );
 }
 
 function mergeObjectTypeNodes(
   left: ObjectTypeNode,
   right: ObjectTypeNode,
-  context: string
+  context: string,
 ): ObjectTypeNode {
   const fieldMap = new Map<string, FieldNode>();
 
@@ -76,7 +84,7 @@ function mergeObjectTypeNodes(
     if (!leftField) {
       fieldMap.set(rightField.name.source, {
         ...rightField,
-        required: false
+        required: false,
       });
       continue;
     }
@@ -86,13 +94,15 @@ function mergeObjectTypeNodes(
   }
 
   for (const leftField of left.fields) {
-    if (!right.fields.some((field) => field.name.source === leftField.name.source)) {
+    if (
+      !right.fields.some((field) => field.name.source === leftField.name.source)
+    ) {
       leftField.required = false;
     }
   }
 
   left.fields = Array.from(fieldMap.values()).sort((leftField, rightField) =>
-    leftField.name.source.localeCompare(rightField.name.source)
+    leftField.name.source.localeCompare(rightField.name.source),
   );
 
   return left;
@@ -100,7 +110,7 @@ function mergeObjectTypeNodes(
 
 function mergeUnknownTypeNodes(
   left: UnknownTypeNode,
-  right: UnknownTypeNode
+  right: UnknownTypeNode,
 ): UnknownTypeNode {
   left.nullable = left.nullable || right.nullable;
   if (left.reason === undefined && right.reason !== undefined) {

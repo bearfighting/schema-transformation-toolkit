@@ -83,7 +83,7 @@ The previous `top-level-null`, `empty-array`, `null-only-field`, and `empty-arra
 
 ## Configuration Status
 
-The JSON parser already exposes a richer configuration model, including:
+The JSON parser currently exposes configuration for:
 
 - `strictness`
 - `inference.numericMode`
@@ -92,4 +92,26 @@ The JSON parser already exposes a richer configuration model, including:
 - `inference.nullHandling`
 - `diagnostics.preserveSourceInfo`
 
-At the moment, most future-facing options are validated but not yet implemented beyond the current strict subset. This is intentional: the configuration shape is being established early, while unsupported combinations still fail explicitly.
+The current public configuration surface only includes options that are implemented today:
+
+- `strictness: "strict"`
+- `inference.numericMode: "distinguish" | "number-only"`
+- `inference.emptyArrayMode: "unknown-array"`
+- `inference.mixedTypeMode: "error"`
+- `inference.nullHandling: "nullable"`
+- `diagnostics.preserveSourceInfo: false`
+
+Planned configuration areas that are not exposed yet:
+
+- `strictness: "best-effort"`
+- `inference.emptyArrayMode: "error"`
+- `inference.mixedTypeMode: "union"`
+- `inference.mixedTypeMode: "unknown"`
+- `inference.nullHandling: "strict"`
+- `diagnostics.preserveSourceInfo: true`
+
+Notes:
+
+- `inference.mixedTypeMode: "union"` will require IR support for union types.
+- `inference.mixedTypeMode: "unknown"` may also need richer IR semantics if we want to preserve why a value became `unknown`.
+- `diagnostics.preserveSourceInfo: true` will require IR or document metadata support for source locations or evidence tracking.

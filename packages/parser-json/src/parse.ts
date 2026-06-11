@@ -1,16 +1,13 @@
-import type { SchemaDocument } from "@aio/core";
+import type { ParseFailureResult, SchemaDocument } from "@aio/core";
 import { isJsonInferenceError, JsonInferenceError } from "./errors.js";
 import { inferJsonType } from "./infer.js";
 import { schemaDocument } from "@aio/core";
 import {
   assertSupportedJsonParseOptions,
   configureJsonParser,
-  createJsonParser,
-  prepareJsonParseOptions,
   resolveJsonParseOptions,
-  validateJsonParseOptions,
   type JsonParseOptions,
-  type ResolvedJsonParseOptions
+  type ResolvedJsonParseOptions,
 } from "./options.js";
 import type { JsonValue } from "./types.js";
 
@@ -19,47 +16,44 @@ export interface JsonInferenceSuccessResult {
   document: SchemaDocument;
 }
 
-export interface JsonInferenceFailureResult {
-  ok: false;
-  code:
-    | "invalid-json"
-    | "unsupported-top-level-null"
-    | "unsupported-empty-array"
-    | "unsupported-null-only-field"
-    | "unsupported-empty-array-only-field"
-    | "unsupported-mixed-types";
-  message: string;
-}
+export type JsonInferenceFailureResult =
+  ParseFailureResult<"invalid-json" | "unsupported-mixed-types">;
 
-export type JsonInferenceResult = JsonInferenceSuccessResult | JsonInferenceFailureResult;
+export type JsonInferenceResult =
+  | JsonInferenceSuccessResult
+  | JsonInferenceFailureResult;
 
-export function inferJsonDocument(input: string, name = "JsonDocument"): SchemaDocument {
-  const parsed = parseJsonValue(input);
-
-  return schemaDocument(name, inferJsonType(parsed));
+export function inferJsonDocument(
+  input: string,
+  name = "JsonDocument",
+): SchemaDocument {
+  return inferJsonDocumentWithResolvedOptions(input, {
+    ...resolveJsonParseOptions(),
+    name,
+  });
 }
 
 export function inferJsonDocumentWithOptions(
   input: string,
-  options: JsonParseOptions = {}
+  options: JsonParseOptions = {},
 ): SchemaDocument {
   const resolvedOptions = resolveJsonParseOptions(options);
 
   assertSupportedJsonParseOptions(resolvedOptions);
 
-  return inferJsonDocument(input, resolvedOptions.name);
+  return inferJsonDocumentWithResolvedOptions(input, resolvedOptions);
 }
 
 export function tryInferJsonDocument(
   input: string,
-  name = "JsonDocument"
+  name = "JsonDocument",
 ): JsonInferenceResult {
   return tryInferJsonDocumentWithOptions(input, { name });
 }
 
 export function tryInferJsonDocumentWithOptions(
   input: string,
-  options: JsonParseOptions = {}
+  options: JsonParseOptions = {},
 ): JsonInferenceResult {
   const resolvedOptions = resolveJsonParseOptions(options);
 
@@ -68,14 +62,14 @@ export function tryInferJsonDocumentWithOptions(
   try {
     return {
       ok: true,
-      document: inferJsonDocumentWithResolvedOptions(input, resolvedOptions)
+      document: inferJsonDocumentWithResolvedOptions(input, resolvedOptions),
     };
   } catch (error) {
     if (isJsonInferenceError(error)) {
       return {
         ok: false,
         code: error.code,
-        message: error.message
+        message: error.message,
       };
     }
 
@@ -83,7 +77,7 @@ export function tryInferJsonDocumentWithOptions(
       return {
         ok: false,
         code: "invalid-json",
-        message: "The input is not valid JSON."
+        message: "The input is not valid JSON.",
       };
     }
 
@@ -95,32 +89,36 @@ export function parseJsonValue(input: string): JsonValue {
   try {
     return JSON.parse(input) as JsonValue;
   } catch {
-    throw new JsonInferenceError("invalid-json", "The input is not valid JSON.");
+    throw new JsonInferenceError(
+      "invalid-json",
+      "The input is not valid JSON.",
+    );
   }
 }
 
-const defaultConfiguredJsonParser = configureJsonParser(
-  (input, options) => tryInferJsonDocumentWithResolvedOptions(input, options)
+const defaultConfiguredJsonParser = configureJsonParser((input, options) =>
+  tryInferJsonDocumentWithResolvedOptions(input, options),
 );
 
 export const jsonSchemaParser = defaultConfiguredJsonParser.parser;
-export const preparedJsonSchemaParserOptions = defaultConfiguredJsonParser.prepared;
+export const preparedJsonSchemaParserOptions =
+  defaultConfiguredJsonParser.prepared;
 
 function tryInferJsonDocumentWithResolvedOptions(
   input: string,
-  options: ResolvedJsonParseOptions
+  options: ResolvedJsonParseOptions,
 ): JsonInferenceResult {
   try {
     return {
       ok: true,
-      document: inferJsonDocumentWithResolvedOptions(input, options)
+      document: inferJsonDocumentWithResolvedOptions(input, options),
     };
   } catch (error) {
     if (isJsonInferenceError(error)) {
       return {
         ok: false,
         code: error.code,
-        message: error.message
+        message: error.message,
       };
     }
 
@@ -128,7 +126,7 @@ function tryInferJsonDocumentWithResolvedOptions(
       return {
         ok: false,
         code: "invalid-json",
-        message: "The input is not valid JSON."
+        message: "The input is not valid JSON.",
       };
     }
 
@@ -138,9 +136,9 @@ function tryInferJsonDocumentWithResolvedOptions(
 
 function inferJsonDocumentWithResolvedOptions(
   input: string,
-  options: ResolvedJsonParseOptions
+  options: ResolvedJsonParseOptions,
 ): SchemaDocument {
   const parsed = parseJsonValue(input);
 
-  return schemaDocument(options.name, inferJsonType(parsed));
+  return schemaDocument(options.name, inferJsonType(parsed, options));
 }

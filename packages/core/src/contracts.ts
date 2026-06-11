@@ -12,7 +12,7 @@ export interface PreparedOptions<TResolved> {
 
 export interface ConfiguredParser<
   TParser extends SchemaParser = SchemaParser,
-  TResolved = unknown
+  TResolved = unknown,
 > {
   parser: TParser;
   prepared: PreparedOptions<TResolved>;
@@ -23,28 +23,30 @@ export interface ParseSuccessResult {
   document: SchemaDocument;
 }
 
-export interface ParseFailureResult {
+export interface ParseFailureResult<TCode extends string = string> {
   ok: false;
-  code: string;
+  code: TCode;
   message: string;
 }
 
-export type ParseResult = ParseSuccessResult | ParseFailureResult;
+export type ParseResult<TCode extends string = string> =
+  | ParseSuccessResult
+  | ParseFailureResult<TCode>;
 
 export interface SchemaParser<
   TInput = string,
   TOptions extends ParseOptions = ParseOptions,
-  TResult extends ParseResult = ParseResult
+  TResult extends ParseResult = ParseResult,
 > {
   format: string;
   parse(input: TInput, options?: TOptions): TResult;
 }
 
-export interface GenerateOptions {}
+export type GenerateOptions = Record<never, never>;
 
 export interface ConfiguredGenerator<
   TGenerator extends SchemaGenerator = SchemaGenerator,
-  TResolved = unknown
+  TResolved = unknown,
 > {
   generator: TGenerator;
   prepared: PreparedOptions<TResolved>;
@@ -55,20 +57,20 @@ export interface GenerateSuccessResult<TOutput = string> {
   output: TOutput;
 }
 
-export interface GenerateFailureResult {
+export interface GenerateFailureResult<TCode extends string = string> {
   ok: false;
-  code: string;
+  code: TCode;
   message: string;
 }
 
-export type GenerateResult<TOutput = string> =
+export type GenerateResult<TOutput = string, TCode extends string = string> =
   | GenerateSuccessResult<TOutput>
-  | GenerateFailureResult;
+  | GenerateFailureResult<TCode>;
 
 export interface SchemaGenerator<
   TOutput = string,
   TOptions extends GenerateOptions = GenerateOptions,
-  TResult extends GenerateResult<TOutput> = GenerateResult<TOutput>
+  TResult extends GenerateResult<TOutput> = GenerateResult<TOutput>,
 > {
   target: string;
   generate(document: SchemaDocument, options?: TOptions): TResult;

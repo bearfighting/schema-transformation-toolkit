@@ -1,0 +1,33 @@
+"filename", "language", "JSON", "JSON with Comments", "Markdown", "TypeScript", "comment", "blank", "total"
+"/home/florent/codes/all_in_one_data_type_converter/packages/cli/package.json", "JSON", 16, 0, 0, 0, 0, 1, 17
+"/home/florent/codes/all_in_one_data_type_converter/packages/cli/src/globals.d.ts", "TypeScript", 0, 0, 0, 3, 0, 1, 4
+"/home/florent/codes/all_in_one_data_type_converter/packages/cli/src/index.ts", "TypeScript", 0, 0, 0, 7, 0, 4, 11
+"/home/florent/codes/all_in_one_data_type_converter/packages/cli/tsconfig.json", "JSON with Comments", 0, 4, 0, 0, 0, 1, 5
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/package.json", "JSON", 18, 0, 0, 0, 0, 1, 19
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/contracts.ts", "TypeScript", 0, 0, 0, 64, 0, 14, 78
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/factories.ts", "TypeScript", 0, 0, 0, 98, 0, 14, 112
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/guards.ts", "TypeScript", 0, 0, 0, 19, 0, 5, 24
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/index.ts", "TypeScript", 0, 0, 0, 59, 0, 6, 65
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/naming.ts", "TypeScript", 0, 0, 0, 127, 0, 25, 152
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/src/types.ts", "TypeScript", 0, 0, 0, 48, 0, 10, 58
+"/home/florent/codes/all_in_one_data_type_converter/packages/core/tsconfig.json", "JSON with Comments", 0, 4, 0, 0, 0, 1, 5
+"/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/README.md", "Markdown", 0, 0, 110, 0, 0, 50, 160
+"/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/package.json", "JSON", 21, 0, 0, 0, 0, 1, 22
+"/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/src/index.ts", "TypeScript", 0, 0, 0, 18, 0, 1, 19
+"/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/src/render.ts", "TypeScript", 0, 0, 0, 468, 0, 71, 539
+"/home/florent/codes/all_in_one_data_type_converter/packages/generator-typescript/tsconfig.json", "JSON with Comments", 0, 4, 0, 0, 0, 1, 5
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/README.md", "Markdown", 0, 0, 80, 0, 0, 38, 118
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/package.json", "JSON", 21, 0, 0, 0, 0, 1, 22
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/errors.ts", "TypeScript", 0, 0, 0, 16, 0, 4, 20
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/index.ts", "TypeScript", 0, 0, 0, 39, 0, 1, 40
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/infer.ts", "TypeScript", 0, 0, 0, 176, 0, 33, 209
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/merge.ts", "TypeScript", 0, 0, 0, 102, 0, 20, 122
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/options.ts", "TypeScript", 0, 0, 0, 177, 0, 23, 200
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/parse.ts", "TypeScript", 0, 0, 0, 123, 0, 22, 145
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/shared.ts", "TypeScript", 0, 0, 0, 14, 0, 6, 20
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/src/types.ts", "TypeScript", 0, 0, 0, 7, 0, 5, 12
+"/home/florent/codes/all_in_one_data_type_converter/packages/parser-json/tsconfig.json", "JSON with Comments", 0, 4, 0, 0, 0, 1, 5
+"/home/florent/codes/all_in_one_data_type_converter/packages/sdk/package.json", "JSON", 23, 0, 0, 0, 0, 1, 24
+"/home/florent/codes/all_in_one_data_type_converter/packages/sdk/src/index.ts", "TypeScript", 0, 0, 0, 3, 0, 1, 4
+"/home/florent/codes/all_in_one_data_type_converter/packages/sdk/tsconfig.json", "JSON with Comments", 0, 4, 0, 0, 0, 1, 5
+"Total", "-", 99, 20, 190, 1568, 0, 364, 2241

@@ -10,6 +10,8 @@
     "clean": "pnpm -r --if-present clean",
     "dev": "pnpm -r --if-present dev",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -26,8 +28,6 @@
     "zod": "^3.25.67"
   },
   "dependencies": {
-    "@iarna/toml": "^2.2.5",
-    "cac": "^6.7.14",
-    "yaml": "^2.8.0"
+    "cac": "^6.7.14"
   }
 }

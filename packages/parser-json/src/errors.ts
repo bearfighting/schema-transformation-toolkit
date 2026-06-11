@@ -1,9 +1,5 @@
 export type JsonInferenceErrorCode =
   | "invalid-json"
-  | "unsupported-top-level-null"
-  | "unsupported-empty-array"
-  | "unsupported-null-only-field"
-  | "unsupported-empty-array-only-field"
   | "unsupported-mixed-types";
 
 export class JsonInferenceError extends Error {
@@ -16,6 +12,8 @@ export class JsonInferenceError extends Error {
   }
 }
 
-export function isJsonInferenceError(error: unknown): error is JsonInferenceError {
+export function isJsonInferenceError(
+  error: unknown,
+): error is JsonInferenceError {
   return error instanceof JsonInferenceError;
 }

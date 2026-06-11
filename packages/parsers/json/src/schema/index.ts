@@ -1,8 +1,5 @@
-export { JsonInferenceError, isJsonInferenceError } from "./errors.js";
-export { decodeJsonText } from "./decode.js";
-export { inferJsonType } from "./infer.js";
+export { inferSchemaNodeFromJsonValue } from "./infer.js";
 export {
-  inferSchemaNodeFromJsonValue,
   inferJsonSchemaDocument,
   inferJsonSchemaDocumentWithOptions,
   jsonSchemaParser,
@@ -12,53 +9,27 @@ export {
   type JsonSchemaInferenceFailureResult,
   type JsonSchemaInferenceResult,
   type JsonSchemaInferenceSuccessResult,
-} from "./schema/index.js";
-export {
-  inferJsonDocument,
-  inferJsonDocumentWithOptions,
-  parseJsonValue,
-  tryInferJsonDocument,
-  tryInferJsonDocumentWithOptions,
-  type JsonInferenceFailureResult,
-  type JsonInferenceResult,
-  type JsonInferenceSuccessResult,
 } from "./parse.js";
 export {
   DEFAULT_JSON_DECODE_OPTIONS,
   DEFAULT_JSON_SCHEMA_PARSE_OPTIONS,
-  DEFAULT_JSON_PARSE_OPTIONS,
   assertSupportedJsonSchemaParseOptions,
-  assertSupportedJsonParseOptions,
   configureJsonSchemaParser,
-  configureJsonParser,
   createJsonSchemaParser,
-  createJsonParser,
   prepareJsonSchemaParseOptions,
-  prepareJsonParseOptions,
   resolveJsonDecodeOptions,
   resolveJsonSchemaParseOptions,
-  resolveJsonParseOptions,
   validateJsonDecodeOptions,
   validateJsonSchemaParseOptions,
-  validateJsonParseOptions,
-  type JsonDiagnosticsOptions,
   type JsonDecodeOptions,
+  type JsonDiagnosticsOptions,
   type JsonEmptyArrayMode,
-  type JsonInferenceOptions,
   type JsonMixedTypeMode,
   type JsonNullHandling,
   type JsonNumericMode,
-  type JsonParseOptions,
   type JsonParseStrictness,
   type JsonSchemaInferenceOptions,
   type JsonSchemaParseOptions,
   type ResolvedJsonDecodeOptions,
-  type ResolvedJsonParseOptions,
+  type ResolvedJsonSchemaParseOptions,
 } from "./options.js";
-export type {
-  JsonArray,
-  JsonObject,
-  JsonPrimitive,
-  JsonValue,
-  ScalarJsonKind,
-} from "./types.js";

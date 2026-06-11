@@ -1,91 +1,59 @@
-# Core IR v0 Test Cases
+# Core IR Working Cases
 
-These cases define the first-pass scope for the schema AST/IR. The goal is to cover:
+This file is a test-oriented reference for the currently supported schema IR surface.
+
+The goal is to keep concrete examples close to the semantics we actively support and validate.
+
+## Current Scope
 
 - primitive scalar nodes
 - object and array nodes
 - field presence semantics
 - the separation between `optional` and `nullable`
+- explicit `null`
+- union
+- tuple
+- record or map
 
-## In Scope
+## Current Schema Sketch
 
-- `string`
-- `integer`
-- `number`
-- `boolean`
-- `object`
-- `array`
-- `required`
-- `optional`
-- `nullable`
+The IR is no longer limited to the original minimal object-and-array-only shape.
 
-## Out of Scope For v0
-
-- `enum`
-- `union`
-- `reference`
-- `map`
-- `tuple`
-- inheritance or composition
-
-## Minimal AST v0
-
-The first-pass AST shape is intentionally small:
+Representative node kinds now include:
 
 ```ts
-type ScalarKind = "string" | "integer" | "number" | "boolean";
-
-interface ScalarTypeNode {
-  kind: "scalar";
-  scalar: ScalarKind;
-}
-
-interface FieldNode {
-  kind: "field";
-  name: string;
-  required: boolean;
-  nullable: boolean;
-  type: TypeNode;
-}
-
-interface ObjectTypeNode {
-  kind: "object";
-  fields: FieldNode[];
-}
-
-interface ArrayTypeNode {
-  kind: "array";
-  elementType: TypeNode;
-}
-
-type TypeNode = ScalarTypeNode | ObjectTypeNode | ArrayTypeNode;
-
-interface SchemaDocument {
-  version: "0.1";
-  kind: "document";
-  name: string;
-  root: TypeNode;
-}
+type SchemaNode =
+  | SchemaScalarNode
+  | SchemaLiteralNode
+  | SchemaUnionNode
+  | SchemaTupleNode
+  | SchemaRecordNode
+  | SchemaNullNode
+  | SchemaUnknownNode
+  | SchemaObjectNode
+  | SchemaArrayNode;
 ```
 
-The tests in this phase should primarily assert `Expected AST`, not target-language code.
+The tests in this phase should still primarily assert expected IR semantics rather than target-language code, even when generator tests exist elsewhere.
 
 ## JSON Inference Convention
 
-For AST v0, valid JSON input falls into two groups:
+Current JSON inference falls into two groups:
 
 1. Inferable input
-   The parser can produce a stable AST node structure.
-2. Non-inferable input
-   The input is still valid JSON, but it does not produce a stable schema under AST v0.
+   The parser can produce a stable schema IR structure.
+2. Unsupported input
+   The input is valid JSON, but it does not currently produce a stable schema under the active inference rules.
 
-This is especially important for arrays.
+Important rules:
 
-- Arrays must have a common inferable element type
+- arrays infer as homogeneous arrays when a shared element type exists
+- arrays may infer as tuples when tuple inference is explicitly enabled
+- object samples may infer as records when record inference is explicitly enabled and the conservative heuristic succeeds
 - `integer` and `number` may merge into `number`
-- Object elements may merge into one object type by turning missing fields into `optional`
-- Explicit `null` may contribute `nullable`
-- If array elements do not share a common inferable structure, the input is valid JSON but AST v0 must reject schema inference
+- object elements may merge into one object type by turning missing fields into `optional`
+- explicit `null` is distinct from missing presence
+- unsupported cases should fail explicitly
 
 ## Cases
 
@@ -100,7 +68,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarString", scalarType("string"));
+schemaDocument("ScalarString", schemaScalarNode("string"));
 ```
 
 ### 2. scalar-integer
@@ -114,7 +82,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarInteger", scalarType("integer"));
+schemaDocument("ScalarInteger", schemaScalarNode("integer"));
 ```
 
 ### 3. scalar-number
@@ -128,7 +96,7 @@ Source Sample:
 Expected AST:
 
 ```ts
-schemaDocument("ScalarNumber", scalarType("number"));
+schemaDocument("ScalarNumber", schemaScalarNode("number"));
 ```
 
 ### 4. scalar-boolean
@@ -142,7 +110,7 @@ true
 Expected AST:
 
 ```ts
-schemaDocument("ScalarBoolean", scalarType("boolean"));
+schemaDocument("ScalarBoolean", schemaScalarNode("boolean"));
 ```
 
 ### 5. simple-object
@@ -162,10 +130,10 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "SimpleObject",
-  objectType([
-    fieldNode("name", scalarType("string")),
-    fieldNode("age", scalarType("integer")),
-    fieldNode("active", scalarType("boolean")),
+  schemaObjectNode([
+    schemaFieldNode("name", schemaScalarNode("string")),
+    schemaFieldNode("age", schemaScalarNode("integer")),
+    schemaFieldNode("active", schemaScalarNode("boolean")),
   ]),
 );
 ```
@@ -188,12 +156,12 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "NestedObject",
-  objectType([
-    fieldNode(
+  schemaObjectNode([
+    schemaFieldNode(
       "user",
-      objectType([
-        fieldNode("name", scalarType("string")),
-        fieldNode("age", scalarType("integer")),
+      schemaObjectNode([
+        schemaFieldNode("name", schemaScalarNode("string")),
+        schemaFieldNode("age", schemaScalarNode("integer")),
       ]),
     ),
   ]),
@@ -211,7 +179,7 @@ Source Sample:
 Expected AST Sketch:
 
 ```ts
-schemaDocument("ArrayOfString", arrayType(scalarType("string")));
+schemaDocument("ArrayOfString", schemaArrayNode(schemaScalarNode("string")));
 ```
 
 ### 8. array-of-object
@@ -236,10 +204,10 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "ArrayOfObject",
-  arrayType(
-    objectType([
-      fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string")),
+  schemaArrayNode(
+    schemaObjectNode([
+      schemaFieldNode("id", schemaScalarNode("integer")),
+      schemaFieldNode("name", schemaScalarNode("string")),
     ]),
   ),
 );
@@ -266,10 +234,10 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "ObjectFieldOptional",
-  arrayType(
-    objectType([
-      fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"), { required: false }),
+  schemaArrayNode(
+    schemaObjectNode([
+      schemaFieldNode("id", schemaScalarNode("integer")),
+      schemaFieldNode("name", schemaScalarNode("string"), { required: false }),
     ]),
   ),
 );
@@ -297,10 +265,10 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "ObjectFieldNullable",
-  arrayType(
-    objectType([
-      fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"), { nullable: true }),
+  schemaArrayNode(
+    schemaObjectNode([
+      schemaFieldNode("id", schemaScalarNode("integer")),
+      schemaFieldNode("name", schemaScalarNode("string"), { nullable: true }),
     ]),
   ),
 );
@@ -331,10 +299,10 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "ObjectFieldOptionalAndNullable",
-  arrayType(
-    objectType([
-      fieldNode("id", scalarType("integer")),
-      fieldNode("name", scalarType("string"), {
+  schemaArrayNode(
+    schemaObjectNode([
+      schemaFieldNode("id", schemaScalarNode("integer")),
+      schemaFieldNode("name", schemaScalarNode("string"), {
         required: false,
         nullable: true,
       }),
@@ -368,13 +336,13 @@ Expected AST Sketch:
 ```ts
 schemaDocument(
   "NestedOptionalField",
-  arrayType(
-    objectType([
-      fieldNode(
+  schemaArrayNode(
+    schemaObjectNode([
+      schemaFieldNode(
         "user",
-        objectType([
-          fieldNode("id", scalarType("integer")),
-          fieldNode("name", scalarType("string"), { required: false }),
+        schemaObjectNode([
+          schemaFieldNode("id", schemaScalarNode("integer")),
+          schemaFieldNode("name", schemaScalarNode("string"), { required: false }),
         ]),
       ),
     ]),

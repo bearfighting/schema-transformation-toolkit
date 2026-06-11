@@ -15,10 +15,19 @@ The current generator supports:
 
 - object root documents as `export interface` or `export type`
 - scalar root documents as `export type`
+- literal root documents as `export type`
+- union root documents as `export type`
+- `null` root documents as `export type`
 - array root documents as `export type`
+- tuple root documents as `export type`
+- record root documents as `export type`
 - nested inline object types
 - `optional` fields as `?`
 - `nullable` fields as `| null`
+- literal nodes as exact TypeScript literal types
+- union nodes as exact TypeScript union types
+- optional tuple elements as `?`
+- record nodes as `Record<K, V>`
 - `unknown` nodes as `unknown`
 - configurable array rendering with `T[]` / `Array<T>`
 - normalized identifier naming for type names and field names
@@ -119,8 +128,38 @@ export type UserList = Array<{
 Unresolved semantics:
 
 ```ts
-export type StandaloneNull = unknown | null;
+export type StandaloneNull = null;
 export type EmptyArray = unknown[];
+```
+
+Literal root:
+
+```ts
+export type Status = "open";
+```
+
+Union root:
+
+```ts
+export type MixedValue = string | number;
+```
+
+Tuple root:
+
+```ts
+export type Coordinate = [number, string];
+```
+
+Tuple root with optional and nullable position:
+
+```ts
+export type PartialCoordinate = [number, (string | null)?];
+```
+
+Record root:
+
+```ts
+export type TranslationTable = Record<string, string>;
 ```
 
 Custom naming strategy:
@@ -143,7 +182,6 @@ The generator does not yet support:
 
 - choosing `class` emission via configuration
 - `enum`
-- `union`
 - references/shared named models
 - imports/exports beyond the current single-document output
 - target-specific formatting families beyond the current naming/object-root/array-style options

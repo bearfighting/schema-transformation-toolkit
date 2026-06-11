@@ -7,11 +7,11 @@ export {
   toCamelCase,
   toPascalCase,
   toSnakeCase,
-} from "./shared/naming.js";
+} from "./naming.js";
 
 export type {
   NamingStrategy,
   NamingStrategyOptions,
   NamingStyle,
   RenderIdentifierOptions,
-} from "./shared/naming.js";
+} from "./naming.js";

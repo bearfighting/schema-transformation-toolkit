@@ -1,11 +1,16 @@
 import type {
-  ArrayTypeNode,
-  FieldNode,
   IdentifierName,
-  ObjectTypeNode,
-  ScalarTypeNode,
   SchemaDocument,
-  TypeNode,
+  SchemaArrayNode,
+  SchemaFieldNode,
+  SchemaLiteralNode,
+  SchemaNode,
+  SchemaObjectNode,
+  SchemaRecordNode,
+  SchemaScalarNode,
+  SchemaTupleElement,
+  SchemaTupleNode,
+  SchemaUnionNode,
 } from "@aio/core";
 import type { ResolvedTypeScriptGeneratorOptions } from "./options.js";
 
@@ -26,7 +31,7 @@ export function renderTypeScriptDocument(
 
 function renderRootInterface(
   name: IdentifierName,
-  node: ObjectTypeNode,
+  node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
   const fields = node.fields
@@ -38,14 +43,14 @@ function renderRootInterface(
 
 function renderRootTypeAlias(
   name: IdentifierName,
-  node: ObjectTypeNode,
+  node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
   return `export type ${renderTypeName(name, options)} = ${renderInlineObjectType(node, 0, options)};`;
 }
 
 function renderFieldNode(
-  field: FieldNode,
+  field: SchemaFieldNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
@@ -56,7 +61,7 @@ function renderFieldNode(
 }
 
 function renderFieldType(
-  field: FieldNode,
+  field: SchemaFieldNode,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
   const renderedType = renderTypeNode(field.type, 1, options);
@@ -69,7 +74,7 @@ function renderFieldType(
 }
 
 function renderTypeNode(
-  node: TypeNode,
+  node: SchemaNode,
   depth = 0,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
@@ -77,8 +82,28 @@ function renderTypeNode(
     return renderScalarType(node);
   }
 
+  if (node.kind === "literal") {
+    return renderLiteralType(node);
+  }
+
+  if (node.kind === "union") {
+    return renderUnionType(node, depth, options);
+  }
+
+  if (node.kind === "tuple") {
+    return renderTupleType(node, depth, options);
+  }
+
+  if (node.kind === "record") {
+    return renderRecordType(node, depth, options);
+  }
+
   if (node.kind === "unknown") {
     return renderUnknownType(node);
+  }
+
+  if (node.kind === "null") {
+    return renderNullType();
   }
 
   if (node.kind === "array") {
@@ -88,7 +113,7 @@ function renderTypeNode(
   return renderInlineObjectType(node, depth, options);
 }
 
-function renderScalarType(node: ScalarTypeNode): string {
+function renderScalarType(node: SchemaScalarNode): string {
   switch (node.scalar) {
     case "string":
       return "string";
@@ -100,8 +125,58 @@ function renderScalarType(node: ScalarTypeNode): string {
   }
 }
 
+function renderLiteralType(node: SchemaLiteralNode): string {
+  if (typeof node.value === "string") {
+    return JSON.stringify(node.value);
+  }
+
+  return String(node.value);
+}
+
+function renderUnionType(
+  node: SchemaUnionNode,
+  depth: number,
+  options: ResolvedTypeScriptGeneratorOptions,
+): string {
+  return node.members
+    .map((member) => renderTypeNode(member, depth, options))
+    .join(" | ");
+}
+
+function renderTupleType(
+  node: SchemaTupleNode,
+  depth: number,
+  options: ResolvedTypeScriptGeneratorOptions,
+): string {
+  return `[${node.elements
+    .map((element) => renderTupleElement(element, depth, options))
+    .join(", ")}]`;
+}
+
+function renderTupleElement(
+  element: SchemaTupleElement,
+  depth: number,
+  options: ResolvedTypeScriptGeneratorOptions,
+): string {
+  const renderedType = renderTypeNode(element.type, depth, options);
+
+  if (element.required) {
+    return renderedType;
+  }
+
+  return `${wrapForOptionalTupleElement(renderedType)}?`;
+}
+
+function renderRecordType(
+  node: SchemaRecordNode,
+  depth: number,
+  options: ResolvedTypeScriptGeneratorOptions,
+): string {
+  return `Record<${renderTypeNode(node.key, depth, options)}, ${renderTypeNode(node.value, depth, options)}>`;
+}
+
 function renderUnknownType(
-  node: Extract<TypeNode, { kind: "unknown" }>,
+  node: Extract<SchemaNode, { kind: "unknown" }>,
 ): string {
   if (node.nullable) {
     return "unknown | null";
@@ -110,8 +185,12 @@ function renderUnknownType(
   return "unknown";
 }
 
+function renderNullType(): string {
+  return "null";
+}
+
 function renderArrayType(
-  node: ArrayTypeNode,
+  node: SchemaArrayNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
@@ -131,7 +210,7 @@ function renderArrayType(
 }
 
 function renderInlineObjectType(
-  node: ObjectTypeNode,
+  node: SchemaObjectNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
@@ -156,6 +235,22 @@ function wrapForArray(renderedType: string): string {
 
 function wrapForUnion(renderedType: string): string {
   if (renderedType.startsWith("{\n")) {
+    return `(${renderedType})`;
+  }
+
+  if (renderedType.includes(" | ")) {
+    return `(${renderedType})`;
+  }
+
+  return renderedType;
+}
+
+function wrapForOptionalTupleElement(renderedType: string): string {
+  if (renderedType.startsWith("{\n")) {
+    return `(${renderedType})`;
+  }
+
+  if (renderedType.includes(" | ")) {
     return `(${renderedType})`;
   }
 

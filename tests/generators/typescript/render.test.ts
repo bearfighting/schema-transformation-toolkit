@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   createNamingStrategy,
-  arrayType,
-  fieldNode,
+  schemaArrayNode,
+  schemaFieldNode,
   identifierName,
-  objectType,
-  scalarType,
+  schemaLiteralNode,
+  schemaNullNode,
+  schemaObjectNode,
+  schemaRecordNode,
+  schemaScalarNode,
   schemaDocument,
-  unknownType,
+  schemaTupleElement,
+  schemaTupleNode,
+  schemaUnionNode,
+  schemaUnknownNode,
 } from "../../../packages/core/src/index.js";
 import { generateTypeScript } from "../../../packages/generators/typescript/src/index.js";
 import {
@@ -26,9 +32,9 @@ describe("generator-typescript", () => {
   it("generates a root interface for object documents", () => {
     const doc = schemaDocument(
       "User",
-      objectType([
-        fieldNode("id", scalarType("integer")),
-        fieldNode("name", scalarType("string"), {
+      schemaObjectNode([
+        schemaFieldNode("id", schemaScalarNode("integer")),
+        schemaFieldNode("name", schemaScalarNode("string"), {
           required: false,
           nullable: true,
         }),
@@ -48,9 +54,9 @@ describe("generator-typescript", () => {
   it('supports rootObjectMode: "type" for object documents', () => {
     const doc = schemaDocument(
       "User",
-      objectType([
-        fieldNode("id", scalarType("integer")),
-        fieldNode("name", scalarType("string"), {
+      schemaObjectNode([
+        schemaFieldNode("id", schemaScalarNode("integer")),
+        schemaFieldNode("name", schemaScalarNode("string"), {
           required: false,
           nullable: true,
         }),
@@ -74,12 +80,12 @@ describe("generator-typescript", () => {
   it("generates nested inline object types", () => {
     const doc = schemaDocument(
       "NestedUser",
-      objectType([
-        fieldNode(
+      schemaObjectNode([
+        schemaFieldNode(
           "user",
-          objectType([
-            fieldNode("id", scalarType("integer")),
-            fieldNode("active", scalarType("boolean")),
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+            schemaFieldNode("active", schemaScalarNode("boolean")),
           ]),
         ),
       ]),
@@ -99,14 +105,14 @@ describe("generator-typescript", () => {
 
   it("generates type aliases for scalar and array roots", () => {
     expect(
-      generateTypeScript(schemaDocument("ScalarString", scalarType("string"))),
+      generateTypeScript(schemaDocument("ScalarString", schemaScalarNode("string"))),
     ).toBe("export type ScalarString = string;");
 
     expect(
       generateTypeScript(
         schemaDocument(
           "UserList",
-          arrayType(objectType([fieldNode("id", scalarType("integer"))])),
+          schemaArrayNode(schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))])),
         ),
       ),
     ).toBe(
@@ -117,7 +123,7 @@ describe("generator-typescript", () => {
   it('uses smart arrayStyle by default', () => {
     expect(
       generateTypeScript(
-        schemaDocument("NumberList", arrayType(scalarType("number"))),
+        schemaDocument("NumberList", schemaArrayNode(schemaScalarNode("number"))),
       ),
     ).toBe("export type NumberList = number[];");
 
@@ -125,21 +131,18 @@ describe("generator-typescript", () => {
       generateTypeScript(
         schemaDocument(
           "UnionList",
-          arrayType(
-            unknownType({
-              reason: "top-level-null",
-              nullable: true,
-            }),
+          schemaArrayNode(
+            schemaNullNode(),
           ),
         ),
       ),
-    ).toBe("export type UnionList = Array<unknown | null>;");
+    ).toBe("export type UnionList = null[];");
   });
 
   it('supports arrayStyle: "generic" and "compact"', () => {
     expect(
       generateTypeScript(
-        schemaDocument("NumberList", arrayType(scalarType("number"))),
+        schemaDocument("NumberList", schemaArrayNode(schemaScalarNode("number"))),
         {
           arrayStyle: "generic",
         },
@@ -150,7 +153,7 @@ describe("generator-typescript", () => {
       generateTypeScript(
         schemaDocument(
           "UserList",
-          arrayType(objectType([fieldNode("id", scalarType("integer"))])),
+          schemaArrayNode(schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))])),
         ),
         {
           arrayStyle: "compact",
@@ -162,10 +165,10 @@ describe("generator-typescript", () => {
   it("applies smart arrayStyle to nested object-array fields", () => {
     const doc = schemaDocument(
       "UserDirectory",
-      objectType([
-        fieldNode(
+      schemaObjectNode([
+        schemaFieldNode(
           "users",
-          arrayType(objectType([fieldNode("id", scalarType("integer"))])),
+          schemaArrayNode(schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))])),
         ),
       ]),
     );
@@ -184,11 +187,11 @@ describe("generator-typescript", () => {
   it("wraps nullable array field types correctly", () => {
     const doc = schemaDocument(
       "UserShape",
-      objectType([
-        fieldNode(
+      schemaObjectNode([
+        schemaFieldNode(
           "tags",
-          arrayType(
-            objectType([fieldNode("label", scalarType("string"))]),
+          schemaArrayNode(
+            schemaObjectNode([schemaFieldNode("label", schemaScalarNode("string"))]),
           ),
           {
             nullable: true,
@@ -244,20 +247,20 @@ describe("generator-typescript", () => {
         source: "user-profile",
         words: ["user", "profile"],
       },
-      objectType([
-        fieldNode(
+      schemaObjectNode([
+        schemaFieldNode(
           {
             source: "first-name",
             words: ["first", "name"],
           },
-          scalarType("string"),
+          schemaScalarNode("string"),
         ),
-        fieldNode(
+        schemaFieldNode(
           identifierName({
             source: "user_id",
             words: ["user", "id"],
           }),
-          scalarType("integer"),
+          schemaScalarNode("integer"),
         ),
       ]),
     );
@@ -275,7 +278,7 @@ describe("generator-typescript", () => {
   it("implements the shared generator interface", () => {
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("user_id", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("user_id", schemaScalarNode("integer"))]),
     );
 
     expect(typeScriptGenerator.generate(doc)).toEqual({
@@ -287,7 +290,7 @@ describe("generator-typescript", () => {
 
     expect(
       tryGenerateTypeScript(
-        schemaDocument("NumberList", arrayType(scalarType("number"))),
+        schemaDocument("NumberList", schemaArrayNode(schemaScalarNode("number"))),
       ),
     ).toEqual({
       ok: true,
@@ -298,20 +301,20 @@ describe("generator-typescript", () => {
   it("normalizes invalid and reserved field identifiers", () => {
     const doc = schemaDocument(
       "TypeShape",
-      objectType([
-        fieldNode(
+      schemaObjectNode([
+        schemaFieldNode(
           {
             source: "123-name",
             words: ["123", "name"],
           },
-          scalarType("string"),
+          schemaScalarNode("string"),
         ),
-        fieldNode(
+        schemaFieldNode(
           {
             source: "type",
             words: ["type"],
           },
-          scalarType("string"),
+          schemaScalarNode("string"),
         ),
       ]),
     );
@@ -331,20 +334,17 @@ describe("generator-typescript", () => {
       generateTypeScript(
         schemaDocument(
           "StandaloneNull",
-          unknownType({
-            reason: "top-level-null",
-            nullable: true,
-          }),
+          schemaNullNode(),
         ),
       ),
-    ).toBe("export type StandaloneNull = unknown | null;");
+    ).toBe("export type StandaloneNull = null;");
 
     expect(
       generateTypeScript(
         schemaDocument(
           "EmptyArray",
-          arrayType(
-            unknownType({
+          schemaArrayNode(
+            schemaUnknownNode({
               reason: "empty-array-element",
             }),
           ),
@@ -353,10 +353,234 @@ describe("generator-typescript", () => {
     ).toBe("export type EmptyArray = unknown[];");
   });
 
+  it("renders literal nodes in TypeScript output", () => {
+    expect(
+      generateTypeScript(schemaDocument("LiteralStatus", schemaLiteralNode("open"))),
+    ).toBe('export type LiteralStatus = "open";');
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "LiteralShape",
+          schemaObjectNode([
+            schemaFieldNode("enabled", schemaLiteralNode(true)),
+            schemaFieldNode("count", schemaLiteralNode(42)),
+          ]),
+        ),
+      ),
+    ).toBe(
+      [
+        "export interface LiteralShape {",
+        "  enabled: true;",
+        "  count: 42;",
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  it("renders nullable literal field types distinctly", () => {
+    const doc = schemaDocument(
+      "LiteralNullableShape",
+      schemaObjectNode([
+        schemaFieldNode("status", schemaLiteralNode("open"), {
+          nullable: true,
+        }),
+      ]),
+    );
+
+    expect(generateTypeScript(doc)).toBe(
+      [
+        "export interface LiteralNullableShape {",
+        '  status: "open" | null;',
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  it("renders union nodes in TypeScript output", () => {
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "MixedValue",
+          schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("integer")]),
+        ),
+      ),
+    ).toBe("export type MixedValue = string | number;");
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "UnionList",
+          schemaArrayNode(
+            schemaUnionNode([schemaLiteralNode("open"), schemaNullNode()]),
+          ),
+        ),
+      ),
+    ).toBe('export type UnionList = Array<"open" | null>;');
+  });
+
+  it("renders tuple nodes in TypeScript output", () => {
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "CoordinatePair",
+          schemaTupleNode([schemaScalarNode("integer"), schemaLiteralNode("north")]),
+        ),
+      ),
+    ).toBe('export type CoordinatePair = [number, "north"];');
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "TupleFieldShape",
+          schemaObjectNode([
+            schemaFieldNode(
+              "pair",
+              schemaTupleNode([schemaScalarNode("integer"), schemaScalarNode("string")]),
+            ),
+          ]),
+        ),
+      ),
+    ).toBe(
+      [
+        "export interface TupleFieldShape {",
+        "  pair: [number, string];",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "PartialTuple",
+          schemaTupleNode([
+            schemaScalarNode("integer"),
+            schemaTupleElement(schemaScalarNode("string"), {
+              required: false,
+            }),
+          ]),
+        ),
+      ),
+    ).toBe("export type PartialTuple = [number, string?];");
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "NullableOptionalTuple",
+          schemaTupleNode([
+            schemaScalarNode("integer"),
+            schemaTupleElement(
+              schemaUnionNode([schemaScalarNode("string"), schemaNullNode()]),
+              {
+                required: false,
+              },
+            ),
+          ]),
+        ),
+      ),
+    ).toBe("export type NullableOptionalTuple = [number, (string | null)?];");
+  });
+
+  it("renders record nodes in TypeScript output", () => {
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "Translations",
+          schemaRecordNode(
+            schemaScalarNode("string"),
+            schemaScalarNode("string"),
+          ),
+        ),
+      ),
+    ).toBe("export type Translations = Record<string, string>;");
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "Catalog",
+          schemaObjectNode([
+            schemaFieldNode(
+              "items",
+              schemaRecordNode(
+                schemaScalarNode("string"),
+                schemaObjectNode([
+                  schemaFieldNode("price", schemaScalarNode("number")),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ).toBe(
+      [
+        "export interface Catalog {",
+        "  items: Record<string, {",
+        "    price: number;",
+        "  }>;",
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  it("wraps nullable union field types correctly", () => {
+    const doc = schemaDocument(
+      "NullableUnionShape",
+      schemaObjectNode([
+        schemaFieldNode(
+          "value",
+          schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("integer")]),
+          {
+            nullable: true,
+          },
+        ),
+      ]),
+    );
+
+    expect(generateTypeScript(doc)).toBe(
+      [
+        "export interface NullableUnionShape {",
+        "  value: (string | number) | null;",
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  it("escapes string literal nodes safely in TypeScript output", () => {
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "EscapedLiteral",
+          schemaLiteralNode('a"b\\c\nline'),
+        ),
+      ),
+    ).toBe('export type EscapedLiteral = "a\\"b\\\\c\\nline";');
+  });
+
+  it("renders explicit null field types distinctly from nullable non-null fields", () => {
+    const doc = schemaDocument(
+      "NullFieldShape",
+      schemaObjectNode([
+        schemaFieldNode("name", schemaNullNode()),
+        schemaFieldNode("nickname", schemaScalarNode("string"), {
+          nullable: true,
+        }),
+      ]),
+    );
+
+    expect(generateTypeScript(doc)).toBe(
+      [
+        "export interface NullFieldShape {",
+        "  name: null;",
+        "  nickname: string | null;",
+        "}",
+      ].join("\n"),
+    );
+  });
+
   it("returns structured failures for invalid rendered type names", () => {
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("userId", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("userId", schemaScalarNode("integer"))]),
     );
 
     const generator = createTypeScriptGenerator({
@@ -393,7 +617,7 @@ describe("generator-typescript", () => {
   it("returns structured failures for invalid rendered field names", () => {
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("userId", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("userId", schemaScalarNode("integer"))]),
     );
 
     expect(
@@ -436,7 +660,7 @@ describe("generator-typescript", () => {
 
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("userId", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("userId", schemaScalarNode("integer"))]),
     );
 
     expect(generator.generate(doc)).toEqual({
@@ -469,7 +693,7 @@ describe("generator-typescript", () => {
 
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("userId", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("userId", schemaScalarNode("integer"))]),
     );
 
     expect(
@@ -504,7 +728,7 @@ describe("generator-typescript", () => {
   it("lets the convenience function accept generator options", () => {
     const doc = schemaDocument(
       "UserProfile",
-      objectType([fieldNode("userId", scalarType("integer"))]),
+      schemaObjectNode([schemaFieldNode("userId", schemaScalarNode("integer"))]),
     );
 
     expect(
@@ -537,7 +761,7 @@ describe("generator-typescript", () => {
 
     const doc = schemaDocument(
       "UserList",
-      arrayType(objectType([fieldNode("id", scalarType("integer"))])),
+      schemaArrayNode(schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))])),
     );
 
     expect(generator.generate(doc)).toEqual({

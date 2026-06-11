@@ -48,8 +48,8 @@ if (parsed.ok) {
 User-facing documentation:
 
 - Root overview: [README.md](README.md)
-- JSON parser usage: [packages/parser-json/README.md](packages/parser-json/README.md)
-- TypeScript generator usage: [packages/generator-typescript/README.md](packages/generator-typescript/README.md)
+- JSON parser usage: [packages/parsers/json/README.md](packages/parsers/json/README.md)
+- TypeScript generator usage: [packages/generators/typescript/README.md](packages/generators/typescript/README.md)
 
 Development documentation:
 

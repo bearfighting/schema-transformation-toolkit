@@ -7,7 +7,7 @@ import {
   scalarType,
   schemaDocument,
   unknownType,
-} from "../../packages/core/src/index.js";
+} from "../../../packages/core/src/index.js";
 import {
   DEFAULT_JSON_PARSE_OPTIONS,
   configureJsonParser,
@@ -18,7 +18,7 @@ import {
   resolveJsonParseOptions,
   validateJsonParseOptions,
   tryInferJsonDocument,
-} from "../../packages/parser-json/src/index.js";
+} from "../../../packages/parsers/json/src/index.js";
 
 describe("parser-json inference", () => {
   it("infers scalar roots", () => {

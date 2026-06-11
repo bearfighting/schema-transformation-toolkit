@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inferJsonDocument } from "../packages/parser-json/src/index.js";
+import { inferJsonDocument } from "../packages/parsers/json/src/index.js";
 
 describe("workspace smoke test", () => {
   it("creates a basic schema document", () => {

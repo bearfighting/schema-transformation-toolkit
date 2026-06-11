@@ -1,5 +1,5 @@
 {
-  "name": "@aio/generator-typescript",
+  "name": "@aio/parser-json",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "@aio/core": "workspace:*"
   },
   "scripts": {
-    "build": "tsup --config ../../tsup.config.ts",
+    "build": "tsup --config ../../../tsup.config.ts",
     "clean": "rm -rf dist"
   }
 }

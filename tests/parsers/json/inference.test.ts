@@ -4,6 +4,7 @@ import {
   schemaDocument,
   schemaArrayNode,
   schemaFieldNode,
+  schemaLiteralNode,
   schemaNullNode,
   schemaObjectNode,
   schemaRecordNode,
@@ -383,6 +384,9 @@ describe("parser-json inference", () => {
         schemaArrayNode(
           schemaUnknownNode({
             reason: "empty-array-element",
+            evidence: {
+              source: "parser-json",
+            },
           }),
         ),
       ),
@@ -395,6 +399,16 @@ describe("parser-json inference", () => {
       code: "unsupported-mixed-types",
       message:
         "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "unsupported-mixed-types",
+          message:
+            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+          path: [],
+          source: "parser-json",
+        },
+      ],
     });
     expect(
       tryInferJsonDocument('[{"id":1},"a"]', "MixedObjectScalarArray"),
@@ -403,6 +417,16 @@ describe("parser-json inference", () => {
       code: "unsupported-mixed-types",
       message:
         "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "unsupported-mixed-types",
+          message:
+            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+          path: [],
+          source: "parser-json",
+        },
+      ],
     });
   });
 
@@ -474,6 +498,87 @@ describe("parser-json inference", () => {
     );
   });
 
+  it('supports mixedTypeMode: "unknown" for mixed arrays and fields', () => {
+    expect(
+      jsonSchemaParser.parse('[1,"a"]', {
+        name: "MixedScalarArrayUnknown",
+        inference: {
+          mixedTypeMode: "unknown",
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "MixedScalarArrayUnknown",
+        schemaArrayNode(
+          schemaUnknownNode({
+            reason: "mixed-types-collapsed",
+            evidence: {
+              source: "parser-json",
+              observedKinds: ["integer", "string"],
+            },
+          }),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "collapsed-mixed-types-to-unknown",
+          message:
+            'The parser collapsed mixed incompatible samples to unknown because mixedTypeMode was set to "unknown".',
+          path: [],
+          nodeKind: "unknown",
+          source: "parser-json",
+          evidence: {
+            observedKinds: ["integer", "string"],
+          },
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse('[{"value":1},{"value":"a"}]', {
+        name: "MixedFieldUnknown",
+        inference: {
+          mixedTypeMode: "unknown",
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "MixedFieldUnknown",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode(
+              "value",
+              schemaUnknownNode({
+                reason: "mixed-types-collapsed",
+                evidence: {
+                  source: "parser-json",
+                  observedKinds: ["integer", "string"],
+                },
+              }),
+            ),
+          ]),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "collapsed-mixed-types-to-unknown",
+          message:
+            'The parser collapsed mixed incompatible samples to unknown because mixedTypeMode was set to "unknown".',
+          path: ["value"],
+          nodeKind: "unknown",
+          source: "parser-json",
+          evidence: {
+            observedKinds: ["integer", "string"],
+          },
+        },
+      ],
+    });
+  });
+
   it('deduplicates union members and still promotes numeric samples in union mode', () => {
     expect(
       inferJsonDocumentWithOptions('[1,2.5,3,"a","b"]', {
@@ -513,6 +618,92 @@ describe("parser-json inference", () => {
                 schemaScalarNode("string"),
               ]),
             ),
+          ]),
+        ),
+      ),
+    );
+  });
+
+  it("preserves discriminated object samples as object unions in union mode", () => {
+    expect(
+      inferJsonDocumentWithOptions(
+        '[{"type":"a","value":"x"},{"type":"b","count":1}]',
+        {
+          name: "DiscriminatedValue",
+          inference: {
+            mixedTypeMode: "union",
+          },
+        },
+      ),
+    ).toEqual(
+      schemaDocument(
+        "DiscriminatedValue",
+        schemaArrayNode(
+          schemaUnionNode([
+            schemaObjectNode([
+              schemaFieldNode("type", schemaLiteralNode("a")),
+              schemaFieldNode("value", schemaScalarNode("string")),
+            ]),
+            schemaObjectNode([
+              schemaFieldNode("type", schemaLiteralNode("b")),
+              schemaFieldNode("count", schemaScalarNode("integer")),
+            ]),
+          ]),
+        ),
+      ),
+    );
+
+    expect(
+      inferJsonDocumentWithOptions(
+        '[{"payload":{"type":"a","value":"x"}},{"payload":{"type":"b","count":1}}]',
+        {
+          name: "NestedDiscriminatedValue",
+          inference: {
+            mixedTypeMode: "union",
+          },
+        },
+      ),
+    ).toEqual(
+      schemaDocument(
+        "NestedDiscriminatedValue",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode(
+              "payload",
+              schemaUnionNode([
+                schemaObjectNode([
+                  schemaFieldNode("type", schemaLiteralNode("a")),
+                  schemaFieldNode("value", schemaScalarNode("string")),
+                ]),
+                schemaObjectNode([
+                  schemaFieldNode("type", schemaLiteralNode("b")),
+                  schemaFieldNode("count", schemaScalarNode("integer")),
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  });
+
+  it("keeps ordinary object samples merged when no discriminator signal exists", () => {
+    expect(
+      inferJsonDocumentWithOptions('[{"id":1,"name":"Ada"},{"id":2}]', {
+        name: "MergedObjectSamples",
+        inference: {
+          mixedTypeMode: "union",
+        },
+      }),
+    ).toEqual(
+      schemaDocument(
+        "MergedObjectSamples",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+            schemaFieldNode("name", schemaScalarNode("string"), {
+              required: false,
+            }),
           ]),
         ),
       ),
@@ -726,12 +917,199 @@ describe("parser-json inference", () => {
             schemaArrayNode(
               schemaUnknownNode({
                 reason: "empty-array-element",
+                evidence: {
+                  source: "parser-json",
+                },
               }),
             ),
           ),
         ]),
       ),
     );
+  });
+
+  it("preserves empty-array-only field evidence with parser source metadata", () => {
+    expect(
+      inferJsonDocument('[{"tags":[]},{"tags":[]}]', "ArrayOnlyFieldEvidence"),
+    ).toEqual(
+      schemaDocument(
+        "ArrayOnlyFieldEvidence",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode(
+              "tags",
+              schemaArrayNode(
+                schemaUnknownNode({
+                  reason: "empty-array-only-field",
+                  evidence: {
+                    source: "parser-json",
+                  },
+                }),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  });
+
+  it("reports stable diagnostic paths for nested empty-array-only fields", () => {
+    expect(
+      jsonSchemaParser.parse('{"user":{"tags":[]}}', {
+        name: "NestedEmptyArrayField",
+      }),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "NestedEmptyArrayField",
+        schemaObjectNode([
+          schemaFieldNode(
+            "user",
+            schemaObjectNode([
+              schemaFieldNode(
+                "tags",
+                schemaArrayNode(
+                  schemaUnknownNode({
+                    reason: "empty-array-element",
+                    evidence: {
+                      source: "parser-json",
+                    },
+                  }),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "empty-array-element",
+          message:
+            "The parser inferred an unknown array element type because the array was empty.",
+          path: ["user", "tags"],
+          nodeKind: "unknown",
+          source: "parser-json",
+        },
+      ],
+    });
+  });
+
+  it("reports tuple index paths when preserving tuple-position unions", () => {
+    expect(
+      jsonSchemaParser.parse('[[1,"east"],[2,true]]', {
+        name: "TuplePositionUnion",
+        inference: {
+          tupleInferenceMode: "heterogeneous-only",
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "TuplePositionUnion",
+        schemaArrayNode(
+          schemaTupleNode([
+            schemaScalarNode("integer"),
+            schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("boolean")]),
+          ]),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "preserved-tuple-position-union",
+          message:
+            "The parser preserved a tuple-position union because observed values at this position did not share one common type.",
+          path: ["1"],
+          nodeKind: "union",
+          source: "parser-json",
+        },
+      ],
+    });
+  });
+
+  it('continues to preserve tuple-position unions even when mixedTypeMode is "unknown"', () => {
+    expect(
+      jsonSchemaParser.parse('[[1,"east"],[2,true]]', {
+        name: "TuplePositionUnknownMode",
+        inference: {
+          mixedTypeMode: "unknown",
+          tupleInferenceMode: "heterogeneous-only",
+        },
+      }),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "TuplePositionUnknownMode",
+        schemaArrayNode(
+          schemaTupleNode([
+            schemaScalarNode("integer"),
+            schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("boolean")]),
+          ]),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "preserved-tuple-position-union",
+          message:
+            "The parser preserved a tuple-position union because observed values at this position did not share one common type.",
+          path: ["1"],
+          nodeKind: "union",
+          source: "parser-json",
+        },
+      ],
+    });
+  });
+
+  it("reports union-preservation diagnostics at the correct field path", () => {
+    expect(
+      jsonSchemaParser.parse(
+        '[{"payload":{"type":"a","value":"x"}},{"payload":{"type":"b","count":1}}]',
+        {
+          name: "NestedDiscriminatedValueDiagnostics",
+          inference: {
+            mixedTypeMode: "union",
+          },
+        },
+      ),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "NestedDiscriminatedValueDiagnostics",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode(
+              "payload",
+              schemaUnionNode([
+                schemaObjectNode([
+                  schemaFieldNode("type", schemaLiteralNode("a")),
+                  schemaFieldNode("value", schemaScalarNode("string")),
+                ]),
+                schemaObjectNode([
+                  schemaFieldNode("type", schemaLiteralNode("b")),
+                  schemaFieldNode("count", schemaScalarNode("integer")),
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "preserved-discriminated-object-union",
+          message:
+            "The parser preserved object union structure because shared literal discriminator fields were detected.",
+          path: ["payload"],
+          nodeKind: "union",
+          source: "parser-json",
+          evidence: {
+            discriminatorKeys: ["type"],
+          },
+        },
+      ],
+    });
   });
 
   it("implements the shared parser interface", () => {
@@ -850,6 +1228,9 @@ describe("parser-json inference", () => {
         schemaArrayNode(
           schemaUnknownNode({
             reason: "empty-array-element",
+            evidence: {
+              source: "parser-json",
+            },
           }),
         ),
       ),
@@ -883,6 +1264,16 @@ describe("parser-json inference", () => {
         inference: {
           ...DEFAULT_JSON_PARSE_OPTIONS.inference,
           mixedTypeMode: "union" as never,
+        },
+      }),
+    ).toEqual([]);
+
+    expect(
+      validateJsonParseOptions({
+        ...DEFAULT_JSON_PARSE_OPTIONS,
+        inference: {
+          ...DEFAULT_JSON_PARSE_OPTIONS.inference,
+          mixedTypeMode: "unknown",
         },
       }),
     ).toEqual([]);

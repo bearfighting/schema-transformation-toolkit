@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   createNamingStrategy,
+  type SchemaDocument,
   schemaArrayNode,
+  schemaDefinition,
   schemaFieldNode,
   identifierName,
   schemaLiteralNode,
   schemaNullNode,
   schemaObjectNode,
+  schemaReferenceNode,
   schemaRecordNode,
   schemaScalarNode,
   schemaDocument,
@@ -346,11 +349,33 @@ describe("generator-typescript", () => {
           schemaArrayNode(
             schemaUnknownNode({
               reason: "empty-array-element",
+              evidence: {
+                source: "parser-json",
+                detail: "empty sample",
+              },
             }),
           ),
         ),
       ),
     ).toBe("export type EmptyArray = unknown[];");
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "CollapsedUnknown",
+          schemaArrayNode(
+            schemaUnknownNode({
+              reason: "mixed-types-collapsed",
+              evidence: {
+                source: "parser-json",
+                detail: "mixed scalar samples",
+                observedKinds: ["boolean", "string"],
+              },
+            }),
+          ),
+        ),
+      ),
+    ).toBe("export type CollapsedUnknown = unknown[];");
   });
 
   it("renders literal nodes in TypeScript output", () => {
@@ -522,6 +547,96 @@ describe("generator-typescript", () => {
     );
   });
 
+  it("renders reusable object definitions before the root export", () => {
+    const doc = schemaDocument(
+      "UserDirectory",
+      schemaObjectNode([
+        schemaFieldNode("users", schemaArrayNode(schemaReferenceNode("User"))),
+      ]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+          ),
+        ],
+      },
+    );
+
+    expect(generateTypeScript(doc)).toBe(
+      [
+        "export interface User {",
+        "  id: number;",
+        "}",
+        "",
+        "export interface UserDirectory {",
+        "  users: User[];",
+        "}",
+      ].join("\n"),
+    );
+  });
+
+  it("renders non-object definitions as type aliases", () => {
+    const doc = schemaDocument("TeamState", schemaReferenceNode("Status"), {
+      definitions: [
+        schemaDefinition(
+          "Status",
+          schemaUnionNode([schemaLiteralNode("active"), schemaLiteralNode("paused")]),
+        ),
+      ],
+    });
+
+    expect(generateTypeScript(doc)).toBe(
+      [
+        'export type Status = "active" | "paused";',
+        "",
+        "export type TeamState = Status;",
+      ].join("\n"),
+    );
+  });
+
+  it("applies naming strategy consistently to definitions and references", () => {
+    const doc = schemaDocument(
+      "user-directory",
+      schemaArrayNode(schemaReferenceNode("user-profile")),
+      {
+        definitions: [
+          schemaDefinition(
+            "user-profile",
+            schemaObjectNode([schemaFieldNode("display-name", schemaScalarNode("string"))]),
+          ),
+        ],
+      },
+    );
+
+    expect(
+      generateTypeScript(doc, {
+        namingStrategy: createNamingStrategy({
+          typeName: {
+            style: "snake",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+          fieldName: {
+            style: "snake",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+        }),
+      }),
+    ).toBe(
+      [
+        "export interface user_profile {",
+        "  display_name: string;",
+        "}",
+        "",
+        "export type user_directory = user_profile[];",
+      ].join("\n"),
+    );
+  });
+
   it("wraps nullable union field types correctly", () => {
     const doc = schemaDocument(
       "NullableUnionShape",
@@ -599,6 +714,21 @@ describe("generator-typescript", () => {
       code: "invalid-type-name",
       message:
         'The rendered type name ""user-profile"" is not a valid TypeScript identifier.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-type-name",
+          message:
+            'The rendered type name ""user-profile"" is not a valid TypeScript identifier.',
+          path: ["document"],
+          nodeKind: "document",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: '"user-profile"',
+            sourceName: "UserProfile",
+          },
+        },
+      ],
     });
     expect(() =>
       generateTypeScript(doc, {
@@ -636,6 +766,107 @@ describe("generator-typescript", () => {
       code: "invalid-field-name",
       message:
         'The rendered field name "user-id" for source field "userId" is not valid TypeScript property syntax.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-field-name",
+          message:
+            'The rendered field name "user-id" for source field "userId" is not valid TypeScript property syntax.',
+          path: ["root", "userId"],
+          nodeKind: "field",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "user-id",
+            sourceName: "userId",
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures for invalid rendered definition names", () => {
+    const doc = schemaDocument("Directory", schemaReferenceNode("user-profile"), {
+      definitions: [
+        schemaDefinition(
+          "user-profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+        ),
+      ],
+    });
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: {
+          renderTypeName(name) {
+            return name.source === "Directory" ? "Directory" : '"user-profile"';
+          },
+          renderFieldName(name) {
+            return name.source;
+          },
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      code: "invalid-type-name",
+      message:
+        'The rendered type name ""user-profile"" for schema definition "user-profile" is not a valid TypeScript identifier.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-type-name",
+          message:
+            'The rendered type name ""user-profile"" for schema definition "user-profile" is not a valid TypeScript identifier.',
+          path: ["definitions", "user-profile"],
+          nodeKind: "definition",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: '"user-profile"',
+            sourceName: "user-profile",
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures for invalid rendered reference names", () => {
+    const doc: SchemaDocument = {
+      version: "0.1",
+      kind: "document",
+      name: identifierName("Directory"),
+      definitions: [],
+      root: schemaArrayNode(schemaReferenceNode("user-profile")),
+    };
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: {
+          renderTypeName(name) {
+            return name.source === "Directory" ? "Directory" : '"user-profile"';
+          },
+          renderFieldName(name) {
+            return name.source;
+          },
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      code: "invalid-reference-name",
+      message:
+        'The schema reference "user-profile" does not match a renderable definition.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-reference-name",
+          message:
+            'The schema reference "user-profile" does not match a renderable definition.',
+          path: ["root", "elementType"],
+          nodeKind: "reference",
+          source: "generator-typescript",
+          evidence: {
+            referenceName: "user-profile",
+          },
+        },
+      ],
     });
   });
 

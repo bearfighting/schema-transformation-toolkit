@@ -2,12 +2,15 @@
 
 Shared IR, contracts, and cross-package naming utilities.
 
+For the current canonical IR contract, see [docs/development/ir-contract.md](../../docs/development/ir-contract.md).
+
 ## Current Scope
 
 The current `schema` IR intentionally stays small:
 
 - `SchemaScalarNode`
 - `SchemaLiteralNode`
+- `SchemaReferenceNode`
 - `SchemaUnionNode`
 - `SchemaNullNode`
 - `SchemaUnknownNode`
@@ -16,17 +19,24 @@ The current `schema` IR intentionally stays small:
 - `SchemaTupleNode`
 - `SchemaRecordNode`
 - `SchemaFieldNode`
+- `SchemaDefinition`
 - `SchemaDocument`
 
 That v0 shape is enough for the currently supported `json -> schema ir -> typescript` path, but it is not yet broad enough to represent all meaningful JSON samples as stable TypeScript types.
+
+The shared contract layer now also includes a lightweight structured diagnostics model so parsers and generators can report richer explanations without replacing the current success/failure result shapes.
 
 ## Schema IR v1 Roadmap
 
 The next expansion should focus on capabilities that materially improve `json -> typescript` coverage without turning the IR into a TypeScript-shaped AST.
 
+Some roadmap items below have already landed in the current IR surface. They remain documented here because they explain the design direction and ordering that produced the current model.
+
 ### Must Have
 
 #### 1. Record or Map Nodes
+
+Status: implemented
 
 Why:
 
@@ -54,15 +64,19 @@ For v1, `key` should probably stay constrained to string-like nodes even if the 
 
 #### 2. Reusable References
 
+Status: implemented
+
 Why:
 
 - avoids endlessly inlining repeated object shapes
 - creates a cleaner bridge to named TypeScript aliases and interfaces
 - gives future parsers and generators a stable way to share reusable structures
 
-This likely means introducing a document-level definitions area and reference nodes, not just a standalone `SchemaReferenceNode`.
+This means a document-level definitions area and reference nodes, not just a standalone `SchemaReferenceNode`.
 
 #### 3. Better Unknown Semantics
+
+Status: partially implemented
 
 Why:
 
@@ -79,6 +93,8 @@ Useful distinctions include:
 This may remain as `SchemaUnknownNode` plus richer metadata, rather than many separate node kinds.
 
 #### 4. Discriminated Union-Friendly Structure
+
+Status: implemented in current JSON inference and IR-preservation behavior without a dedicated node kind
 
 Why:
 
@@ -149,6 +165,55 @@ Why this order:
 - the TypeScript generator renders union members with `|`
 - the JSON parser supports union inference when `mixedTypeMode` is explicitly set to `"union"`
 - the default JSON parser mode remains `"error"` for mixed incompatible samples
+- object union members with distinct literal discriminator fields should remain unions instead of being normalized into one wider object shape
+
+Examples:
+
+- `{ type: "a", value: string } | { type: "b", count: number }` should remain an object union
+- it should not be normalized into `{ type: "a" | "b"; value?: string; count?: number }`
+
+## Current Reference Semantics
+
+- `SchemaDocument.definitions` stores reusable named schema definitions for one document
+- `SchemaReferenceNode` points to a definition by its `name.source`
+- references are document-local and do not cross document boundaries
+- definitions are explicitly named; the core IR does not auto-generate definition names
+- the current JSON parser does not yet auto-extract definitions from repeated shapes
+
+Examples:
+
+- a shared `User` object definition referenced from `Array<User>`
+- a literal-union `Status` definition referenced from a root alias such as `TeamState = Status`
+
+## Current Unknown Semantics
+
+- `SchemaUnknownNode` remains one semantic node kind for unresolved schema meaning
+- `reason` is explicit and required so unknown values stay explainable
+- `evidence` is optional lightweight context for diagnostics and future UI surfaces
+- `evidence` does not change the core schema meaning of the node
+- the current shared reasons are:
+  - `no-evidence`
+  - `empty-array-element`
+  - `empty-array-only-field`
+  - `mixed-types-collapsed`
+
+Current intent:
+
+- generators can continue rendering `unknown` conservatively
+- parsers can preserve why a value became `unknown`
+- future `web` and CLI surfaces can explain unknown outcomes without requiring new node kinds
+- degraded-but-still-known results should prefer ordinary IR nodes plus diagnostics rather than being forced into `unknown`
+
+## Current Diagnostics Semantics
+
+- `SchemaDiagnostic` is the shared structured explanation type across parser and generator layers
+- current diagnostics use:
+  - `severity`
+  - `code`
+  - `message`
+  - optional `path`, `nodeKind`, `source`, and `evidence`
+- result objects may now carry `diagnostics` in addition to existing `ok`, `code`, `message`, `document`, and `output` fields
+- `code` and `message` remain the compatibility surface for callers that do not yet consume structured diagnostics
 
 ## Current Tuple Semantics
 

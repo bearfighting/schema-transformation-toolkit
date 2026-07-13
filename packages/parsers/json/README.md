@@ -27,6 +27,7 @@ JSON parser and schema inference package for the current shared IR.
 - `nullable` fields inferred from explicit `null`
 - fields with only `null` evidence as `null`
 - fields with only empty-array evidence as `array<unknown>`
+- schema documents with an explicit `definitions: []` area ready for reusable references
 
 ## Current Still-Unsupported Cases
 
@@ -57,6 +58,7 @@ Recommended schema-facing entry points:
 
 - returns `{ ok: true, document }` on success
 - returns `{ ok: false, code, message }` on failure
+- may also include `diagnostics`
 
 `tryInferJsonSchemaDocumentWithOptions(input, options?)`
 
@@ -95,9 +97,32 @@ Compatibility aliases remain available for the older schema-first names:
 
 When a caller explicitly opts into `schema.mixedTypeMode: "union"` or `inference.mixedTypeMode: "union"`, the parser can preserve mixed compatible samples as schema unions instead of failing.
 
+When a caller explicitly opts into `schema.mixedTypeMode: "unknown"` or `inference.mixedTypeMode: "unknown"`, the parser can collapse mixed incompatible samples into `unknown` instead of failing.
+
+Quick comparison for the same mixed field samples such as `[{"value":1},{"value":"x"}]`:
+
+- `mixedTypeMode: "error"` -> parser failure with `unsupported-mixed-types`
+- `mixedTypeMode: "union"` -> known IR as `{ value: string | integer }[]`
+- `mixedTypeMode: "unknown"` -> known IR as `{ value: unknown }[]` plus `mixed-types-collapsed` unknown evidence and diagnostics
+
 When a caller explicitly opts into `schema.tupleInferenceMode: "heterogeneous-only"` or `inference.tupleInferenceMode: "heterogeneous-only"`, the parser can preserve heterogeneous arrays as tuple nodes instead of rejecting them for lacking a single shared element type.
 
 When a caller explicitly opts into `schema.recordInferenceMode: "shared-value-type"` or `inference.recordInferenceMode: "shared-value-type"`, the parser can preserve dynamic-key object samples as record nodes when the current conservative record heuristic succeeds.
+
+Current reusable-definition behavior:
+
+- the shared IR now supports document-level definitions and reference nodes
+- the current JSON parser still emits `definitions: []`
+- automatic extraction of repeated shapes into reusable definitions will be added later, deliberately
+
+Current discriminated-union behavior:
+
+- when `mixedTypeMode` is `"union"`, object samples with a shared string literal discriminator field preserve object union structure
+- the current discriminator signal is intentionally conservative:
+  - every sample must include the same field name
+  - that field must be a string literal in every sample
+  - at least two distinct literal values must be observed
+- ordinary object samples without that signal still merge into one object shape
 
 Current tuple inference behavior:
 
@@ -136,6 +161,22 @@ Current failure codes:
 
 The previous `empty-array` and `empty-array-only-field` cases are now represented in the IR using `unknown` semantics instead of failing inference.
 
+Current unknown evidence behavior:
+
+- empty top-level arrays produce `unknown` element types with `reason: "empty-array-element"`
+- empty-array-only fields produce `unknown` element types with `reason: "empty-array-only-field"`
+- current JSON parser unknown evidence sets `evidence.source: "parser-json"`
+- when `mixedTypeMode` is `"unknown"`, mixed incompatible samples collapse to `unknown` with `reason: "mixed-types-collapsed"`
+- preserved tuple-position unions and preserved discriminated object unions stay as known IR plus diagnostics instead of being forced into `unknown`
+
+Current diagnostics behavior:
+
+- failures such as `invalid-json` and `unsupported-mixed-types` include structured diagnostics
+- successful parses may also include diagnostics for preserved or degraded semantics such as:
+  - empty array unknown inference
+  - empty-array-only field inference
+  - preserved discriminated object unions
+
 ## Configuration Status
 
 The schema parser currently exposes configuration for:
@@ -156,6 +197,7 @@ The current public configuration surface only includes options that are implemen
 - `schema.emptyArrayMode: "unknown-array"`
 - `schema.mixedTypeMode: "error"`
 - `schema.mixedTypeMode: "union"`
+- `schema.mixedTypeMode: "unknown"`
 - `schema.nullHandling: "nullable"`
 - `schema.tupleInferenceMode: "off" | "heterogeneous-only"`
 - `schema.recordInferenceMode: "off" | "shared-value-type"`
@@ -167,11 +209,9 @@ Planned configuration areas that are not exposed yet:
 
 - `strictness: "best-effort"`
 - `schema.emptyArrayMode: "error"`
-- `schema.mixedTypeMode: "unknown"`
 - `schema.nullHandling: "strict"`
 - `diagnostics.preserveSourceInfo: true`
 
 Notes:
 
-- `schema.mixedTypeMode: "unknown"` may also need richer IR semantics if we want to preserve why a value became `unknown`.
 - `diagnostics.preserveSourceInfo: true` will require IR or document metadata support for source locations or evidence tracking.

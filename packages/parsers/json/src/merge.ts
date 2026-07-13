@@ -1,4 +1,5 @@
 import type {
+  SchemaDiagnostic,
   SchemaFieldNode,
   SchemaLiteralNode,
   SchemaNullNode,
@@ -20,6 +21,8 @@ export function mergeTypeNodes(
   right: SchemaNode,
   context: string,
   mixedTypeMode: JsonMixedTypeMode = "error",
+  diagnostics: SchemaDiagnostic[] = [],
+  path: string[] = [],
 ): SchemaNode {
   if (left.kind !== right.kind) {
     if (mixedTypeMode === "union") {
@@ -49,11 +52,25 @@ export function mergeTypeNodes(
   }
 
   if (left.kind === "tuple" && right.kind === "tuple") {
-    return mergeTupleTypeNodes(left, right, context, mixedTypeMode);
+    return mergeTupleTypeNodes(
+      left,
+      right,
+      context,
+      mixedTypeMode,
+      diagnostics,
+      path,
+    );
   }
 
   if (left.kind === "record" && right.kind === "record") {
-    return mergeRecordTypeNodes(left, right, context, mixedTypeMode);
+    return mergeRecordTypeNodes(
+      left,
+      right,
+      context,
+      mixedTypeMode,
+      diagnostics,
+      path,
+    );
   }
 
   if (left.kind === "union" || right.kind === "union") {
@@ -66,12 +83,21 @@ export function mergeTypeNodes(
       right.elementType,
       context,
       mixedTypeMode,
+      diagnostics,
+      path,
     );
     return left;
   }
 
   if (left.kind === "object" && right.kind === "object") {
-    return mergeObjectTypeNodes(left, right, context, mixedTypeMode);
+    return mergeObjectTypeNodes(
+      left,
+      right,
+      context,
+      mixedTypeMode,
+      diagnostics,
+      path,
+    );
   }
 
   throw new JsonInferenceError(
@@ -110,6 +136,8 @@ function mergeObjectTypeNodes(
   right: SchemaObjectNode,
   context: string,
   mixedTypeMode: JsonMixedTypeMode,
+  diagnostics: SchemaDiagnostic[],
+  path: string[],
 ): SchemaObjectNode {
   const fieldMap = new Map<string, SchemaFieldNode>();
 
@@ -133,6 +161,8 @@ function mergeObjectTypeNodes(
       rightField.type,
       context,
       mixedTypeMode,
+      diagnostics,
+      [...path, leftField.name.source],
     );
     leftField.nullable = leftField.nullable || rightField.nullable;
   }
@@ -189,6 +219,8 @@ function mergeTupleTypeNodes(
   right: SchemaTupleNode,
   context: string,
   mixedTypeMode: JsonMixedTypeMode,
+  diagnostics: SchemaDiagnostic[],
+  path: string[],
 ): SchemaNode {
   const maxLength = Math.max(left.elements.length, right.elements.length);
 
@@ -222,6 +254,8 @@ function mergeTupleTypeNodes(
           rightElement.type,
           `${context} tuple index ${index}`,
           mixedTypeMode,
+          diagnostics,
+          [...path, String(index)],
         ),
       };
     } catch (error) {
@@ -229,6 +263,15 @@ function mergeTupleTypeNodes(
         error instanceof JsonInferenceError &&
         error.code === "unsupported-mixed-types"
       ) {
+        diagnostics.push({
+          severity: "info",
+          code: "preserved-tuple-position-union",
+          message:
+            "The parser preserved a tuple-position union because observed values at this position did not share one common type.",
+          path: [...path, String(index)],
+          nodeKind: "union",
+          source: "parser-json",
+        });
         return {
           required: element.required && rightElement.required,
           type: mergeAsUnion(element.type, rightElement.type),
@@ -247,13 +290,24 @@ function mergeRecordTypeNodes(
   right: SchemaRecordNode,
   context: string,
   mixedTypeMode: JsonMixedTypeMode,
+  diagnostics: SchemaDiagnostic[],
+  path: string[],
 ): SchemaRecordNode {
-  left.key = mergeTypeNodes(left.key, right.key, `${context} record keys`, mixedTypeMode);
+  left.key = mergeTypeNodes(
+    left.key,
+    right.key,
+    `${context} record keys`,
+    mixedTypeMode,
+    diagnostics,
+    path,
+  );
   left.value = mergeTypeNodes(
     left.value,
     right.value,
     `${context} record values`,
     mixedTypeMode,
+    diagnostics,
+    path,
   );
 
   return left;
@@ -261,84 +315,6 @@ function mergeRecordTypeNodes(
 
 function mergeAsUnion(left: SchemaNode, right: SchemaNode): SchemaUnionNode {
   return schemaUnionNode([left, right]);
-}
-
-function areEquivalentSchemaNodes(left: SchemaNode, right: SchemaNode): boolean {
-  if (left.kind !== right.kind) {
-    return false;
-  }
-
-  switch (left.kind) {
-    case "scalar":
-      return right.kind === "scalar" && left.scalar === right.scalar;
-    case "literal":
-      return right.kind === "literal" && Object.is(left.value, right.value);
-    case "null":
-      return right.kind === "null";
-    case "tuple":
-      return (
-        right.kind === "tuple" &&
-        left.elements.length === right.elements.length &&
-        left.elements.every((element, index) => {
-          const rightElement = right.elements[index];
-
-          return (
-            rightElement !== undefined &&
-            element.required === rightElement.required &&
-            areEquivalentSchemaNodes(element.type, rightElement.type)
-          );
-        })
-      );
-    case "record":
-      return (
-        right.kind === "record" &&
-        areEquivalentSchemaNodes(left.key, right.key) &&
-        areEquivalentSchemaNodes(left.value, right.value)
-      );
-    case "unknown":
-      return (
-        right.kind === "unknown" &&
-        left.reason === right.reason &&
-        left.nullable === right.nullable
-      );
-    case "array":
-      return (
-        right.kind === "array" &&
-        areEquivalentSchemaNodes(left.elementType, right.elementType)
-      );
-    case "object":
-      return (
-        right.kind === "object" &&
-        left.fields.length === right.fields.length &&
-        left.fields.every((field, index) => areEquivalentFields(field, right.fields[index]))
-      );
-    case "union":
-      return (
-        right.kind === "union" &&
-        left.members.length === right.members.length &&
-        left.members.every((member) =>
-          right.members.some((candidate) =>
-            areEquivalentSchemaNodes(member, candidate),
-          ),
-        )
-      );
-  }
-}
-
-function areEquivalentFields(
-  left: SchemaFieldNode,
-  right: SchemaFieldNode | undefined,
-): boolean {
-  if (right === undefined) {
-    return false;
-  }
-
-  return (
-    left.name.source === right.name.source &&
-    left.required === right.required &&
-    left.nullable === right.nullable &&
-    areEquivalentSchemaNodes(left.type, right.type)
-  );
 }
 
 function createUnsupportedMixedTypesError(context: string): JsonInferenceError {

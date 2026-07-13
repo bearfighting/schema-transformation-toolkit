@@ -10,6 +10,7 @@ describe("workspace smoke test", () => {
         source: "Example",
         words: ["example"],
       },
+      definitions: [],
       root: {
         kind: "scalar",
         scalar: "string",

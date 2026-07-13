@@ -1,5 +1,4 @@
 export {
-  identifierName,
   schemaArrayNode,
   schemaDocument,
   schemaFieldNode,
@@ -7,3 +6,5 @@ export {
   schemaScalarNode,
   schemaUnknownNode,
 } from "./schema/factories.js";
+
+export { identifierName } from "./schema/identifiers.js";

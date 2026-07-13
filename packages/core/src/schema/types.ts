@@ -1,8 +1,28 @@
 export type ScalarKind = "string" | "integer" | "number" | "boolean";
 export type SchemaLiteralValue = string | number | boolean;
 export type UnknownReason =
+  | "no-evidence"
   | "empty-array-element"
-  | "empty-array-only-field";
+  | "empty-array-only-field"
+  | "mixed-types-collapsed";
+
+export interface SchemaUnknownEvidence {
+  source?: "parser-json";
+  detail?: string;
+  observedKinds?: string[];
+}
+
+export type SchemaDiagnosticSeverity = "error" | "warning" | "info";
+
+export interface SchemaDiagnostic {
+  severity: SchemaDiagnosticSeverity;
+  code: string;
+  message: string;
+  path?: string[];
+  nodeKind?: string;
+  source?: string;
+  evidence?: unknown;
+}
 
 export interface SchemaBaseNode {
   kind: string;
@@ -21,6 +41,11 @@ export interface SchemaScalarNode extends SchemaBaseNode {
 export interface SchemaLiteralNode extends SchemaBaseNode {
   kind: "literal";
   value: SchemaLiteralValue;
+}
+
+export interface SchemaReferenceNode extends SchemaBaseNode {
+  kind: "reference";
+  name: string;
 }
 
 export interface SchemaUnionNode extends SchemaBaseNode {
@@ -50,8 +75,9 @@ export interface SchemaNullNode extends SchemaBaseNode {
 
 export interface SchemaUnknownNode extends SchemaBaseNode {
   kind: "unknown";
-  reason?: UnknownReason;
+  reason: UnknownReason;
   nullable: boolean;
+  evidence?: SchemaUnknownEvidence;
 }
 
 export interface SchemaFieldNode extends SchemaBaseNode {
@@ -75,6 +101,7 @@ export interface SchemaArrayNode extends SchemaBaseNode {
 export type SchemaNode =
   | SchemaScalarNode
   | SchemaLiteralNode
+  | SchemaReferenceNode
   | SchemaUnionNode
   | SchemaTupleNode
   | SchemaRecordNode
@@ -83,9 +110,15 @@ export type SchemaNode =
   | SchemaObjectNode
   | SchemaArrayNode;
 
+export interface SchemaDefinition {
+  name: IdentifierName;
+  type: SchemaNode;
+}
+
 export interface SchemaDocument {
   version: "0.1";
   kind: "document";
   name: IdentifierName;
+  definitions: SchemaDefinition[];
   root: SchemaNode;
 }

@@ -20,17 +20,17 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.34.1",
-    "@typescript-eslint/parser": "^8.34.1",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
     "change-case": "^5.4.4",
-    "eslint": "^9.29.0",
-    "prettier": "^3.6.0",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4",
-    "zod": "^3.25.67"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
   },
   "dependencies": {
-    "cac": "^6.7.14"
+    "cac": "^7.0.0"
   }
 }

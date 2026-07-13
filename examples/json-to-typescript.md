@@ -141,7 +141,48 @@ export type MixedFieldValues = Array<{
 }>;
 ```
 
-## 6. Heterogeneous Arrays As Tuples
+## 6. Mixed Type Modes Compared
+
+Same JSON:
+
+```json
+[
+  {
+    "value": 1
+  },
+  {
+    "value": "x"
+  }
+]
+```
+
+`mixedTypeMode: "error"`
+
+- parser returns `unsupported-mixed-types`
+
+`mixedTypeMode: "union"`
+
+```ts
+export type MixedValueUnion = Array<{
+  value: string | number;
+}>;
+```
+
+`mixedTypeMode: "unknown"`
+
+```ts
+export type MixedValueUnknown = Array<{
+  value: unknown;
+}>;
+```
+
+In the `"unknown"` case, the IR preserves:
+
+- `reason: "mixed-types-collapsed"`
+- `evidence.source: "parser-json"`
+- `evidence.observedKinds`
+
+## 7. Heterogeneous Arrays As Tuples
 
 Parser option:
 
@@ -172,7 +213,7 @@ export interface CoordinatePair {
 }
 ```
 
-## 7. Optional Tuple Positions
+## 8. Optional Tuple Positions
 
 Parser option:
 
@@ -204,7 +245,7 @@ Generated TypeScript:
 export type OptionalTupleArray = Array<[number, string?]>;
 ```
 
-## 8. Tuple Position Union
+## 9. Tuple Position Union
 
 Parser option:
 
@@ -241,7 +282,7 @@ Generated TypeScript:
 export type TupleUnionMembers = Array<[number, string | boolean | null]>;
 ```
 
-## 9. Dynamic-Key Objects As Record
+## 10. Dynamic-Key Objects As Record
 
 Parser option:
 
@@ -320,9 +361,25 @@ export type RecordFieldShape = Array<{
 }>;
 ```
 
+## 11. Manual Reusable Definitions In IR
+
+The shared IR can now represent reusable definitions directly, even though the JSON parser does not yet auto-extract them.
+
+Representative generated TypeScript:
+
+```ts
+export interface User {
+  id: number;
+  displayName: string;
+}
+
+export type UserDirectory = User[];
+```
+
 ## Notes
 
 - object field names are normalized by the TypeScript generator naming strategy
 - `null` and optional presence are different semantics
 - tuple and record inference are opt-in and conservative
 - literal nodes exist in the IR, but ordinary JSON scalar inference still widens by default
+- reusable definitions currently come from explicit IR construction rather than automatic JSON inference

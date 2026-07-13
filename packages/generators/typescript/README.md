@@ -63,6 +63,7 @@ These rules come from the configured naming strategy and can be replaced.
 
 - returns `{ ok: true, output }` on success
 - returns `{ ok: false, code, message }` on generation failure
+- may also include `diagnostics`
 
 `resolveTypeScriptGeneratorOptions(options?)`
 
@@ -192,6 +193,13 @@ The current generator can return structured failures for:
 
 - invalid rendered type names
 - invalid rendered field names
+- invalid rendered or missing reference names
 - unsupported runtime node kinds
 
 This is mainly intended to protect callers from custom naming strategies that produce invalid TypeScript syntax, and to give the generator room to grow as the IR expands.
+
+Current diagnostics behavior:
+
+- generator failures also include structured diagnostics with the same primary `code` and `message`
+- generator failure diagnostics now also include stable `path` and `nodeKind`, plus `evidence` for rendered/source naming failures where useful
+- success results currently stay quiet unless future generator warnings become useful

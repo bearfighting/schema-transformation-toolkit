@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   identifierName,
+  isSchemaReferenceNode,
   isSchemaLiteralNode,
   isSchemaNullNode,
   isSchemaScalarNode,
   schemaDocument,
+  schemaDefinition,
   schemaArrayNode,
   schemaFieldNode,
   schemaLiteralNode,
   schemaNullNode,
   schemaObjectNode,
+  schemaReferenceNode,
   schemaRecordNode,
   schemaScalarNode,
   schemaTupleElement,
@@ -24,6 +27,7 @@ describe("core ast v0", () => {
       version: "0.1",
       kind: "document",
       name: identifierName("ScalarString"),
+      definitions: [],
       root: {
         kind: "scalar",
         scalar: "string",
@@ -45,12 +49,13 @@ describe("core ast v0", () => {
           ]),
         ),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("ObjectFieldOptionalAndNullable"),
-      root: {
-        kind: "array",
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("ObjectFieldOptionalAndNullable"),
+        definitions: [],
+        root: {
+          kind: "array",
         elementType: {
           kind: "object",
           fields: [
@@ -90,11 +95,12 @@ describe("core ast v0", () => {
           }),
         ),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("EmptyArray"),
-      root: {
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("EmptyArray"),
+        definitions: [],
+        root: {
         kind: "array",
         elementType: {
           kind: "unknown",
@@ -105,11 +111,42 @@ describe("core ast v0", () => {
     });
   });
 
+  it("defaults unknown nodes to no-evidence semantics", () => {
+    expect(schemaUnknownNode()).toEqual({
+      kind: "unknown",
+      reason: "no-evidence",
+      nullable: false,
+    });
+  });
+
+  it("normalizes unknown evidence without changing unknown semantics", () => {
+    expect(
+      schemaUnknownNode({
+        reason: "mixed-types-collapsed",
+        evidence: {
+          source: "parser-json",
+          detail: "  mixed scalar samples  ",
+          observedKinds: [" string ", "boolean", "string", ""],
+        },
+      }),
+    ).toEqual({
+      kind: "unknown",
+      reason: "mixed-types-collapsed",
+      nullable: false,
+      evidence: {
+        source: "parser-json",
+        detail: "mixed scalar samples",
+        observedKinds: ["boolean", "string"],
+      },
+    });
+  });
+
   it("supports explicit null type nodes", () => {
     expect(schemaDocument("StandaloneNull", schemaNullNode())).toEqual({
       version: "0.1",
       kind: "document",
       name: identifierName("StandaloneNull"),
+      definitions: [],
       root: {
         kind: "null",
       },
@@ -121,6 +158,7 @@ describe("core ast v0", () => {
       version: "0.1",
       kind: "document",
       name: identifierName("LiteralStatus"),
+      definitions: [],
       root: {
         kind: "literal",
         value: "open",
@@ -134,11 +172,12 @@ describe("core ast v0", () => {
         "MixedValue",
         schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("integer")]),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("MixedValue"),
-      root: {
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("MixedValue"),
+        definitions: [],
+        root: {
         kind: "union",
         members: [
           {
@@ -154,17 +193,87 @@ describe("core ast v0", () => {
     });
   });
 
+  it("preserves object union members with distinct literal discriminator fields", () => {
+    expect(
+      schemaUnionNode([
+        schemaObjectNode([
+          schemaFieldNode("type", schemaLiteralNode("a")),
+          schemaFieldNode("value", schemaScalarNode("string")),
+        ]),
+        schemaObjectNode([
+          schemaFieldNode("type", schemaLiteralNode("b")),
+          schemaFieldNode("count", schemaScalarNode("integer")),
+        ]),
+      ]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "object",
+          fields: [
+            {
+              kind: "field",
+              name: identifierName("type"),
+              required: true,
+              nullable: false,
+              type: {
+                kind: "literal",
+                value: "a",
+              },
+            },
+            {
+              kind: "field",
+              name: identifierName("value"),
+              required: true,
+              nullable: false,
+              type: {
+                kind: "scalar",
+                scalar: "string",
+              },
+            },
+          ],
+        },
+        {
+          kind: "object",
+          fields: [
+            {
+              kind: "field",
+              name: identifierName("type"),
+              required: true,
+              nullable: false,
+              type: {
+                kind: "literal",
+                value: "b",
+              },
+            },
+            {
+              kind: "field",
+              name: identifierName("count"),
+              required: true,
+              nullable: false,
+              type: {
+                kind: "scalar",
+                scalar: "integer",
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it("supports tuple type nodes", () => {
     expect(
       schemaDocument(
         "CoordinatePair",
         schemaTupleNode([schemaScalarNode("integer"), schemaScalarNode("string")]),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("CoordinatePair"),
-      root: {
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("CoordinatePair"),
+        definitions: [],
+        root: {
         kind: "tuple",
         elements: [
           {
@@ -195,11 +304,12 @@ describe("core ast v0", () => {
           schemaScalarNode("string"),
         ),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("Translations"),
-      root: {
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("Translations"),
+        definitions: [],
+        root: {
         kind: "record",
         key: {
           kind: "scalar",
@@ -224,11 +334,12 @@ describe("core ast v0", () => {
           }),
         ]),
       ),
-    ).toEqual({
-      version: "0.1",
-      kind: "document",
-      name: identifierName("PartialCoordinatePair"),
-      root: {
+      ).toEqual({
+        version: "0.1",
+        kind: "document",
+        name: identifierName("PartialCoordinatePair"),
+        definitions: [],
+        root: {
         kind: "tuple",
         elements: [
           {
@@ -274,6 +385,185 @@ describe("core ast v0", () => {
     });
   });
 
+  it("supports reusable definitions and reference nodes", () => {
+    expect(
+      schemaDocument("UserList", schemaArrayNode(schemaReferenceNode("User")), {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+          ),
+        ],
+      }),
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("UserList"),
+      definitions: [
+        {
+          name: identifierName("User"),
+          type: {
+            kind: "object",
+            fields: [
+              {
+                kind: "field",
+                name: identifierName("id"),
+                required: true,
+                nullable: false,
+                type: {
+                  kind: "scalar",
+                  scalar: "integer",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      root: {
+        kind: "array",
+        elementType: {
+          kind: "reference",
+          name: "User",
+        },
+      },
+    });
+  });
+
+  it("deduplicates identical reference members inside unions", () => {
+    expect(
+      schemaUnionNode([schemaReferenceNode("User"), schemaReferenceNode("User")]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "reference",
+          name: "User",
+        },
+      ],
+    });
+  });
+
+  it("deduplicates equivalent unknown members even when evidence differs", () => {
+    expect(
+      schemaUnionNode([
+        schemaUnknownNode({
+          reason: "empty-array-element",
+          evidence: {
+            source: "parser-json",
+            detail: "first sample",
+          },
+        }),
+        schemaUnknownNode({
+          reason: "empty-array-element",
+          evidence: {
+            source: "parser-json",
+            detail: "second sample",
+          },
+        }),
+      ]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "unknown",
+          reason: "empty-array-element",
+          nullable: false,
+          evidence: {
+            source: "parser-json",
+            detail: "first sample",
+          },
+        },
+      ],
+    });
+  });
+
+  it("keeps unknown members distinct when their reasons differ", () => {
+    expect(
+      schemaUnionNode([
+        schemaUnknownNode({
+          reason: "empty-array-element",
+          evidence: {
+            source: "parser-json",
+          },
+        }),
+        schemaUnknownNode({
+          reason: "mixed-types-collapsed",
+          evidence: {
+            source: "parser-json",
+            observedKinds: ["string", "boolean"],
+          },
+        }),
+      ]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "unknown",
+          reason: "empty-array-element",
+          nullable: false,
+          evidence: {
+            source: "parser-json",
+          },
+        },
+        {
+          kind: "unknown",
+          reason: "mixed-types-collapsed",
+          nullable: false,
+          evidence: {
+            source: "parser-json",
+            observedKinds: ["boolean", "string"],
+          },
+        },
+      ],
+    });
+  });
+
+  it("keeps unknown members distinct when nullable state differs", () => {
+    expect(
+      schemaUnionNode([
+        schemaUnknownNode({
+          reason: "no-evidence",
+        }),
+        schemaUnknownNode({
+          reason: "no-evidence",
+          nullable: true,
+        }),
+      ]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "unknown",
+          reason: "no-evidence",
+          nullable: false,
+        },
+        {
+          kind: "unknown",
+          reason: "no-evidence",
+          nullable: true,
+        },
+      ],
+    });
+  });
+
+  it("keeps explicit null semantics distinct from unknown semantics", () => {
+    expect(
+      schemaUnionNode([schemaNullNode(), schemaUnknownNode()]),
+    ).toEqual({
+      kind: "union",
+      members: [
+        {
+          kind: "null",
+        },
+        {
+          kind: "unknown",
+          reason: "no-evidence",
+          nullable: false,
+        },
+      ],
+    });
+  });
+
   it("rejects non-finite numeric literal nodes", () => {
     expect(() => schemaLiteralNode(Number.NaN)).toThrow(
       "Invalid schema literal: numeric literal values must be finite.",
@@ -299,6 +589,34 @@ describe("core ast v0", () => {
     expect(isSchemaLiteralNode(literalNode)).toBe(true);
     expect(isSchemaLiteralNode(scalarNode)).toBe(false);
     expect(isSchemaScalarNode(literalNode)).toBe(false);
+  });
+
+  it("exposes schema reference guards distinctly from scalar guards", () => {
+    const referenceNode = schemaReferenceNode("User");
+    const scalarNode = schemaScalarNode("string");
+
+    expect(isSchemaReferenceNode(referenceNode)).toBe(true);
+    expect(isSchemaReferenceNode(scalarNode)).toBe(false);
+    expect(isSchemaScalarNode(referenceNode)).toBe(false);
+  });
+
+  it("rejects duplicate definition names", () => {
+    expect(() =>
+      schemaDocument("DuplicateDefinitions", schemaReferenceNode("User"), {
+        definitions: [
+          schemaDefinition("User", schemaScalarNode("string")),
+          schemaDefinition("User", schemaScalarNode("integer")),
+        ],
+      }),
+    ).toThrow('Invalid schema document: duplicate definition name "User".');
+  });
+
+  it("rejects references to missing definitions", () => {
+    expect(() =>
+      schemaDocument("MissingReference", schemaReferenceNode("User")),
+    ).toThrow(
+      'Invalid schema document: reference "User" does not match a known definition.',
+    );
   });
 
   it("rejects nullable flags on explicit null field types", () => {

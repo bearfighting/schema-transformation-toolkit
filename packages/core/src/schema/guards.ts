@@ -1,5 +1,6 @@
 import type {
   SchemaArrayNode,
+  SchemaReferenceNode,
   SchemaLiteralNode,
   SchemaNullNode,
   SchemaNode,
@@ -19,6 +20,12 @@ export function isSchemaLiteralNode(
   node: SchemaNode,
 ): node is SchemaLiteralNode {
   return node.kind === "literal";
+}
+
+export function isSchemaReferenceNode(
+  node: SchemaNode,
+): node is SchemaReferenceNode {
+  return node.kind === "reference";
 }
 
 export function isSchemaUnionNode(node: SchemaNode): node is SchemaUnionNode {

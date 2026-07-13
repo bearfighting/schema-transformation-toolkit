@@ -1,11 +1,13 @@
 import type {
   IdentifierName,
   SchemaDocument,
+  SchemaDefinition,
   SchemaArrayNode,
   SchemaFieldNode,
   SchemaLiteralNode,
   SchemaNode,
   SchemaObjectNode,
+  SchemaReferenceNode,
   SchemaRecordNode,
   SchemaScalarNode,
   SchemaTupleElement,
@@ -20,22 +22,58 @@ export function renderTypeScriptDocument(
   doc: SchemaDocument,
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
-  if (doc.root.kind === "object") {
-    return options.rootObjectMode === "type"
-      ? renderRootTypeAlias(doc.name, doc.root, options)
-      : renderRootInterface(doc.name, doc.root, options);
+  const definitionLookup = new Map(
+    doc.definitions.map((definition) => [definition.name.source, definition] as const),
+  );
+  const sections = [
+    ...doc.definitions.map((definition) =>
+      renderDefinition(definition, options, definitionLookup),
+    ),
+    renderRootExport(doc, options, definitionLookup),
+  ];
+
+  return sections.join("\n\n");
+}
+
+function renderDefinition(
+  definition: SchemaDefinition,
+  options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
+): string {
+  if (definition.type.kind === "object") {
+    return renderRootInterface(
+      definition.name,
+      definition.type,
+      options,
+      definitionLookup,
+    );
   }
 
-  return `export type ${renderTypeName(doc.name, options)} = ${renderTypeNode(doc.root, 0, options)};`;
+  return `export type ${renderTypeName(definition.name, options)} = ${renderTypeNode(definition.type, 0, options, definitionLookup)};`;
+}
+
+function renderRootExport(
+  doc: SchemaDocument,
+  options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
+): string {
+  if (doc.root.kind === "object") {
+    return options.rootObjectMode === "type"
+      ? renderRootTypeAlias(doc.name, doc.root, options, definitionLookup)
+      : renderRootInterface(doc.name, doc.root, options, definitionLookup);
+  }
+
+  return `export type ${renderTypeName(doc.name, options)} = ${renderTypeNode(doc.root, 0, options, definitionLookup)};`;
 }
 
 function renderRootInterface(
   name: IdentifierName,
   node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   const fields = node.fields
-    .map((field) => renderFieldNode(field, 1, options))
+    .map((field) => renderFieldNode(field, 1, options, definitionLookup))
     .join("\n");
 
   return `export interface ${renderTypeName(name, options)} {\n${fields}\n}`;
@@ -45,17 +83,19 @@ function renderRootTypeAlias(
   name: IdentifierName,
   node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
-  return `export type ${renderTypeName(name, options)} = ${renderInlineObjectType(node, 0, options)};`;
+  return `export type ${renderTypeName(name, options)} = ${renderInlineObjectType(node, 0, options, definitionLookup)};`;
 }
 
 function renderFieldNode(
   field: SchemaFieldNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   const optionalMarker = field.required ? "" : "?";
-  const fieldType = renderFieldType(field, options);
+  const fieldType = renderFieldType(field, options, definitionLookup);
 
   return `${indent(depth)}${renderFieldName(field.name, options)}${optionalMarker}: ${fieldType};`;
 }
@@ -63,8 +103,9 @@ function renderFieldNode(
 function renderFieldType(
   field: SchemaFieldNode,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
-  const renderedType = renderTypeNode(field.type, 1, options);
+  const renderedType = renderTypeNode(field.type, 1, options, definitionLookup);
 
   if (!field.nullable) {
     return renderedType;
@@ -77,6 +118,7 @@ function renderTypeNode(
   node: SchemaNode,
   depth = 0,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   if (node.kind === "scalar") {
     return renderScalarType(node);
@@ -86,16 +128,20 @@ function renderTypeNode(
     return renderLiteralType(node);
   }
 
+  if (node.kind === "reference") {
+    return renderReferenceType(node, options, definitionLookup);
+  }
+
   if (node.kind === "union") {
-    return renderUnionType(node, depth, options);
+    return renderUnionType(node, depth, options, definitionLookup);
   }
 
   if (node.kind === "tuple") {
-    return renderTupleType(node, depth, options);
+    return renderTupleType(node, depth, options, definitionLookup);
   }
 
   if (node.kind === "record") {
-    return renderRecordType(node, depth, options);
+    return renderRecordType(node, depth, options, definitionLookup);
   }
 
   if (node.kind === "unknown") {
@@ -107,10 +153,10 @@ function renderTypeNode(
   }
 
   if (node.kind === "array") {
-    return renderArrayType(node, depth, options);
+    return renderArrayType(node, depth, options, definitionLookup);
   }
 
-  return renderInlineObjectType(node, depth, options);
+  return renderInlineObjectType(node, depth, options, definitionLookup);
 }
 
 function renderScalarType(node: SchemaScalarNode): string {
@@ -133,13 +179,28 @@ function renderLiteralType(node: SchemaLiteralNode): string {
   return String(node.value);
 }
 
+function renderReferenceType(
+  node: SchemaReferenceNode,
+  options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
+): string {
+  const definition = definitionLookup.get(node.name);
+
+  if (definition === undefined) {
+    return node.name;
+  }
+
+  return renderTypeName(definition.name, options);
+}
+
 function renderUnionType(
   node: SchemaUnionNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   return node.members
-    .map((member) => renderTypeNode(member, depth, options))
+    .map((member) => renderTypeNode(member, depth, options, definitionLookup))
     .join(" | ");
 }
 
@@ -147,9 +208,12 @@ function renderTupleType(
   node: SchemaTupleNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   return `[${node.elements
-    .map((element) => renderTupleElement(element, depth, options))
+    .map((element) =>
+      renderTupleElement(element, depth, options, definitionLookup),
+    )
     .join(", ")}]`;
 }
 
@@ -157,8 +221,14 @@ function renderTupleElement(
   element: SchemaTupleElement,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
-  const renderedType = renderTypeNode(element.type, depth, options);
+  const renderedType = renderTypeNode(
+    element.type,
+    depth,
+    options,
+    definitionLookup,
+  );
 
   if (element.required) {
     return renderedType;
@@ -171,8 +241,9 @@ function renderRecordType(
   node: SchemaRecordNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
-  return `Record<${renderTypeNode(node.key, depth, options)}, ${renderTypeNode(node.value, depth, options)}>`;
+  return `Record<${renderTypeNode(node.key, depth, options, definitionLookup)}, ${renderTypeNode(node.value, depth, options, definitionLookup)}>`;
 }
 
 function renderUnknownType(
@@ -193,8 +264,14 @@ function renderArrayType(
   node: SchemaArrayNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
-  const renderedElementType = renderTypeNode(node.elementType, depth, options);
+  const renderedElementType = renderTypeNode(
+    node.elementType,
+    depth,
+    options,
+    definitionLookup,
+  );
 
   switch (options.arrayStyle) {
     case "generic":
@@ -213,9 +290,12 @@ function renderInlineObjectType(
   node: SchemaObjectNode,
   depth: number,
   options: ResolvedTypeScriptGeneratorOptions,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
 ): string {
   const fields = node.fields
-    .map((field) => renderFieldNode(field, depth + 1, options))
+    .map((field) =>
+      renderFieldNode(field, depth + 1, options, definitionLookup),
+    )
     .join("\n");
 
   return `{\n${fields}\n${indent(depth)}}`;

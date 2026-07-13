@@ -9,7 +9,7 @@ import type { JsonSchemaInferenceResult } from "./parse.js";
 export type JsonParseStrictness = "strict";
 export type JsonNumericMode = "distinguish" | "number-only";
 export type JsonEmptyArrayMode = "unknown-array";
-export type JsonMixedTypeMode = "error" | "union";
+export type JsonMixedTypeMode = "error" | "union" | "unknown";
 export type JsonNullHandling = "nullable";
 export type JsonTupleInferenceMode = "off" | "heterogeneous-only";
 export type JsonRecordInferenceMode = "off" | "shared-value-type";
@@ -179,10 +179,11 @@ export function validateJsonSchemaParseOptions(
 
   if (
     normalizedSchemaOptions.mixedTypeMode !== "error" &&
-    normalizedSchemaOptions.mixedTypeMode !== "union"
+    normalizedSchemaOptions.mixedTypeMode !== "union" &&
+    normalizedSchemaOptions.mixedTypeMode !== "unknown"
   ) {
     errors.push(
-      'Unsupported json parse option: inference.mixedTypeMode must currently be "error" or "union".',
+      'Unsupported json parse option: inference.mixedTypeMode must currently be "error", "union", or "unknown".',
     );
   }
 

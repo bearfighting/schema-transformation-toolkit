@@ -1,4 +1,4 @@
-import type { SchemaDocument } from "./types.js";
+import type { SchemaDiagnostic, SchemaDocument } from "./types.js";
 
 export interface ParseOptions {
   name?: string;
@@ -21,12 +21,14 @@ export interface ConfiguredParser<
 export interface ParseSuccessResult {
   ok: true;
   document: SchemaDocument;
+  diagnostics?: SchemaDiagnostic[];
 }
 
 export interface ParseFailureResult<TCode extends string = string> {
   ok: false;
   code: TCode;
   message: string;
+  diagnostics?: SchemaDiagnostic[];
 }
 
 export type ParseResult<TCode extends string = string> =
@@ -55,12 +57,14 @@ export interface ConfiguredGenerator<
 export interface GenerateSuccessResult<TOutput = string> {
   ok: true;
   output: TOutput;
+  diagnostics?: SchemaDiagnostic[];
 }
 
 export interface GenerateFailureResult<TCode extends string = string> {
   ok: false;
   code: TCode;
   message: string;
+  diagnostics?: SchemaDiagnostic[];
 }
 
 export type GenerateResult<TOutput = string, TCode extends string = string> =

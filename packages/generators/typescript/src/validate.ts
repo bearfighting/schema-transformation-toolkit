@@ -1,5 +1,7 @@
 import type {
   IdentifierName,
+  SchemaDiagnostic,
+  SchemaDefinition,
   SchemaDocument,
   SchemaNode,
   SchemaObjectNode,
@@ -15,19 +17,49 @@ export function validateRenderableDocument(
   const renderedTypeName = renderTypeName(doc.name, options);
 
   if (!isValidTypeName(renderedTypeName)) {
-    return {
-      ok: false,
-      code: "invalid-type-name",
-      message: `The rendered type name "${renderedTypeName}" is not a valid TypeScript identifier.`,
-    };
+    return createValidationFailure(
+      "invalid-type-name",
+      `The rendered type name "${renderedTypeName}" is not a valid TypeScript identifier.`,
+      ["document"],
+      "document",
+      {
+        renderedName: renderedTypeName,
+        sourceName: doc.name.source,
+      },
+    );
   }
 
-  return validateRenderableTypeNode(doc.root, options);
+  for (const definition of doc.definitions) {
+    const definitionNameFailure = validateRenderableDefinitionName(
+      definition,
+      options,
+      ["definitions", definition.name.source],
+    );
+
+    if (definitionNameFailure !== null) {
+      return definitionNameFailure;
+    }
+
+    const definitionFailure = validateRenderableTypeNode(
+      definition.type,
+      options,
+      doc,
+      ["definitions", definition.name.source],
+    );
+
+    if (definitionFailure !== null) {
+      return definitionFailure;
+    }
+  }
+
+  return validateRenderableTypeNode(doc.root, options, doc, ["root"]);
 }
 
 function validateRenderableTypeNode(
   node: SchemaNode,
   options: ResolvedTypeScriptGeneratorOptions,
+  doc: SchemaDocument,
+  path: string[],
 ): TypeScriptGenerateFailureResult | null {
   switch (node.kind) {
     case "scalar":
@@ -35,11 +67,55 @@ function validateRenderableTypeNode(
     case "null":
     case "unknown":
       return null;
+    case "reference": {
+      const definition = doc.definitions.find(
+        (candidate) => candidate.name.source === node.name,
+      );
+
+      if (definition === undefined) {
+        return createValidationFailure(
+          "invalid-reference-name",
+          `The schema reference "${node.name}" does not match a renderable definition.`,
+          path,
+          "reference",
+          {
+            referenceName: node.name,
+          },
+        );
+      }
+
+      const renderedReferenceName = renderTypeName(definition.name, options);
+
+      if (!isValidTypeName(renderedReferenceName)) {
+        return createValidationFailure(
+          "invalid-reference-name",
+          `The rendered reference name "${renderedReferenceName}" for schema reference "${node.name}" is not a valid TypeScript identifier.`,
+          path,
+          "reference",
+          {
+            referenceName: node.name,
+            renderedName: renderedReferenceName,
+          },
+        );
+      }
+
+      return null;
+    }
     case "array":
-      return validateRenderableTypeNode(node.elementType, options);
+      return validateRenderableTypeNode(
+        node.elementType,
+        options,
+        doc,
+        [...path, "elementType"],
+      );
     case "tuple":
-      for (const element of node.elements) {
-        const elementFailure = validateRenderableTypeNode(element.type, options);
+      for (const [index, element] of node.elements.entries()) {
+        const elementFailure = validateRenderableTypeNode(
+          element.type,
+          options,
+          doc,
+          [...path, String(index)],
+        );
 
         if (elementFailure !== null) {
           return elementFailure;
@@ -47,17 +123,32 @@ function validateRenderableTypeNode(
       }
       return null;
     case "record": {
-      const keyFailure = validateRenderableTypeNode(node.key, options);
+      const keyFailure = validateRenderableTypeNode(
+        node.key,
+        options,
+        doc,
+        [...path, "key"],
+      );
 
       if (keyFailure !== null) {
         return keyFailure;
       }
 
-      return validateRenderableTypeNode(node.value, options);
+      return validateRenderableTypeNode(
+        node.value,
+        options,
+        doc,
+        [...path, "value"],
+      );
     }
     case "union":
-      for (const member of node.members) {
-        const memberFailure = validateRenderableTypeNode(member, options);
+      for (const [index, member] of node.members.entries()) {
+        const memberFailure = validateRenderableTypeNode(
+          member,
+          options,
+          doc,
+          [...path, String(index)],
+        );
 
         if (memberFailure !== null) {
           return memberFailure;
@@ -65,32 +156,69 @@ function validateRenderableTypeNode(
       }
       return null;
     case "object":
-      return validateRenderableObjectType(node, options);
+      return validateRenderableObjectType(node, options, doc, path);
     default:
-      return {
-        ok: false,
-        code: "unsupported-node-kind",
-        message: `The TypeScript generator does not support node kind "${String((node as { kind: string }).kind)}".`,
-      };
+      return createValidationFailure(
+        "unsupported-node-kind",
+        `The TypeScript generator does not support node kind "${String((node as { kind: string }).kind)}".`,
+        path,
+        String((node as { kind: string }).kind),
+      );
   }
+}
+
+function validateRenderableDefinitionName(
+  definition: SchemaDefinition,
+  options: ResolvedTypeScriptGeneratorOptions,
+  path: string[],
+): TypeScriptGenerateFailureResult | null {
+  const renderedTypeName = renderTypeName(definition.name, options);
+
+  if (!isValidTypeName(renderedTypeName)) {
+    return createValidationFailure(
+      "invalid-type-name",
+      `The rendered type name "${renderedTypeName}" for schema definition "${definition.name.source}" is not a valid TypeScript identifier.`,
+      path,
+      "definition",
+      {
+        renderedName: renderedTypeName,
+        sourceName: definition.name.source,
+      },
+    );
+  }
+
+  return null;
 }
 
 function validateRenderableObjectType(
   node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
+  doc: SchemaDocument,
+  path: string[],
 ): TypeScriptGenerateFailureResult | null {
   for (const field of node.fields) {
     const renderedFieldName = renderFieldName(field.name, options);
+    const fieldPath = [...path, field.name.source];
 
     if (!isValidFieldName(renderedFieldName)) {
-      return {
-        ok: false,
-        code: "invalid-field-name",
-        message: `The rendered field name "${renderedFieldName}" for source field "${field.name.source}" is not valid TypeScript property syntax.`,
-      };
+      return createValidationFailure(
+        "invalid-field-name",
+        `The rendered field name "${renderedFieldName}" for source field "${field.name.source}" is not valid TypeScript property syntax.`,
+        fieldPath,
+        "field",
+        {
+          renderedName: renderedFieldName,
+          sourceName: field.name.source,
+        },
+      );
     }
 
-    const nestedFailure = validateRenderableTypeNode(field.type, options);
+    const nestedFailure = validateRenderableTypeNode(
+      field.type,
+      options,
+      doc,
+      fieldPath,
+    );
 
     if (nestedFailure !== null) {
       return nestedFailure;
@@ -98,6 +226,34 @@ function validateRenderableObjectType(
   }
 
   return null;
+}
+
+function createValidationFailure(
+  code: TypeScriptGenerateFailureResult["code"],
+  message: string,
+  path: string[],
+  nodeKind: string,
+  evidence?: Record<string, unknown>,
+): TypeScriptGenerateFailureResult {
+  const diagnostic: SchemaDiagnostic = {
+    severity: "error",
+    code,
+    message,
+    path,
+    nodeKind,
+    source: "generator-typescript",
+  };
+
+  if (evidence !== undefined) {
+    diagnostic.evidence = evidence;
+  }
+
+  return {
+    ok: false,
+    code,
+    message,
+    diagnostics: [diagnostic],
+  };
 }
 
 function renderTypeName(

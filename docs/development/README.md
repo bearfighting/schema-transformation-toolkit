@@ -16,6 +16,7 @@ It should answer questions like:
 
 - [scope.md](scope.md): project boundary and supported vs unsupported feature classes
 - [decisions.md](decisions.md): durable design decisions and guardrails
+- [ir-contract.md](ir-contract.md): current shared schema IR contract, invariants, and diagnostic conventions
 
 ### Delivery Process
 
@@ -26,9 +27,11 @@ It should answer questions like:
 
 - [roadmap.md](roadmap.md): near-term development direction
 - [progress.md](progress.md): current phase, completed work, next milestones
+- [plan.md](plan.md): staged execution plan for `core`, `web`, and `cli`
 
 ### Reference
 
+- [ir-contract.md](ir-contract.md): canonical current IR semantics and shared diagnostic contract
 - [ir-v0-cases.md](ir-v0-cases.md): test-oriented working cases for current schema IR support
 
 ## Documentation Rule

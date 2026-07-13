@@ -4,29 +4,35 @@ export type {
   SchemaLiteralValue,
   SchemaArrayNode,
   SchemaBaseNode,
+  SchemaDefinition,
+  SchemaDiagnostic,
+  SchemaDiagnosticSeverity,
   SchemaDocument,
   SchemaFieldNode,
   SchemaLiteralNode,
   SchemaNullNode,
   SchemaNode,
   SchemaObjectNode,
+  SchemaReferenceNode,
   SchemaRecordNode,
   SchemaScalarNode,
   SchemaTupleElement,
   SchemaTupleNode,
   SchemaUnionNode,
+  SchemaUnknownEvidence,
   SchemaUnknownNode,
   UnknownReason,
 } from "./types.js";
 
 export {
-  identifierName,
   schemaArrayNode,
+  schemaDefinition,
   schemaDocument,
   schemaFieldNode,
   schemaLiteralNode,
   schemaNullNode,
   schemaObjectNode,
+  schemaReferenceNode,
   schemaRecordNode,
   schemaScalarNode,
   schemaTupleElement,
@@ -35,11 +41,16 @@ export {
   schemaUnknownNode,
 } from "./factories.js";
 
+export { identifierName } from "./identifiers.js";
+
+export { areEquivalentSchemaNodes } from "./equivalence.js";
+
 export {
   isSchemaArrayNode,
   isSchemaLiteralNode,
   isSchemaNullNode,
   isSchemaObjectNode,
+  isSchemaReferenceNode,
   isSchemaRecordNode,
   isSchemaScalarNode,
   isSchemaTupleNode,

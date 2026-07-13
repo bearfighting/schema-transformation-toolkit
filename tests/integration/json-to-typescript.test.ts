@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { createNamingStrategy } from "../../packages/core/src/index.js";
+import {
+  createNamingStrategy,
+  schemaArrayNode,
+  schemaDefinition,
+  schemaDocument,
+  schemaFieldNode,
+  schemaObjectNode,
+  schemaReferenceNode,
+  schemaScalarNode,
+  schemaUnknownNode,
+} from "../../packages/core/src/index.js";
 import {
   configureTypeScriptGenerator,
   tryGenerateTypeScript,
@@ -216,6 +226,92 @@ describe("integration: json -> ir -> typescript", () => {
     });
   });
 
+  it("preserves discriminated object unions across the full pipeline in union mode", () => {
+    const parsed = jsonSchemaParser.parse(
+      '[{"type":"a","value":"x"},{"type":"b","count":1}]',
+      {
+        name: "discriminated-value",
+        inference: {
+          mixedTypeMode: "union",
+        },
+      },
+    );
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON parser to succeed.");
+    }
+
+    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+      ok: true,
+      output: [
+        "export type DiscriminatedValue = Array<{",
+        '  type_: "a";',
+        "  value: string;",
+        "} | {",
+        '  type_: "b";',
+        "  count: number;",
+        "}>;",
+      ].join("\n"),
+    });
+  });
+
+  it('preserves collapsed mixed-type unknown semantics across the full pipeline in unknown mode', () => {
+    const parsed = jsonSchemaParser.parse('[{"value":1},{"value":"x"}]', {
+      name: "mixed-value-unknown",
+      inference: {
+        mixedTypeMode: "unknown",
+      },
+    });
+
+    expect(parsed).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "mixed-value-unknown",
+        schemaArrayNode(
+          schemaObjectNode([
+            schemaFieldNode(
+              "value",
+              schemaUnknownNode({
+                reason: "mixed-types-collapsed",
+                evidence: {
+                  source: "parser-json",
+                  observedKinds: ["integer", "string"],
+                },
+              }),
+            ),
+          ]),
+        ),
+      ),
+      diagnostics: [
+        {
+          severity: "info",
+          code: "collapsed-mixed-types-to-unknown",
+          message:
+            'The parser collapsed mixed incompatible samples to unknown because mixedTypeMode was set to "unknown".',
+          path: ["value"],
+          nodeKind: "unknown",
+          source: "parser-json",
+          evidence: {
+            observedKinds: ["integer", "string"],
+          },
+        },
+      ],
+    });
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON parser to succeed.");
+    }
+
+    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+      ok: true,
+      output: [
+        "export type MixedValueUnknown = Array<{",
+        "  value: unknown;",
+        "}>;",
+      ].join("\n"),
+    });
+  });
+
   it("surfaces unsupported parser behavior before generation for invalid inference cases", () => {
     expect(preparedJsonSchemaParserOptions.errors).toEqual([]);
 
@@ -228,6 +324,16 @@ describe("integration: json -> ir -> typescript", () => {
       code: "unsupported-mixed-types",
       message:
         "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "unsupported-mixed-types",
+          message:
+            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+          path: [],
+          source: "parser-json",
+        },
+      ],
     });
   });
 
@@ -256,6 +362,51 @@ describe("integration: json -> ir -> typescript", () => {
       code: "invalid-type-name",
       message:
         'The rendered type name ""user-profile"" is not a valid TypeScript identifier.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-type-name",
+          message:
+            'The rendered type name ""user-profile"" is not a valid TypeScript identifier.',
+          path: ["document"],
+          nodeKind: "document",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: '"user-profile"',
+            sourceName: "user-profile",
+          },
+        },
+      ],
+    });
+  });
+
+  it("supports hand-authored reusable definitions through the full generation layer", () => {
+    const document = schemaDocument(
+      "user-directory",
+      schemaArrayNode(schemaReferenceNode("user-profile")),
+      {
+        definitions: [
+          schemaDefinition(
+            "user-profile",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+              schemaFieldNode("display-name", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    expect(typeScriptGenerator.generate(document)).toEqual({
+      ok: true,
+      output: [
+        "export interface UserProfile {",
+        "  id: number;",
+        "  displayName: string;",
+        "}",
+        "",
+        "export type UserDirectory = UserProfile[];",
+      ].join("\n"),
     });
   });
 });

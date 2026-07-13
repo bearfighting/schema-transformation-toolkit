@@ -1,4 +1,8 @@
-import type { ParseFailureResult, SchemaDocument } from "@aio/core";
+import type {
+  ParseFailureResult,
+  SchemaDiagnostic,
+  SchemaDocument,
+} from "@aio/core";
 import { schemaDocument } from "@aio/core";
 import { decodeJsonText } from "../decode.js";
 import { isJsonInferenceError } from "../errors.js";
@@ -14,6 +18,7 @@ import {
 export interface JsonSchemaInferenceSuccessResult {
   ok: true;
   document: SchemaDocument;
+  diagnostics?: SchemaDiagnostic[];
 }
 
 export type JsonSchemaInferenceFailureResult =
@@ -75,9 +80,16 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
   options: ResolvedJsonSchemaParseOptions,
 ): JsonSchemaInferenceResult {
   try {
+    const diagnostics: SchemaDiagnostic[] = [];
+
     return {
       ok: true,
-      document: inferJsonSchemaDocumentWithResolvedOptions(input, options),
+      document: inferJsonSchemaDocumentWithResolvedOptions(
+        input,
+        options,
+        diagnostics,
+      ),
+      ...(diagnostics.length > 0 ? { diagnostics } : {}),
     };
   } catch (error) {
     if (isJsonInferenceError(error)) {
@@ -85,6 +97,9 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
         ok: false,
         code: error.code,
         message: error.message,
+        ...(error.diagnostics && error.diagnostics.length > 0
+          ? { diagnostics: error.diagnostics }
+          : {}),
       };
     }
 
@@ -93,6 +108,14 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
         ok: false,
         code: "invalid-json",
         message: "The input is not valid JSON.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "invalid-json",
+            message: "The input is not valid JSON.",
+            source: "parser-json",
+          },
+        ],
       };
     }
 
@@ -103,11 +126,12 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
 function inferJsonSchemaDocumentWithResolvedOptions(
   input: string,
   options: ResolvedJsonSchemaParseOptions,
+  diagnostics: SchemaDiagnostic[] = [],
 ): SchemaDocument {
   const decodedValue = decodeJsonText(input);
 
   return schemaDocument(
     options.name,
-    inferSchemaNodeFromJsonValue(decodedValue, options),
+    inferSchemaNodeFromJsonValue(decodedValue, options, diagnostics),
   );
 }

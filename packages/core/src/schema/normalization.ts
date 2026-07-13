@@ -64,5 +64,7 @@ export function normalizeUnknownEvidence(
       : {}),
   };
 
-  return Object.keys(normalizedEvidence).length > 0 ? normalizedEvidence : undefined;
+  return Object.keys(normalizedEvidence).length > 0
+    ? normalizedEvidence
+    : undefined;
 }

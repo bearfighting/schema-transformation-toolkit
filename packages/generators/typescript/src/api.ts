@@ -1,7 +1,4 @@
-import type {
-  SchemaDocument,
-  SchemaGenerator,
-} from "@aio/core";
+import type { SchemaDocument, SchemaGenerator } from "@aio/core";
 import { renderTypeScriptDocument } from "./emit.js";
 import type { TypeScriptGenerateResult } from "./failure.js";
 import {
@@ -25,7 +22,9 @@ export function generateTypeScript(
   const result = tryGenerateTypeScript(doc, options);
 
   if (!result.ok) {
-    throw new Error(`TypeScript generation failed [${result.code}]: ${result.message}`);
+    throw new Error(
+      `TypeScript generation failed [${result.code}]: ${result.message}`,
+    );
   }
 
   return result.output;

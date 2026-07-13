@@ -1,8 +1,6 @@
 import type { SchemaDiagnostic } from "@aio/core";
 
-export type JsonInferenceErrorCode =
-  | "invalid-json"
-  | "unsupported-mixed-types";
+export type JsonInferenceErrorCode = "invalid-json" | "unsupported-mixed-types";
 
 export class JsonInferenceError extends Error {
   readonly code: JsonInferenceErrorCode;

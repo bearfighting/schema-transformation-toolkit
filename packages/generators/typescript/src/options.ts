@@ -71,7 +71,10 @@ export function validateTypeScriptGeneratorOptions(
     );
   }
 
-  if (options.rootObjectMode !== "interface" && options.rootObjectMode !== "type") {
+  if (
+    options.rootObjectMode !== "interface" &&
+    options.rootObjectMode !== "type"
+  ) {
     errors.push('rootObjectMode must be either "interface" or "type".');
   }
 

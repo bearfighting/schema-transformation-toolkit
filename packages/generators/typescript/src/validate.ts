@@ -102,12 +102,10 @@ function validateRenderableTypeNode(
       return null;
     }
     case "array":
-      return validateRenderableTypeNode(
-        node.elementType,
-        options,
-        doc,
-        [...path, "elementType"],
-      );
+      return validateRenderableTypeNode(node.elementType, options, doc, [
+        ...path,
+        "elementType",
+      ]);
     case "tuple":
       for (const [index, element] of node.elements.entries()) {
         const elementFailure = validateRenderableTypeNode(
@@ -123,32 +121,26 @@ function validateRenderableTypeNode(
       }
       return null;
     case "record": {
-      const keyFailure = validateRenderableTypeNode(
-        node.key,
-        options,
-        doc,
-        [...path, "key"],
-      );
+      const keyFailure = validateRenderableTypeNode(node.key, options, doc, [
+        ...path,
+        "key",
+      ]);
 
       if (keyFailure !== null) {
         return keyFailure;
       }
 
-      return validateRenderableTypeNode(
-        node.value,
-        options,
-        doc,
-        [...path, "value"],
-      );
+      return validateRenderableTypeNode(node.value, options, doc, [
+        ...path,
+        "value",
+      ]);
     }
     case "union":
       for (const [index, member] of node.members.entries()) {
-        const memberFailure = validateRenderableTypeNode(
-          member,
-          options,
-          doc,
-          [...path, String(index)],
-        );
+        const memberFailure = validateRenderableTypeNode(member, options, doc, [
+          ...path,
+          String(index),
+        ]);
 
         if (memberFailure !== null) {
           return memberFailure;

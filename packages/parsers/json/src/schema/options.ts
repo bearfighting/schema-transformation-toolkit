@@ -32,7 +32,8 @@ export interface JsonDiagnosticsOptions {
   preserveSourceInfo?: false;
 }
 
-export interface JsonSchemaParseOptions extends ParseOptions, JsonDecodeOptions {
+export interface JsonSchemaParseOptions
+  extends ParseOptions, JsonDecodeOptions {
   schema?: JsonSchemaInferenceOptions;
   inference?: JsonSchemaInferenceOptions;
 }
@@ -71,26 +72,27 @@ export const DEFAULT_JSON_DECODE_OPTIONS: ResolvedJsonDecodeOptions = {
   },
 };
 
-export const DEFAULT_JSON_SCHEMA_PARSE_OPTIONS: ResolvedJsonSchemaParseOptions = {
-  name: "JsonDocument",
-  ...DEFAULT_JSON_DECODE_OPTIONS,
-  schema: {
-    numericMode: "distinguish",
-    emptyArrayMode: "unknown-array",
-    mixedTypeMode: "error",
-    nullHandling: "nullable",
-    tupleInferenceMode: "off",
-    recordInferenceMode: "off",
-  },
-  inference: {
-    numericMode: "distinguish",
-    emptyArrayMode: "unknown-array",
-    mixedTypeMode: "error",
-    nullHandling: "nullable",
-    tupleInferenceMode: "off",
-    recordInferenceMode: "off",
-  },
-};
+export const DEFAULT_JSON_SCHEMA_PARSE_OPTIONS: ResolvedJsonSchemaParseOptions =
+  {
+    name: "JsonDocument",
+    ...DEFAULT_JSON_DECODE_OPTIONS,
+    schema: {
+      numericMode: "distinguish",
+      emptyArrayMode: "unknown-array",
+      mixedTypeMode: "error",
+      nullHandling: "nullable",
+      tupleInferenceMode: "off",
+      recordInferenceMode: "off",
+    },
+    inference: {
+      numericMode: "distinguish",
+      emptyArrayMode: "unknown-array",
+      mixedTypeMode: "error",
+      nullHandling: "nullable",
+      tupleInferenceMode: "off",
+      recordInferenceMode: "off",
+    },
+  };
 
 export function resolveJsonDecodeOptions(
   options: JsonDecodeOptions = {},

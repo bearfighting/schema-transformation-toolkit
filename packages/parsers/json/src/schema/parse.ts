@@ -21,8 +21,9 @@ export interface JsonSchemaInferenceSuccessResult {
   diagnostics?: SchemaDiagnostic[];
 }
 
-export type JsonSchemaInferenceFailureResult =
-  ParseFailureResult<"invalid-json" | "unsupported-mixed-types">;
+export type JsonSchemaInferenceFailureResult = ParseFailureResult<
+  "invalid-json" | "unsupported-mixed-types"
+>;
 
 export type JsonSchemaInferenceResult =
   | JsonSchemaInferenceSuccessResult
@@ -68,7 +69,8 @@ export function tryInferJsonSchemaDocumentWithOptions(
 }
 
 const defaultConfiguredJsonSchemaParser = configureJsonSchemaParser(
-  (input, options) => tryInferJsonSchemaDocumentWithResolvedOptions(input, options),
+  (input, options) =>
+    tryInferJsonSchemaDocumentWithResolvedOptions(input, options),
 );
 
 export const jsonSchemaParser = defaultConfiguredJsonSchemaParser.parser;

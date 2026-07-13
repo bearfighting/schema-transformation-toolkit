@@ -112,7 +112,7 @@ Parser option:
 ```ts
 {
   inference: {
-    mixedTypeMode: "union"
+    mixedTypeMode: "union";
   }
 }
 ```
@@ -189,7 +189,7 @@ Parser option:
 ```ts
 {
   inference: {
-    tupleInferenceMode: "heterogeneous-only"
+    tupleInferenceMode: "heterogeneous-only";
   }
 }
 ```
@@ -198,10 +198,7 @@ JSON:
 
 ```json
 {
-  "pair": [
-    1,
-    "north"
-  ]
+  "pair": [1, "north"]
 }
 ```
 
@@ -220,7 +217,7 @@ Parser option:
 ```ts
 {
   inference: {
-    tupleInferenceMode: "heterogeneous-only"
+    tupleInferenceMode: "heterogeneous-only";
   }
 }
 ```
@@ -228,15 +225,7 @@ Parser option:
 JSON:
 
 ```json
-[
-  [
-    1,
-    "east"
-  ],
-  [
-    2
-  ]
-]
+[[1, "east"], [2]]
 ```
 
 Generated TypeScript:
@@ -252,7 +241,7 @@ Parser option:
 ```ts
 {
   inference: {
-    tupleInferenceMode: "heterogeneous-only"
+    tupleInferenceMode: "heterogeneous-only";
   }
 }
 ```
@@ -261,18 +250,9 @@ JSON:
 
 ```json
 [
-  [
-    1,
-    "east"
-  ],
-  [
-    2,
-    true
-  ],
-  [
-    3,
-    null
-  ]
+  [1, "east"],
+  [2, true],
+  [3, null]
 ]
 ```
 
@@ -289,7 +269,7 @@ Parser option:
 ```ts
 {
   inference: {
-    recordInferenceMode: "shared-value-type"
+    recordInferenceMode: "shared-value-type";
   }
 }
 ```
@@ -322,7 +302,7 @@ Parser option:
 ```ts
 {
   inference: {
-    recordInferenceMode: "shared-value-type"
+    recordInferenceMode: "shared-value-type";
   }
 }
 ```
@@ -355,9 +335,12 @@ Generated TypeScript:
 
 ```ts
 export type RecordFieldShape = Array<{
-  users: Record<string, {
-    id: number;
-  }>;
+  users: Record<
+    string,
+    {
+      id: number;
+    }
+  >;
 }>;
 ```
 

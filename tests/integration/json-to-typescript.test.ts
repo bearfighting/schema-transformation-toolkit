@@ -85,7 +85,9 @@ describe("integration: json -> ir -> typescript", () => {
     });
 
     if (!topLevelNull.ok || !partialShape.ok) {
-      throw new Error("Expected the JSON parser to succeed for unresolved semantics.");
+      throw new Error(
+        "Expected the JSON parser to succeed for unresolved semantics.",
+      );
     }
 
     expect(typeScriptGenerator.generate(topLevelNull.document)).toEqual({
@@ -255,7 +257,7 @@ describe("integration: json -> ir -> typescript", () => {
     });
   });
 
-  it('preserves collapsed mixed-type unknown semantics across the full pipeline in unknown mode', () => {
+  it("preserves collapsed mixed-type unknown semantics across the full pipeline in unknown mode", () => {
     const parsed = jsonSchemaParser.parse('[{"value":1},{"value":"x"}]', {
       name: "mixed-value-unknown",
       inference: {

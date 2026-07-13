@@ -121,7 +121,9 @@ function inferArrayType(
       return schemaArrayNode(discriminatedUnion);
     }
 
-    return schemaArrayNode(mergeObjectSamples(values, options, diagnostics, path));
+    return schemaArrayNode(
+      mergeObjectSamples(values, options, diagnostics, path),
+    );
   }
 
   try {
@@ -160,7 +162,10 @@ function inferArrayType(
 
     return schemaArrayNode(inferredElementType);
   } catch (error) {
-    if (isJsonInferenceError(error) && error.code === "unsupported-mixed-types") {
+    if (
+      isJsonInferenceError(error) &&
+      error.code === "unsupported-mixed-types"
+    ) {
       if (values.every(Array.isArray)) {
         const inferredTuple = tryInferTupleNodeFromArraySamples(
           values,
@@ -288,7 +293,12 @@ function inferFieldType(
 
   if (values.every(isJsonObject)) {
     if (values.length === 1) {
-      return inferObjectType(getFirstValue(values), options, diagnostics, fieldPath);
+      return inferObjectType(
+        getFirstValue(values),
+        options,
+        diagnostics,
+        fieldPath,
+      );
     }
 
     const inferredRecord = tryInferRecordNodeFromObjectSamples(
@@ -457,11 +467,11 @@ function tryInferTupleNodeFromArraySamples(
     elements.push(
       schemaTupleElement(
         inferValuesAsTuplePositionType(
-        positionValues,
-        `tuple index ${index}`,
-        options,
-        diagnostics,
-        [...path, String(index)],
+          positionValues,
+          `tuple index ${index}`,
+          options,
+          diagnostics,
+          [...path, String(index)],
         ),
         {
           required: positionValues.length === values.length,
@@ -543,7 +553,8 @@ function shouldInferTupleFromMixedArray(
   options: ResolvedJsonParseOptions,
 ): boolean {
   return (
-    values.length > 0 && options.schema.tupleInferenceMode === "heterogeneous-only"
+    values.length > 0 &&
+    options.schema.tupleInferenceMode === "heterogeneous-only"
   );
 }
 
@@ -600,7 +611,8 @@ function inferObjectTypeWithLiteralDiscriminators(
   const fields = Object.entries(value).map(([name, fieldValue]) =>
     schemaFieldNode(
       name,
-      discriminatorKeySet.has(name) && isJsonLiteralDiscriminatorValue(fieldValue)
+      discriminatorKeySet.has(name) &&
+        isJsonLiteralDiscriminatorValue(fieldValue)
         ? schemaLiteralNode(fieldValue)
         : inferFieldType(name, [fieldValue], options, diagnostics, path),
     ),
@@ -675,7 +687,10 @@ function inferValuesAsSharedType(
         path,
       );
     } catch (error) {
-      if (isJsonInferenceError(error) && error.code === "unsupported-mixed-types") {
+      if (
+        isJsonInferenceError(error) &&
+        error.code === "unsupported-mixed-types"
+      ) {
         if (options.schema.mixedTypeMode === "unknown") {
           return schemaUnknownNode({
             reason: "mixed-types-collapsed",
@@ -728,7 +743,10 @@ function inferValuesAsTuplePositionType(
       return inferredType;
     }
   } catch (error) {
-    if (!isJsonInferenceError(error) || error.code !== "unsupported-mixed-types") {
+    if (
+      !isJsonInferenceError(error) ||
+      error.code !== "unsupported-mixed-types"
+    ) {
       throw error;
     }
   }

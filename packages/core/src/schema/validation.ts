@@ -1,8 +1,4 @@
-import type {
-  SchemaDefinition,
-  SchemaDocument,
-  SchemaNode,
-} from "./types.js";
+import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 
 export function validateSchemaDocument(document: SchemaDocument): void {
   const definitionMap = new Map<string, SchemaDefinition>();

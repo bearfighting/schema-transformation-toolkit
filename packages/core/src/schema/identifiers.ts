@@ -26,7 +26,10 @@ export function splitIdentifierWords(value: string): string[] {
     .map((part) => part.toLowerCase());
 }
 
-export function normalizeWords(words: string[], fallbackSource: string): string[] {
+export function normalizeWords(
+  words: string[],
+  fallbackSource: string,
+): string[] {
   const normalizedWords = words
     .map((word) => word.trim().toLowerCase())
     .filter(Boolean);

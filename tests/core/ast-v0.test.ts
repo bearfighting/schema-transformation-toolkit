@@ -49,13 +49,13 @@ describe("core ast v0", () => {
           ]),
         ),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("ObjectFieldOptionalAndNullable"),
-        definitions: [],
-        root: {
-          kind: "array",
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("ObjectFieldOptionalAndNullable"),
+      definitions: [],
+      root: {
+        kind: "array",
         elementType: {
           kind: "object",
           fields: [
@@ -95,12 +95,12 @@ describe("core ast v0", () => {
           }),
         ),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("EmptyArray"),
-        definitions: [],
-        root: {
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("EmptyArray"),
+      definitions: [],
+      root: {
         kind: "array",
         elementType: {
           kind: "unknown",
@@ -170,14 +170,17 @@ describe("core ast v0", () => {
     expect(
       schemaDocument(
         "MixedValue",
-        schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("integer")]),
+        schemaUnionNode([
+          schemaScalarNode("string"),
+          schemaScalarNode("integer"),
+        ]),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("MixedValue"),
-        definitions: [],
-        root: {
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("MixedValue"),
+      definitions: [],
+      root: {
         kind: "union",
         members: [
           {
@@ -266,14 +269,17 @@ describe("core ast v0", () => {
     expect(
       schemaDocument(
         "CoordinatePair",
-        schemaTupleNode([schemaScalarNode("integer"), schemaScalarNode("string")]),
+        schemaTupleNode([
+          schemaScalarNode("integer"),
+          schemaScalarNode("string"),
+        ]),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("CoordinatePair"),
-        definitions: [],
-        root: {
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("CoordinatePair"),
+      definitions: [],
+      root: {
         kind: "tuple",
         elements: [
           {
@@ -304,12 +310,12 @@ describe("core ast v0", () => {
           schemaScalarNode("string"),
         ),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("Translations"),
-        definitions: [],
-        root: {
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("Translations"),
+      definitions: [],
+      root: {
         kind: "record",
         key: {
           kind: "scalar",
@@ -334,12 +340,12 @@ describe("core ast v0", () => {
           }),
         ]),
       ),
-      ).toEqual({
-        version: "0.1",
-        kind: "document",
-        name: identifierName("PartialCoordinatePair"),
-        definitions: [],
-        root: {
+    ).toEqual({
+      version: "0.1",
+      kind: "document",
+      name: identifierName("PartialCoordinatePair"),
+      definitions: [],
+      root: {
         kind: "tuple",
         elements: [
           {
@@ -391,7 +397,9 @@ describe("core ast v0", () => {
         definitions: [
           schemaDefinition(
             "User",
-            schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
           ),
         ],
       }),
@@ -431,7 +439,10 @@ describe("core ast v0", () => {
 
   it("deduplicates identical reference members inside unions", () => {
     expect(
-      schemaUnionNode([schemaReferenceNode("User"), schemaReferenceNode("User")]),
+      schemaUnionNode([
+        schemaReferenceNode("User"),
+        schemaReferenceNode("User"),
+      ]),
     ).toEqual({
       kind: "union",
       members: [
@@ -547,9 +558,7 @@ describe("core ast v0", () => {
   });
 
   it("keeps explicit null semantics distinct from unknown semantics", () => {
-    expect(
-      schemaUnionNode([schemaNullNode(), schemaUnknownNode()]),
-    ).toEqual({
+    expect(schemaUnionNode([schemaNullNode(), schemaUnknownNode()])).toEqual({
       kind: "union",
       members: [
         {
@@ -631,9 +640,13 @@ describe("core ast v0", () => {
 
   it("rejects nullable flags on union field types that already include null", () => {
     expect(() =>
-      schemaFieldNode("name", schemaUnionNode([schemaNullNode(), schemaScalarNode("string")]), {
-        nullable: true,
-      }),
+      schemaFieldNode(
+        "name",
+        schemaUnionNode([schemaNullNode(), schemaScalarNode("string")]),
+        {
+          nullable: true,
+        },
+      ),
     ).toThrow(
       'Invalid schema field: a field whose type already includes "null" cannot also be marked nullable.',
     );

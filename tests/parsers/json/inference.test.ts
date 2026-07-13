@@ -95,7 +95,10 @@ describe("parser-json inference", () => {
 
   it("infers arrays of strings", () => {
     expect(inferJsonDocument('["a","b","c"]', "ArrayOfString")).toEqual(
-      schemaDocument("ArrayOfString", schemaArrayNode(schemaScalarNode("string"))),
+      schemaDocument(
+        "ArrayOfString",
+        schemaArrayNode(schemaScalarNode("string")),
+      ),
     );
   });
 
@@ -310,12 +313,15 @@ describe("parser-json inference", () => {
     );
 
     expect(
-      inferJsonDocumentWithOptions('[{"id":1,"name":"Ada"},{"id":2,"name":"Linus"}]', {
-        name: "StableObjectShape",
-        inference: {
-          recordInferenceMode: "shared-value-type",
+      inferJsonDocumentWithOptions(
+        '[{"id":1,"name":"Ada"},{"id":2,"name":"Linus"}]',
+        {
+          name: "StableObjectShape",
+          inference: {
+            recordInferenceMode: "shared-value-type",
+          },
         },
-      }),
+      ),
     ).toEqual(
       schemaDocument(
         "StableObjectShape",
@@ -331,7 +337,10 @@ describe("parser-json inference", () => {
 
   it("promotes mixed numeric samples to number", () => {
     expect(inferJsonDocument("[1,2.5,3]", "MixedNumericArray")).toEqual(
-      schemaDocument("MixedNumericArray", schemaArrayNode(schemaScalarNode("number"))),
+      schemaDocument(
+        "MixedNumericArray",
+        schemaArrayNode(schemaScalarNode("number")),
+      ),
     );
   });
 
@@ -367,16 +376,16 @@ describe("parser-json inference", () => {
         },
       }),
     ).toEqual(
-      schemaDocument("ArrayNumberOnly", schemaArrayNode(schemaScalarNode("number"))),
+      schemaDocument(
+        "ArrayNumberOnly",
+        schemaArrayNode(schemaScalarNode("number")),
+      ),
     );
   });
 
   it("returns structured failures for unsupported but valid json", () => {
     expect(inferJsonDocument("null", "StandaloneNull")).toEqual(
-      schemaDocument(
-        "StandaloneNull",
-        schemaNullNode(),
-      ),
+      schemaDocument("StandaloneNull", schemaNullNode()),
     );
     expect(inferJsonDocument("[]", "EmptyArray")).toEqual(
       schemaDocument(
@@ -452,12 +461,15 @@ describe("parser-json inference", () => {
     );
 
     expect(
-      inferJsonDocumentWithOptions('[{"value":1},{"value":"a"},{"value":null}]', {
-        name: "MixedFieldValues",
-        inference: {
-          mixedTypeMode: "union",
+      inferJsonDocumentWithOptions(
+        '[{"value":1},{"value":"a"},{"value":null}]',
+        {
+          name: "MixedFieldValues",
+          inference: {
+            mixedTypeMode: "union",
+          },
         },
-      }),
+      ),
     ).toEqual(
       schemaDocument(
         "MixedFieldValues",
@@ -490,7 +502,9 @@ describe("parser-json inference", () => {
         "MixedObjectScalarArray",
         schemaArrayNode(
           schemaUnionNode([
-            schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
             schemaScalarNode("string"),
           ]),
         ),
@@ -579,7 +593,7 @@ describe("parser-json inference", () => {
     });
   });
 
-  it('deduplicates union members and still promotes numeric samples in union mode', () => {
+  it("deduplicates union members and still promotes numeric samples in union mode", () => {
     expect(
       inferJsonDocumentWithOptions('[1,2.5,3,"a","b"]', {
         name: "NumericAndStringArray",
@@ -600,12 +614,15 @@ describe("parser-json inference", () => {
     );
 
     expect(
-      inferJsonDocumentWithOptions('[{"value":1},{"value":2.5},{"value":"x"},{"value":"y"}]', {
-        name: "DedupedFieldUnion",
-        inference: {
-          mixedTypeMode: "union",
+      inferJsonDocumentWithOptions(
+        '[{"value":1},{"value":2.5},{"value":"x"},{"value":"y"}]',
+        {
+          name: "DedupedFieldUnion",
+          inference: {
+            mixedTypeMode: "union",
+          },
         },
-      }),
+      ),
     ).toEqual(
       schemaDocument(
         "DedupedFieldUnion",
@@ -868,7 +885,10 @@ describe("parser-json inference", () => {
         "HomogeneousTupleLikeField",
         schemaArrayNode(
           schemaObjectNode([
-            schemaFieldNode("pair", schemaArrayNode(schemaScalarNode("integer"))),
+            schemaFieldNode(
+              "pair",
+              schemaArrayNode(schemaScalarNode("integer")),
+            ),
           ]),
         ),
       ),
@@ -1010,7 +1030,10 @@ describe("parser-json inference", () => {
         schemaArrayNode(
           schemaTupleNode([
             schemaScalarNode("integer"),
-            schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("boolean")]),
+            schemaUnionNode([
+              schemaScalarNode("string"),
+              schemaScalarNode("boolean"),
+            ]),
           ]),
         ),
       ),
@@ -1044,7 +1067,10 @@ describe("parser-json inference", () => {
         schemaArrayNode(
           schemaTupleNode([
             schemaScalarNode("integer"),
-            schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("boolean")]),
+            schemaUnionNode([
+              schemaScalarNode("string"),
+              schemaScalarNode("boolean"),
+            ]),
           ]),
         ),
       ),
@@ -1242,12 +1268,7 @@ describe("parser-json inference", () => {
           nullHandling: "nullable",
         },
       }),
-    ).toEqual(
-      schemaDocument(
-        "JsonDocument",
-        schemaNullNode(),
-      ),
-    );
+    ).toEqual(schemaDocument("JsonDocument", schemaNullNode()));
   });
 
   it("keeps runtime validation for unsupported resolved options from untyped callers", () => {
@@ -1256,7 +1277,9 @@ describe("parser-json inference", () => {
         ...DEFAULT_JSON_PARSE_OPTIONS,
         strictness: "best-effort" as never,
       }),
-    ).toContain('Unsupported json parse option: strictness must currently be "strict".');
+    ).toContain(
+      'Unsupported json parse option: strictness must currently be "strict".',
+    );
 
     expect(
       validateJsonParseOptions({

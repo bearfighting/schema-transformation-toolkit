@@ -342,7 +342,9 @@ schemaDocument(
         "user",
         schemaObjectNode([
           schemaFieldNode("id", schemaScalarNode("integer")),
-          schemaFieldNode("name", schemaScalarNode("string"), { required: false }),
+          schemaFieldNode("name", schemaScalarNode("string"), {
+            required: false,
+          }),
         ]),
       ),
     ]),

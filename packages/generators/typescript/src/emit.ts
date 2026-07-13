@@ -23,7 +23,9 @@ export function renderTypeScriptDocument(
   options: ResolvedTypeScriptGeneratorOptions,
 ): string {
   const definitionLookup = new Map(
-    doc.definitions.map((definition) => [definition.name.source, definition] as const),
+    doc.definitions.map(
+      (definition) => [definition.name.source, definition] as const,
+    ),
   );
   const sections = [
     ...doc.definitions.map((definition) =>

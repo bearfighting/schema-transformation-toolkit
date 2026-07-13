@@ -37,7 +37,9 @@ export function schemaScalarNode(scalar: ScalarKind): SchemaScalarNode {
   };
 }
 
-export function schemaLiteralNode(value: SchemaLiteralValue): SchemaLiteralNode {
+export function schemaLiteralNode(
+  value: SchemaLiteralValue,
+): SchemaLiteralNode {
   if (typeof value === "number" && !Number.isFinite(value)) {
     throw new Error(
       "Invalid schema literal: numeric literal values must be finite.",

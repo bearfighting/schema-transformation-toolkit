@@ -42,8 +42,14 @@ describe("core schema internals", () => {
   it("treats union member order as semantically irrelevant", () => {
     expect(
       areEquivalentSchemaNodes(
-        schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("integer")]),
-        schemaUnionNode([schemaScalarNode("integer"), schemaScalarNode("string")]),
+        schemaUnionNode([
+          schemaScalarNode("string"),
+          schemaScalarNode("integer"),
+        ]),
+        schemaUnionNode([
+          schemaScalarNode("integer"),
+          schemaScalarNode("string"),
+        ]),
       ),
     ).toBe(true);
   });
@@ -71,7 +77,9 @@ describe("core schema internals", () => {
       definitions: [
         schemaDefinition(
           "User",
-          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+          ]),
         ),
       ],
       root: schemaReferenceNode("Account"),

@@ -21,7 +21,7 @@ import {
   schemaUnknownNode,
 } from "../../packages/core/src/index.js";
 
-describe("core ast v0", () => {
+describe("core schema ir v0", () => {
   it("builds a scalar root document", () => {
     expect(schemaDocument("ScalarString", schemaScalarNode("string"))).toEqual({
       version: "0.1",

@@ -4,7 +4,7 @@ import type {
   ParseOptions,
   SchemaParser,
 } from "@aio/core";
-import type { JsonSchemaInferenceResult } from "./parse.js";
+import type { JsonInferenceResult } from "./parse.js";
 
 export type JsonParseStrictness = "strict";
 export type JsonNumericMode = "distinguish" | "number-only";
@@ -19,7 +19,7 @@ export interface JsonDecodeOptions {
   diagnostics?: JsonDiagnosticsOptions;
 }
 
-export interface JsonSchemaInferenceOptions {
+export interface JsonInferenceOptions {
   numericMode?: JsonNumericMode;
   emptyArrayMode?: JsonEmptyArrayMode;
   mixedTypeMode?: JsonMixedTypeMode;
@@ -32,10 +32,9 @@ export interface JsonDiagnosticsOptions {
   preserveSourceInfo?: false;
 }
 
-export interface JsonSchemaParseOptions
-  extends ParseOptions, JsonDecodeOptions {
-  schema?: JsonSchemaInferenceOptions;
-  inference?: JsonSchemaInferenceOptions;
+export interface JsonParseOptions extends ParseOptions, JsonDecodeOptions {
+  schema?: JsonInferenceOptions;
+  inference?: JsonInferenceOptions;
 }
 
 export interface ResolvedJsonDecodeOptions {
@@ -45,7 +44,7 @@ export interface ResolvedJsonDecodeOptions {
   };
 }
 
-export interface ResolvedJsonSchemaParseOptions extends ResolvedJsonDecodeOptions {
+export interface ResolvedJsonParseOptions extends ResolvedJsonDecodeOptions {
   name: string;
   schema: {
     numericMode: JsonNumericMode;
@@ -72,27 +71,26 @@ export const DEFAULT_JSON_DECODE_OPTIONS: ResolvedJsonDecodeOptions = {
   },
 };
 
-export const DEFAULT_JSON_SCHEMA_PARSE_OPTIONS: ResolvedJsonSchemaParseOptions =
-  {
-    name: "JsonDocument",
-    ...DEFAULT_JSON_DECODE_OPTIONS,
-    schema: {
-      numericMode: "distinguish",
-      emptyArrayMode: "unknown-array",
-      mixedTypeMode: "error",
-      nullHandling: "nullable",
-      tupleInferenceMode: "off",
-      recordInferenceMode: "off",
-    },
-    inference: {
-      numericMode: "distinguish",
-      emptyArrayMode: "unknown-array",
-      mixedTypeMode: "error",
-      nullHandling: "nullable",
-      tupleInferenceMode: "off",
-      recordInferenceMode: "off",
-    },
-  };
+export const DEFAULT_JSON_PARSE_OPTIONS: ResolvedJsonParseOptions = {
+  name: "JsonDocument",
+  ...DEFAULT_JSON_DECODE_OPTIONS,
+  schema: {
+    numericMode: "distinguish",
+    emptyArrayMode: "unknown-array",
+    mixedTypeMode: "error",
+    nullHandling: "nullable",
+    tupleInferenceMode: "off",
+    recordInferenceMode: "off",
+  },
+  inference: {
+    numericMode: "distinguish",
+    emptyArrayMode: "unknown-array",
+    mixedTypeMode: "error",
+    nullHandling: "nullable",
+    tupleInferenceMode: "off",
+    recordInferenceMode: "off",
+  },
+};
 
 export function resolveJsonDecodeOptions(
   options: JsonDecodeOptions = {},
@@ -107,9 +105,9 @@ export function resolveJsonDecodeOptions(
   };
 }
 
-export function resolveJsonSchemaParseOptions(
-  options: JsonSchemaParseOptions = {},
-): ResolvedJsonSchemaParseOptions {
+export function resolveJsonParseOptions(
+  options: JsonParseOptions = {},
+): ResolvedJsonParseOptions {
   const normalizedSchemaOptions = {
     ...options.inference,
     ...options.schema,
@@ -118,26 +116,26 @@ export function resolveJsonSchemaParseOptions(
   const resolvedSchemaOptions = {
     numericMode:
       normalizedSchemaOptions.numericMode ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.numericMode,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.numericMode,
     emptyArrayMode:
       normalizedSchemaOptions.emptyArrayMode ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.emptyArrayMode,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.emptyArrayMode,
     mixedTypeMode:
       normalizedSchemaOptions.mixedTypeMode ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.mixedTypeMode,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.mixedTypeMode,
     nullHandling:
       normalizedSchemaOptions.nullHandling ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.nullHandling,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.nullHandling,
     tupleInferenceMode:
       normalizedSchemaOptions.tupleInferenceMode ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.tupleInferenceMode,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.tupleInferenceMode,
     recordInferenceMode:
       normalizedSchemaOptions.recordInferenceMode ??
-      DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.schema.recordInferenceMode,
+      DEFAULT_JSON_PARSE_OPTIONS.schema.recordInferenceMode,
   };
 
   return {
-    name: options.name ?? DEFAULT_JSON_SCHEMA_PARSE_OPTIONS.name,
+    name: options.name ?? DEFAULT_JSON_PARSE_OPTIONS.name,
     ...resolveJsonDecodeOptions(options),
     schema: resolvedSchemaOptions,
     inference: resolvedSchemaOptions,
@@ -164,8 +162,8 @@ export function validateJsonDecodeOptions(
   return errors;
 }
 
-export function validateJsonSchemaParseOptions(
-  options: ResolvedJsonSchemaParseOptions,
+export function validateJsonParseOptions(
+  options: ResolvedJsonParseOptions,
 ): string[] {
   const errors = validateJsonDecodeOptions(options);
   const normalizedSchemaOptions = {
@@ -216,41 +214,41 @@ export function validateJsonSchemaParseOptions(
   return errors;
 }
 
-export function assertSupportedJsonSchemaParseOptions(
-  options: ResolvedJsonSchemaParseOptions,
+export function assertSupportedJsonParseOptions(
+  options: ResolvedJsonParseOptions,
 ): void {
-  const errors = validateJsonSchemaParseOptions(options);
+  const errors = validateJsonParseOptions(options);
 
   if (errors.length > 0) {
     throw new Error(errors.join(" "));
   }
 }
 
-export function prepareJsonSchemaParseOptions(
-  options: JsonSchemaParseOptions = {},
-): PreparedOptions<ResolvedJsonSchemaParseOptions> {
-  const resolved = resolveJsonSchemaParseOptions(options);
+export function prepareJsonParseOptions(
+  options: JsonParseOptions = {},
+): PreparedOptions<ResolvedJsonParseOptions> {
+  const resolved = resolveJsonParseOptions(options);
 
   return {
     resolved,
     warnings: [],
-    errors: validateJsonSchemaParseOptions(resolved),
+    errors: validateJsonParseOptions(resolved),
   };
 }
 
-export function createJsonSchemaParser(
+export function createJsonParser(
   parseWithOptions: (
     input: string,
-    options: ResolvedJsonSchemaParseOptions,
-  ) => JsonSchemaInferenceResult,
-  options: JsonSchemaParseOptions = {},
-): SchemaParser<string, JsonSchemaParseOptions, JsonSchemaInferenceResult> {
+    options: ResolvedJsonParseOptions,
+  ) => JsonInferenceResult,
+  options: JsonParseOptions = {},
+): SchemaParser<string, JsonParseOptions, JsonInferenceResult> {
   return {
     format: "json",
     parse(input, runtimeOptions) {
       return parseWithOptions(
         input,
-        resolveJsonSchemaParseOptions({
+        resolveJsonParseOptions({
           ...options,
           ...runtimeOptions,
           diagnostics: {
@@ -273,17 +271,17 @@ export function createJsonSchemaParser(
   };
 }
 
-export function configureJsonSchemaParser(
+export function configureJsonParser(
   parseWithOptions: (
     input: string,
-    options: ResolvedJsonSchemaParseOptions,
-  ) => JsonSchemaInferenceResult,
-  options: JsonSchemaParseOptions = {},
+    options: ResolvedJsonParseOptions,
+  ) => JsonInferenceResult,
+  options: JsonParseOptions = {},
 ): ConfiguredParser<
-  SchemaParser<string, JsonSchemaParseOptions, JsonSchemaInferenceResult>,
-  ResolvedJsonSchemaParseOptions
+  SchemaParser<string, JsonParseOptions, JsonInferenceResult>,
+  ResolvedJsonParseOptions
 > {
-  const prepared = prepareJsonSchemaParseOptions(options);
+  const prepared = prepareJsonParseOptions(options);
 
   if (prepared.errors.length > 0) {
     throw new Error(
@@ -293,6 +291,6 @@ export function configureJsonSchemaParser(
 
   return {
     prepared,
-    parser: createJsonSchemaParser(parseWithOptions, options),
+    parser: createJsonParser(parseWithOptions, options),
   };
 }

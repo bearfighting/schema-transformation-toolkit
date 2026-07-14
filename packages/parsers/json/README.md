@@ -41,29 +41,34 @@ Examples of valid JSON that still do not infer into a stable schema:
 
 ## API
 
-Recommended schema-facing entry points:
+Recommended entry points:
 
-`inferJsonSchemaDocument(input, name?)`
+`inferJsonDocument(input, name?)`
 
 - returns a `SchemaDocument`
 - throws when input is invalid or currently unsupported
 
-`inferJsonSchemaDocumentWithOptions(input, options?)`
+`inferJsonDocumentWithOptions(input, options?)`
 
 - resolves default parser options first
 - returns a `SchemaDocument`
 - currently validates that future-facing options still stay within the supported subset
 
-`tryInferJsonSchemaDocument(input, name?)`
+`tryInferJsonDocument(input, name?)`
 
 - returns `{ ok: true, document }` on success
 - returns `{ ok: false, code, message }` on failure
 - may also include `diagnostics`
 
-`tryInferJsonSchemaDocumentWithOptions(input, options?)`
+`tryInferJsonDocumentWithOptions(input, options?)`
 
-- same result shape as `tryInferJsonSchemaDocument`
+- same result shape as `tryInferJsonDocument`
 - accepts the structured parser options form
+
+`jsonParser.parse(input, options?)`
+
+- returns the structured `{ ok: true, document } | { ok: false, ... }` parse result
+- is the canonical parser instance exposed from the package root
 
 `decodeJsonText(input)`
 
@@ -71,29 +76,25 @@ Recommended schema-facing entry points:
 - currently uses `JSON.parse`
 - is intentionally separate from schema inference so future value IR parsing can reuse the same decode layer
 
-`resolveJsonSchemaParseOptions(options?)`
+`resolveJsonParseOptions(options?)`
 
 - expands sparse user options into a full resolved configuration
 
-`prepareJsonSchemaParseOptions(options?)`
+`prepareJsonParseOptions(options?)`
 
 - returns `{ resolved, warnings, errors }`
 - useful for UIs or higher-level orchestration before actually parsing
 
-`configureJsonSchemaParser(parseWithOptions, options?)`
+`configureJsonParser(parseWithOptions, options?)`
 
 - returns `{ parser, prepared }`
 - useful when a caller wants both the parser instance and the fully prepared configuration state
 
-Compatibility aliases remain available for the older schema-first names:
+`preparedJsonParserOptions`
 
-- `inferJsonDocument`
-- `inferJsonDocumentWithOptions`
-- `tryInferJsonDocument`
-- `tryInferJsonDocumentWithOptions`
-- `resolveJsonParseOptions`
-- `prepareJsonParseOptions`
-- `configureJsonParser`
+- exposes the prepared default parser configuration state for the root parser surface
+
+Lower-level schema-specific helpers still exist in the internal `schema/*` modules, but the package root now standardizes on the `*JsonDocument` / `*JsonParser` naming above.
 
 When a caller explicitly opts into `schema.mixedTypeMode: "union"` or `inference.mixedTypeMode: "union"`, the parser can preserve mixed compatible samples as schema unions instead of failing.
 

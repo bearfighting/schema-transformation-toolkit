@@ -19,8 +19,8 @@ import {
   configureJsonParser,
   inferJsonDocument,
   inferJsonDocumentWithOptions,
-  jsonSchemaParser,
-  preparedJsonSchemaParserOptions,
+  jsonParser,
+  preparedJsonParserOptions,
   resolveJsonParseOptions,
   validateJsonParseOptions,
   tryInferJsonDocument,
@@ -407,13 +407,13 @@ describe("parser-json inference", () => {
       ok: false,
       code: "unsupported-mixed-types",
       message:
-        "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+        "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
       diagnostics: [
         {
           severity: "error",
           code: "unsupported-mixed-types",
           message:
-            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+            "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
           path: [],
           source: "parser-json",
         },
@@ -425,13 +425,13 @@ describe("parser-json inference", () => {
       ok: false,
       code: "unsupported-mixed-types",
       message:
-        "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+        "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
       diagnostics: [
         {
           severity: "error",
           code: "unsupported-mixed-types",
           message:
-            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+            "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
           path: [],
           source: "parser-json",
         },
@@ -514,7 +514,7 @@ describe("parser-json inference", () => {
 
   it('supports mixedTypeMode: "unknown" for mixed arrays and fields', () => {
     expect(
-      jsonSchemaParser.parse('[1,"a"]', {
+      jsonParser.parse('[1,"a"]', {
         name: "MixedScalarArrayUnknown",
         inference: {
           mixedTypeMode: "unknown",
@@ -551,7 +551,7 @@ describe("parser-json inference", () => {
     });
 
     expect(
-      jsonSchemaParser.parse('[{"value":1},{"value":"a"}]', {
+      jsonParser.parse('[{"value":1},{"value":"a"}]', {
         name: "MixedFieldUnknown",
         inference: {
           mixedTypeMode: "unknown",
@@ -975,7 +975,7 @@ describe("parser-json inference", () => {
 
   it("reports stable diagnostic paths for nested empty-array-only fields", () => {
     expect(
-      jsonSchemaParser.parse('{"user":{"tags":[]}}', {
+      jsonParser.parse('{"user":{"tags":[]}}', {
         name: "NestedEmptyArrayField",
       }),
     ).toEqual({
@@ -1017,7 +1017,7 @@ describe("parser-json inference", () => {
 
   it("reports tuple index paths when preserving tuple-position unions", () => {
     expect(
-      jsonSchemaParser.parse('[[1,"east"],[2,true]]', {
+      jsonParser.parse('[[1,"east"],[2,true]]', {
         name: "TuplePositionUnion",
         inference: {
           tupleInferenceMode: "heterogeneous-only",
@@ -1053,7 +1053,7 @@ describe("parser-json inference", () => {
 
   it('continues to preserve tuple-position unions even when mixedTypeMode is "unknown"', () => {
     expect(
-      jsonSchemaParser.parse('[[1,"east"],[2,true]]', {
+      jsonParser.parse('[[1,"east"],[2,true]]', {
         name: "TuplePositionUnknownMode",
         inference: {
           mixedTypeMode: "unknown",
@@ -1090,7 +1090,7 @@ describe("parser-json inference", () => {
 
   it("reports union-preservation diagnostics at the correct field path", () => {
     expect(
-      jsonSchemaParser.parse(
+      jsonParser.parse(
         '[{"payload":{"type":"a","value":"x"}},{"payload":{"type":"b","count":1}}]',
         {
           name: "NestedDiscriminatedValueDiagnostics",
@@ -1140,7 +1140,7 @@ describe("parser-json inference", () => {
 
   it("implements the shared parser interface", () => {
     expect(
-      jsonSchemaParser.parse('{"user_id":1}', {
+      jsonParser.parse('{"user_id":1}', {
         name: "user-profile",
       }),
     ).toEqual({
@@ -1234,9 +1234,9 @@ describe("parser-json inference", () => {
   });
 
   it("exposes prepared default parser options", () => {
-    expect(preparedJsonSchemaParserOptions.errors).toEqual([]);
-    expect(preparedJsonSchemaParserOptions.warnings).toEqual([]);
-    expect(preparedJsonSchemaParserOptions.resolved).toEqual(
+    expect(preparedJsonParserOptions.errors).toEqual([]);
+    expect(preparedJsonParserOptions.warnings).toEqual([]);
+    expect(preparedJsonParserOptions.resolved).toEqual(
       DEFAULT_JSON_PARSE_OPTIONS,
     );
   });

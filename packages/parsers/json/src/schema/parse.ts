@@ -8,85 +8,82 @@ import { decodeJsonText } from "../decode.js";
 import { isJsonInferenceError } from "../errors.js";
 import { inferSchemaNodeFromJsonValue } from "./infer.js";
 import {
-  assertSupportedJsonSchemaParseOptions,
-  configureJsonSchemaParser,
-  resolveJsonSchemaParseOptions,
-  type JsonSchemaParseOptions,
-  type ResolvedJsonSchemaParseOptions,
+  assertSupportedJsonParseOptions,
+  configureJsonParser,
+  resolveJsonParseOptions,
+  type JsonParseOptions,
+  type ResolvedJsonParseOptions,
 } from "./options.js";
 
-export interface JsonSchemaInferenceSuccessResult {
+export interface JsonInferenceSuccessResult {
   ok: true;
   document: SchemaDocument;
   diagnostics?: SchemaDiagnostic[];
 }
 
-export type JsonSchemaInferenceFailureResult = ParseFailureResult<
+export type JsonInferenceFailureResult = ParseFailureResult<
   "invalid-json" | "unsupported-mixed-types"
 >;
 
-export type JsonSchemaInferenceResult =
-  | JsonSchemaInferenceSuccessResult
-  | JsonSchemaInferenceFailureResult;
+export type JsonInferenceResult =
+  JsonInferenceSuccessResult | JsonInferenceFailureResult;
 
-export function inferJsonSchemaDocument(
+export function inferJsonDocument(
   input: string,
   name = "JsonDocument",
 ): SchemaDocument {
-  return inferJsonSchemaDocumentWithResolvedOptions(input, {
-    ...resolveJsonSchemaParseOptions(),
+  return inferJsonDocumentWithResolvedOptions(input, {
+    ...resolveJsonParseOptions(),
     name,
   });
 }
 
-export function inferJsonSchemaDocumentWithOptions(
+export function inferJsonDocumentWithOptions(
   input: string,
-  options: JsonSchemaParseOptions = {},
+  options: JsonParseOptions = {},
 ): SchemaDocument {
-  const resolvedOptions = resolveJsonSchemaParseOptions(options);
+  const resolvedOptions = resolveJsonParseOptions(options);
 
-  assertSupportedJsonSchemaParseOptions(resolvedOptions);
+  assertSupportedJsonParseOptions(resolvedOptions);
 
-  return inferJsonSchemaDocumentWithResolvedOptions(input, resolvedOptions);
+  return inferJsonDocumentWithResolvedOptions(input, resolvedOptions);
 }
 
-export function tryInferJsonSchemaDocument(
+export function tryInferJsonDocument(
   input: string,
   name = "JsonDocument",
-): JsonSchemaInferenceResult {
-  return tryInferJsonSchemaDocumentWithOptions(input, { name });
+): JsonInferenceResult {
+  return tryInferJsonDocumentWithOptions(input, { name });
 }
 
-export function tryInferJsonSchemaDocumentWithOptions(
+export function tryInferJsonDocumentWithOptions(
   input: string,
-  options: JsonSchemaParseOptions = {},
-): JsonSchemaInferenceResult {
-  const resolvedOptions = resolveJsonSchemaParseOptions(options);
+  options: JsonParseOptions = {},
+): JsonInferenceResult {
+  const resolvedOptions = resolveJsonParseOptions(options);
 
-  assertSupportedJsonSchemaParseOptions(resolvedOptions);
+  assertSupportedJsonParseOptions(resolvedOptions);
 
-  return tryInferJsonSchemaDocumentWithResolvedOptions(input, resolvedOptions);
+  return tryInferJsonDocumentWithResolvedOptions(input, resolvedOptions);
 }
 
-const defaultConfiguredJsonSchemaParser = configureJsonSchemaParser(
-  (input, options) =>
-    tryInferJsonSchemaDocumentWithResolvedOptions(input, options),
+const defaultConfiguredJsonParser = configureJsonParser((input, options) =>
+  tryInferJsonDocumentWithResolvedOptions(input, options),
 );
 
-export const jsonSchemaParser = defaultConfiguredJsonSchemaParser.parser;
-export const preparedJsonSchemaParserOptions =
-  defaultConfiguredJsonSchemaParser.prepared;
+export const jsonParser = defaultConfiguredJsonParser.parser;
+export const preparedJsonParserOptions = defaultConfiguredJsonParser.prepared;
 
-function tryInferJsonSchemaDocumentWithResolvedOptions(
+function tryInferJsonDocumentWithResolvedOptions(
   input: string,
-  options: ResolvedJsonSchemaParseOptions,
-): JsonSchemaInferenceResult {
+  options: ResolvedJsonParseOptions,
+): JsonInferenceResult {
   try {
     const diagnostics: SchemaDiagnostic[] = [];
 
     return {
       ok: true,
-      document: inferJsonSchemaDocumentWithResolvedOptions(
+      document: inferJsonDocumentWithResolvedOptions(
         input,
         options,
         diagnostics,
@@ -125,9 +122,9 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
   }
 }
 
-function inferJsonSchemaDocumentWithResolvedOptions(
+function inferJsonDocumentWithResolvedOptions(
   input: string,
-  options: ResolvedJsonSchemaParseOptions,
+  options: ResolvedJsonParseOptions,
   diagnostics: SchemaDiagnostic[] = [],
 ): SchemaDocument {
   const decodedValue = decodeJsonText(input);

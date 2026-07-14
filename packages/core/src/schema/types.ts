@@ -24,6 +24,18 @@ export interface SchemaDiagnostic {
   evidence?: unknown;
 }
 
+export interface SchemaValidationSuccessResult {
+  ok: true;
+}
+
+export interface SchemaValidationFailureResult {
+  ok: false;
+  diagnostics: SchemaDiagnostic[];
+}
+
+export type SchemaValidationResult =
+  SchemaValidationSuccessResult | SchemaValidationFailureResult;
+
 export interface SchemaBaseNode {
   kind: string;
 }

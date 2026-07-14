@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  tryValidateSchemaDocument,
+  tryValidateSchemaFieldNullability,
+  validateSchemaDocument,
+  validateSchemaFieldNullability,
   schemaDefinition,
   schemaFieldNode,
   schemaNullNode,
@@ -11,10 +15,6 @@ import {
 } from "../../packages/core/src/index.js";
 import { areEquivalentSchemaNodes } from "../../packages/core/src/schema/equivalence.js";
 import { identifierName } from "../../packages/core/src/schema/identifiers.js";
-import {
-  validateSchemaDocument,
-  validateSchemaFieldNullability,
-} from "../../packages/core/src/schema/validation.js";
 import type { SchemaDocument } from "../../packages/core/src/schema/types.js";
 
 describe("core schema internals", () => {
@@ -90,9 +90,60 @@ describe("core schema internals", () => {
     );
   });
 
+  it("returns structured document validation diagnostics without throwing", () => {
+    const missingReference: SchemaDocument = {
+      version: "0.1",
+      kind: "document",
+      name: identifierName("MissingReference"),
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+          ]),
+        ),
+      ],
+      root: schemaReferenceNode("Account"),
+    };
+
+    expect(tryValidateSchemaDocument(missingReference)).toEqual({
+      ok: false,
+      diagnostics: [
+        {
+          severity: "error",
+          code: "unknown-reference",
+          message:
+            'Invalid schema document: reference "Account" does not match a known definition.',
+          path: ["root"],
+          nodeKind: "reference",
+          source: "core",
+          evidence: {
+            referenceName: "Account",
+          },
+        },
+      ],
+    });
+  });
+
   it("validates nullable-null conflicts independently", () => {
     expect(() => validateSchemaFieldNullability(schemaNullNode())).toThrow(
       'Invalid schema field: a field whose type already includes "null" cannot also be marked nullable.',
     );
+  });
+
+  it("returns structured field-nullability diagnostics without throwing", () => {
+    expect(tryValidateSchemaFieldNullability(schemaNullNode())).toEqual({
+      ok: false,
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-field-nullability",
+          message:
+            'Invalid schema field: a field whose type already includes "null" cannot also be marked nullable.',
+          nodeKind: "field",
+          source: "core",
+        },
+      ],
+    });
   });
 });

@@ -10,5 +10,4 @@ export type TypeScriptGenerateFailureResult =
   GenerateFailureResult<TypeScriptGeneratorFailureCode>;
 
 export type TypeScriptGenerateResult =
-  | GenerateSuccessResult<string>
-  | TypeScriptGenerateFailureResult;
+  GenerateSuccessResult<string> | TypeScriptGenerateFailureResult;

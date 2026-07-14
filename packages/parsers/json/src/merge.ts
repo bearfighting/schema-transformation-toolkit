@@ -31,7 +31,7 @@ export function mergeTypeNodes(
 
     throw new JsonInferenceError(
       "unsupported-mixed-types",
-      `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
+      `The input is valid JSON, but ${context} do not share a common inferable type in schema IR v0.`,
     );
   }
 
@@ -102,7 +102,7 @@ export function mergeTypeNodes(
 
   throw new JsonInferenceError(
     "unsupported-mixed-types",
-    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
+    `The input is valid JSON, but ${context} do not share a common inferable type in schema IR v0.`,
   );
 }
 
@@ -127,7 +127,7 @@ function mergeScalarTypeNodes(
 
   throw new JsonInferenceError(
     "unsupported-mixed-types",
-    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
+    `The input is valid JSON, but ${context} do not share a common inferable type in schema IR v0.`,
   );
 }
 
@@ -320,6 +320,6 @@ function mergeAsUnion(left: SchemaNode, right: SchemaNode): SchemaUnionNode {
 function createUnsupportedMixedTypesError(context: string): JsonInferenceError {
   return new JsonInferenceError(
     "unsupported-mixed-types",
-    `The input is valid JSON, but ${context} do not share a common inferable type in AST v0.`,
+    `The input is valid JSON, but ${context} do not share a common inferable type in schema IR v0.`,
   );
 }

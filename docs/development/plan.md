@@ -102,15 +102,18 @@ Deliverables:
 
 Focus:
 
-- define the exact supported TypeScript schema subset
+- keep the exact supported TypeScript schema subset explicit
 - decide what belongs in parser logic versus actual IR expansion
-- identify the first end-to-end parser slice worth implementing
+- review whether the next parser increment should expand supported syntax or enrich diagnostics
+- keep the parser plan expressed as explicit cases and a tracked todo list
 
 Deliverables:
 
-- a concrete TypeScript parser scope
-- parser success and failure examples
+- a maintained TypeScript parser scope
+- parser success and failure examples that stay aligned with implementation
 - a work order that does not destabilize the current JSON path
+- a maintained case inventory in `docs/development/typescript-parser-v0-cases.md`
+- a maintained implementation checklist in `docs/development/typescript-parser-todo.md`
 
 ### Step 3: Build The First Web Playground
 
@@ -161,6 +164,7 @@ Deliverables:
 - the current core internal split is documented
 - parser and generator behavior remain aligned
 - there is an explicit decision about what `core` still needs before broader expansion
+- the current TypeScript parser subset and failure matrix are documented well enough to act as a second-language validation surface
 
 ### Milestone 2: Local Web Playground
 

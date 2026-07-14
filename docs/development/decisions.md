@@ -32,6 +32,15 @@
 - references point to `definition.name.source`
 - `core` validates definition uniqueness and reference existence
 
+### TypeScript Enum Boundary
+
+- the TypeScript parser may support enum declarations only when members resolve without general expression evaluation
+- supported enum member forms are:
+  - literal initializers
+  - implicit numeric progression
+  - references to earlier enum members
+- arithmetic, bitwise, string-concatenation, or other computed enum evaluation is intentionally out of scope for the current parser subset
+
 ### Unknown Semantics
 
 - `unknown` stays one IR node kind
@@ -42,6 +51,8 @@
 - structured diagnostics are part of the shared contract surface
 - diagnostic `code` should be stable and machine-consumable
 - diagnostic `path` should represent logical data or IR location, not source-syntax spans
+- source-syntax locations should remain parser-specific diagnostic evidence in v0 rather than new shared top-level `SchemaDiagnostic` fields
+- if source locations later prove shared across multiple producers, promote them from parser evidence into the shared contract deliberately rather than by accident
 
 ### Core Internal Structure
 

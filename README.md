@@ -16,6 +16,7 @@ That separation is intended to make parsers and generators independently replace
 
 - `@aio/core`: shared IR, contracts, and core result types
 - `@aio/parser-json`: JSON to IR parsing and inference
+- `@aio/parser-typescript`: TypeScript schema-subset parser for the shared IR
 - `@aio/generator-typescript`: IR to TypeScript generation
 - `@aio/sdk`: optional aggregate re-export package
 
@@ -24,6 +25,7 @@ That separation is intended to make parsers and generators independently replace
 The current implementation is intentionally conservative.
 
 - `@aio/parser-json` supports the currently implemented IR subset
+- `@aio/parser-typescript` supports a narrow, explicit TypeScript schema subset with structured failures for unsupported syntax
 - `@aio/generator-typescript` supports the currently implemented IR subset
 - unsupported cases are reported through structured failures instead of silent guessing
 
@@ -63,6 +65,7 @@ Development documentation:
 - Roadmap: [docs/development/roadmap.md](docs/development/roadmap.md)
 - Progress: [docs/development/progress.md](docs/development/progress.md)
 - IR working cases: [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md)
+- TypeScript parser cases: [docs/development/typescript-parser-v0-cases.md](docs/development/typescript-parser-v0-cases.md)
 
 ## Development
 

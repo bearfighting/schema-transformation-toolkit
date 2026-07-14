@@ -1,0 +1,594 @@
+# TypeScript Parser V0 Cases
+
+This file defines the first supported TypeScript parser subset as concrete success and failure cases.
+
+The goal is not to parse the whole TypeScript type system.
+The goal is to validate the shared schema IR against a second source language with a narrow, data-shape-oriented subset.
+
+## Purpose
+
+These cases should answer:
+
+- which TypeScript constructs are in scope for parser v0
+- which constructs must map directly into current schema IR semantics
+- which constructs must fail explicitly instead of being approximated
+
+## Entry Assumption
+
+The first parser version should parse one explicit entry declaration at a time.
+
+Examples:
+
+- `type User = { ... }`
+- `interface User { ... }`
+
+The first version should not guess a root declaration from a whole file automatically.
+
+## Supported Success Cases
+
+### 1. Simple Object Type Alias
+
+Source:
+
+```ts
+type User = {
+  id: number;
+  name: string;
+};
+```
+
+Expected schema IR shape:
+
+- document root is a reference to `User`
+- `User` is emitted as one definition
+- object fields map to required schema fields
+
+### 2. Interface Declaration
+
+Source:
+
+```ts
+interface User {
+  id: number;
+  active: boolean;
+}
+```
+
+Expected schema IR shape:
+
+- interface is treated as a named reusable definition
+- root references `User`
+
+### 3. Optional Property
+
+Source:
+
+```ts
+type User = {
+  name?: string;
+};
+```
+
+Expected schema IR shape:
+
+- `name` maps to `required: false`
+- optional presence remains distinct from `null`
+
+### 4. Nullable Property Via Union
+
+Source:
+
+```ts
+type User = {
+  name: string | null;
+};
+```
+
+Expected schema IR shape:
+
+- `name` maps to a non-optional field
+- field nullability is preserved distinctly from optionality
+
+### 5. Array Type
+
+Source:
+
+```ts
+type UserList = User[];
+```
+
+Expected schema IR shape:
+
+- array maps to `SchemaArrayNode`
+- element type may be a reference
+
+### 6. Generic Array Type
+
+Source:
+
+```ts
+type UserList = Array<User>;
+```
+
+Expected schema IR shape:
+
+- same semantic result as `User[]`
+
+### 7. Tuple Type
+
+Source:
+
+```ts
+type Pair = [number, string];
+```
+
+Expected schema IR shape:
+
+- tuple maps to `SchemaTupleNode`
+- tuple positions stay ordered and required by default
+
+### 8. Union Type
+
+Source:
+
+```ts
+type Value = string | number;
+```
+
+Expected schema IR shape:
+
+- union maps to `SchemaUnionNode`
+
+### 9. Literal Union
+
+Source:
+
+```ts
+type Status = "open" | "closed";
+```
+
+Expected schema IR shape:
+
+- each literal maps to a literal node
+- the result remains a union, not a widened string
+
+### 10. Null Root
+
+Source:
+
+```ts
+type OnlyNull = null;
+```
+
+Expected schema IR shape:
+
+- root definition type is `SchemaNullNode`
+
+### 11. Record Utility
+
+Source:
+
+```ts
+type Messages = Record<string, string>;
+```
+
+Expected schema IR shape:
+
+- maps to `SchemaRecordNode`
+- record key remains the scalar type `string`
+
+### 12. Named Reference Reuse
+
+Source:
+
+```ts
+type User = {
+  id: number;
+};
+
+type UserList = User[];
+```
+
+Expected schema IR shape:
+
+- `User` becomes a reusable definition
+- `UserList` references `User`
+
+### 13. Enum Declaration
+
+Source:
+
+```ts
+enum Status {
+  Open = "open",
+  Closed = "closed",
+}
+```
+
+Expected schema IR shape:
+
+- enum declarations map to literal or literal-union definitions
+- root references the enum definition when it is the selected entry
+- reachable enum references behave like other named reusable definitions
+
+### 14. Enum Member References
+
+Source:
+
+```ts
+enum Level {
+  Low = 1,
+  SameLow = Low,
+  AlsoLow = Level.Low,
+  High = 3,
+}
+```
+
+Expected schema IR shape:
+
+- references to earlier enum members are supported when they resolve to supported literal values
+- duplicated literal outcomes may normalize away in the resulting union
+- the parser should not require the TypeScript type checker for this narrow enum-reference support
+- supported reference forms are currently the bare earlier member name and `EnumName.Member`
+- general computed enum evaluation is intentionally out of scope
+
+### 15. Readonly Syntax
+
+Source:
+
+```ts
+interface User {
+  readonly id: number;
+  readonly tags: readonly string[];
+  readonly pair: readonly [number, string?];
+}
+```
+
+Expected schema IR shape:
+
+- readonly modifiers do not add new shared IR semantics in v0
+- readonly properties map to ordinary fields
+- readonly arrays and tuples map to ordinary array and tuple nodes
+- readonly syntax does not weaken existing unsupported boundaries such as tuple rest elements or malformed array-reference forms
+
+## Explicit Failure Matrix
+
+These cases should fail with structured parser diagnostics rather than being approximated loosely.
+The matrix is grouped by the parser surface that should report the failure, so tests can lock both the stable error code and the expected diagnostic path granularity.
+
+### Entry Contract Failures
+
+#### 16. Missing Explicit Entry
+
+Source:
+
+```ts
+type User = {
+  id: number;
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `missing-typescript-entry`
+- diagnostic path should point to `["entry"]`
+
+#### 17. Missing Entry Declaration
+
+Source:
+
+```ts
+type User = {
+  id: number;
+};
+```
+
+Requested entry:
+
+- `Account`
+
+Expected result:
+
+- parser failure
+- failure code should be `missing-typescript-entry-declaration`
+- diagnostic path should point to `["entry", "Account"]`
+
+### Definition-Level Unsupported Syntax
+
+#### 18. Unsupported Enum Member Initializer
+
+Source:
+
+```ts
+enum Status {
+  Open = "open",
+  Closed = OPEN_STATUS,
+}
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-enum-member-initializer`
+- enum initializers outside literal, implicit-numeric, or earlier-member-reference forms should fail explicitly
+- arithmetic, bitwise, concatenated, or other computed enum expressions should not be evaluated by the parser
+
+#### 19. Implicit Enum Value After Non-Numeric Member
+
+Source:
+
+```ts
+enum Status {
+  Open = "open",
+  Closed,
+}
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-enum-member-initializer`
+- implicit enum values should only work at the start of an enum or after numeric-valued members
+
+#### 20. Conditional Type
+
+Source:
+
+```ts
+type Value<T> = T extends string ? string : number;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to conditional types
+- failure should explain that conditional types are outside the supported schema subset
+
+#### 21. Mapped Type
+
+Source:
+
+```ts
+type Box<T> = {
+  [K in keyof T]: T[K];
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to mapped types
+- mapped types are outside the supported schema subset
+
+#### 22. Function Type
+
+Source:
+
+```ts
+type Handler = (value: string) => void;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to function types
+- function types are outside the supported schema subset
+
+#### 23. Intersection Type
+
+Source:
+
+```ts
+type User = Base & {
+  id: number;
+};
+```
+
+Expected result:
+
+- parser failure for v0 unless a later explicit decision expands the IR
+- failure code should be stable and specific to intersection types
+
+#### 24. Generic Unsupported Syntax Kind
+
+Source:
+
+```ts
+type Token = symbol;
+```
+
+Expected result:
+
+- parser failure
+- failure code should fall back to `unsupported-typescript-syntax`
+- definition-level diagnostics should point to `["definitions", "Token"]`
+
+### Type Reference Failures
+
+#### 25. Malformed ReadonlyArray Type Reference
+
+Source:
+
+```ts
+type Values = ReadonlyArray;
+```
+
+Expected result:
+
+- parser failure
+- failure code should remain `unsupported-typescript-type-reference`
+- readonly array syntax should preserve the same array-shape contract as `Array<T>`
+
+#### 26. Non-String Record Key
+
+Source:
+
+```ts
+type Scores = Record<number, string>;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to non-string record keys
+- current schema IR record keys are intentionally constrained to string
+
+#### 27. Type-Level Utility Outside Record
+
+Source:
+
+```ts
+type UserPreview = Pick<User, "id">;
+```
+
+Expected result:
+
+- parser failure
+- utility-type computation is outside the supported subset
+
+#### 28. Malformed Built-In Type Reference
+
+Source:
+
+```ts
+type Values = Array;
+```
+
+Expected result:
+
+- parser failure
+- failure code should remain `unsupported-typescript-type-reference`
+- diagnostics should preserve the malformed built-in text in evidence
+
+#### 29. Unsupported External Type Reference
+
+Source:
+
+```ts
+type User = ExternalUser;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to unsupported type references
+
+### Tuple Failures
+
+#### 30. Readonly Tuple Rest Element
+
+Source:
+
+```ts
+type Pair = readonly [number, ...string[]];
+```
+
+Expected result:
+
+- parser failure
+- failure code should remain `unsupported-typescript-tuple-rest-element`
+- readonly tuple syntax should not weaken the current tuple-rest boundary
+
+#### 31. Tuple Rest Element
+
+Source:
+
+```ts
+type Pair = [number, ...string[]];
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to tuple rest elements
+
+### Type Member And Field Failures
+
+#### 32. Unsupported Object Type Member
+
+Source:
+
+```ts
+type User = {
+  format(value: string): string;
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-type-member`
+- diagnostic node kind should identify a type member failure
+
+#### 33. Computed Property Name
+
+Source:
+
+```ts
+type User = {
+  [name]: string;
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to unsupported property-name forms
+
+#### 34. Missing Property Type Annotation
+
+Source:
+
+```ts
+type User = {
+  name;
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should be stable and specific to missing property type annotations
+
+#### 35. Nested Unsupported Field Syntax
+
+Source:
+
+```ts
+type User = {
+  token: symbol;
+};
+```
+
+Expected result:
+
+- parser failure
+- failure code should remain `unsupported-typescript-syntax`
+- diagnostic path should point to `["definitions", "User", "token"]` rather than only the enclosing definition
+
+## First End-To-End Slice
+
+The first implementation slice should prove the full path for one minimal declaration:
+
+```ts
+type User = {
+  id: number;
+  name?: string | null;
+};
+```
+
+Expected workflow:
+
+1. parse the named declaration
+2. emit one schema document with one reusable definition
+3. validate with `tryValidateSchemaDocument`
+4. render through the existing TypeScript generator
+5. confirm semantic round-trip alignment
+
+## Guardrails
+
+- do not widen literal unions to broad scalar types unless the parser is explicitly configured to do so in the future
+- do not invent schema semantics that are not already present in `core`
+- do not silently flatten unsupported TypeScript features into approximate object types
+- do not require the TypeScript type checker for the first parser slice if syntax-level parsing is enough

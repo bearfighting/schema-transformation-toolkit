@@ -244,6 +244,7 @@ Current expectations:
 - `nodeKind` should describe the relevant IR or contract surface when useful
 - `source` should identify the emitting layer such as `parser-json` or `generator-typescript`
 - `evidence` may carry extra structured context without changing the schema meaning
+- source-syntax locations are not currently shared top-level diagnostic fields; parser-specific source locations should live inside structured `evidence`
 
 Diagnostic and unknown evidence have different roles:
 
@@ -251,6 +252,36 @@ Diagnostic and unknown evidence have different roles:
 - `diagnostic.evidence` explains a parser or generator decision for one result
 - not every diagnostic should produce an unknown node
 - not every unknown node needs rich diagnostic evidence beyond its own node metadata
+
+### Parser Source-Location Convention
+
+For parser v0 work, logical location and syntax-origin location are intentionally separate:
+
+- `path` remains the primary logical or IR-facing location
+- source spans or line-column data should live in parser-specific diagnostic `evidence`
+- parser source-location evidence should not be treated as shared IR semantics by itself
+
+Current recommended parser evidence shape:
+
+```ts
+{
+  sourceLocation: {
+    start: {
+      offset: number;
+      line: number;
+      column: number;
+    }
+    end: {
+      offset: number;
+      line: number;
+      column: number;
+    }
+    length: number;
+  }
+}
+```
+
+This keeps the shared diagnostic contract small while still giving parser consumers enough information for editor, CLI, or web highlighting.
 
 ## Diagnostic Path Convention
 

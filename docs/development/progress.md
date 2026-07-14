@@ -30,6 +30,14 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - extracted core schema internals into dedicated `identifiers`, `equivalence`, `validation`, and `normalization` modules
 - removed the parser-side duplicate schema-equivalence implementation and reused core equivalence semantics instead
 - clarified project direction around serializable data-shape semantics
+- added non-throwing core schema validation helpers for parser-facing validation flows
+- added a root API contract test for `@aio/parser-json`
+- documented the first TypeScript parser subset cases and implementation todo list
+- added a TypeScript parser package with canonical exports and an initial structured failure model
+- implemented the first TypeScript parser v0 slice for schema-oriented declarations
+- added TypeScript parser support for object types, optional and nullable fields, arrays, tuples, unions, literal unions, `Record<string, T>`, interfaces, and reachable named references
+- added stable TypeScript parser failure codes for common unsupported subset cases
+- added more precise TypeScript parser diagnostic `path` and `nodeKind` coverage for common unsupported cases
 
 ## Current Supported Schema Capabilities
 
@@ -49,7 +57,7 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - keep parser, IR, and generator boundaries explicit
 - keep core semantics centralized so parser and generator packages do not drift
 - improve development documentation and decision traceability
-- assess the remaining core work before broadening to a TypeScript schema-subset parser
+- assess the next expansion boundary for the TypeScript schema-subset parser without letting it turn into a full TypeScript type-system parser
 
 ## Current Core Internal Shape
 
@@ -67,9 +75,59 @@ This is a meaningful improvement over the earlier state where these responsibili
 
 ## Next Milestones
 
-1. document the core modularization state and remaining internal guardrails clearly
-2. decide whether any additional core extraction is still worth it before shifting focus
-3. TypeScript schema-subset parser planning and skeleton
+1. decide the next small data-shape-preserving syntax slice after the new `enum`, enum-member-reference, and readonly support
+2. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
+3. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
+
+### Planned Next Slice For Diagnostics
+
+The next TypeScript parser improvement should likely happen in this order:
+
+1. the source-location shape is now decided: parser-specific diagnostic `evidence.sourceLocation`
+2. representative parser failures now capture source-location evidence
+3. the failure matrix now locks representative `path + sourceLocation` pairs across entry, definition, field, type-reference, and tuple failures
+4. next diagnostic work can focus on breadth decisions rather than shape decisions
+
+## Current TypeScript Parser Status
+
+The TypeScript parser now supports a meaningful first v0 schema subset and end-to-end integration with the existing schema IR and TypeScript generator.
+Its success-path coverage and failure-matrix coverage are now tracked separately to make expansion boundaries easier to review.
+
+### Currently Supported In The TypeScript Parser
+
+- explicit named entry declarations
+- `type` aliases
+- `interface` declarations
+- `enum` declarations that map cleanly to literal values
+- earlier-member enum references when they resolve to supported literal values
+- object type literals
+- scalar keywords: `string`, `number`, `boolean`
+- `null`
+- readonly properties and readonly array or tuple syntax when they do not add new shared IR semantics
+- optional properties
+- field-level nullable unions such as `string | null`
+- general unions
+- array shorthand and `Array<T>`
+- `ReadonlyArray<T>`
+- tuples without rest elements
+- scalar literal types and literal unions
+- `Record<string, T>`
+- reachable top-level named references
+
+### Current TypeScript Parser Gaps
+
+- tuple rest elements
+- external or unresolved type references
+- utility types outside `Record`
+- conditional, mapped, function, and intersection types
+- unsupported object type members and computed property names
+- generic unsupported syntax kinds that do not map into the current data-shape IR
+- computed enum evaluation beyond the current literal, implicit-numeric, and earlier-member-reference subset
+- readonly syntax still shares the current tuple-rest and malformed array-reference boundaries
+- parser-facing source spans or line-column diagnostics
+- automatic root declaration discovery from a full file
+- checker-driven semantic resolution
+- shared IR-level source span metadata
 
 ## Remaining Core Work
 
@@ -78,14 +136,15 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 ### Must
 
 - keep the current internal split stable as new semantics are added
-- decide whether explicit public validation helpers are needed before `web` or a TypeScript parser starts constructing IR more directly
 - keep the shared IR contract, diagnostics contract, and package docs aligned with actual behavior
 
 ### Should
 
 - review whether the current top-level `core` export surface is clearer enough for future `web` and `cli` consumers
 - decide whether literal-preserving or additional parser-facing semantics require any real IR expansion instead of parser-only behavior
-- add a TypeScript schema-subset parser to validate that the IR remains language-agnostic
+- continue using and extending the TypeScript schema-subset parser as the current second-language validation surface for the IR
+- keep the TypeScript parser case inventory and todo list aligned with actual implementation progress
+- decide whether the next TypeScript parser work should prioritize more success-path coverage or richer diagnostics and source-location information
 
 ### Can Wait
 

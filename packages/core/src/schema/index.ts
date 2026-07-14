@@ -21,6 +21,9 @@ export type {
   SchemaUnionNode,
   SchemaUnknownEvidence,
   SchemaUnknownNode,
+  SchemaValidationFailureResult,
+  SchemaValidationResult,
+  SchemaValidationSuccessResult,
   UnknownReason,
 } from "./types.js";
 
@@ -44,6 +47,13 @@ export {
 export { identifierName } from "./identifiers.js";
 
 export { areEquivalentSchemaNodes } from "./equivalence.js";
+
+export {
+  tryValidateSchemaDocument,
+  tryValidateSchemaFieldNullability,
+  validateSchemaDocument,
+  validateSchemaFieldNullability,
+} from "./validation.js";
 
 export {
   isSchemaArrayNode,

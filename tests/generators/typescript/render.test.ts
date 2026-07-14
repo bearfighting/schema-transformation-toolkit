@@ -245,7 +245,7 @@ describe("generator-typescript", () => {
     );
   });
 
-  it("supports the json -> ast -> typescript chain", () => {
+  it("supports the json -> schema ir -> typescript chain", () => {
     const doc = inferJsonDocument(
       '[{"id":1,"name":"Ada"},{"id":2}]',
       "UserList",

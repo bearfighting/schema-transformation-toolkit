@@ -32,8 +32,7 @@ export interface ParseFailureResult<TCode extends string = string> {
 }
 
 export type ParseResult<TCode extends string = string> =
-  | ParseSuccessResult
-  | ParseFailureResult<TCode>;
+  ParseSuccessResult | ParseFailureResult<TCode>;
 
 export interface SchemaParser<
   TInput = string,
@@ -68,8 +67,7 @@ export interface GenerateFailureResult<TCode extends string = string> {
 }
 
 export type GenerateResult<TOutput = string, TCode extends string = string> =
-  | GenerateSuccessResult<TOutput>
-  | GenerateFailureResult<TCode>;
+  GenerateSuccessResult<TOutput> | GenerateFailureResult<TCode>;
 
 export interface SchemaGenerator<
   TOutput = string,

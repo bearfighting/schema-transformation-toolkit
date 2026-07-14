@@ -17,13 +17,13 @@ import {
 } from "../../packages/generators/typescript/src/index.js";
 import {
   configureJsonParser,
-  jsonSchemaParser,
-  preparedJsonSchemaParserOptions,
+  jsonParser,
+  preparedJsonParserOptions,
 } from "../../packages/parsers/json/src/index.js";
 
 describe("integration: json -> ir -> typescript", () => {
   it("converts supported json samples into TypeScript with default parser/generator instances", () => {
-    const parsed = jsonSchemaParser.parse(
+    const parsed = jsonParser.parse(
       '[{"id":1,"profile":{"display-name":"Ada"}},{"id":2,"profile":{"display-name":"Linus","is-active":true}}]',
       {
         name: "user-profile-list",
@@ -54,7 +54,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves optional and nullable field semantics across the full pipeline", () => {
-    const parsed = jsonSchemaParser.parse(
+    const parsed = jsonParser.parse(
       '[{"id":1,"name":"Ada"},{"id":2,"name":null},{"id":3}]',
       {
         name: "user-list",
@@ -77,10 +77,10 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves unresolved unknown semantics across the full pipeline", () => {
-    const topLevelNull = jsonSchemaParser.parse("null", {
+    const topLevelNull = jsonParser.parse("null", {
       name: "standalone-null",
     });
-    const partialShape = jsonSchemaParser.parse('{"name":null,"tags":[]}', {
+    const partialShape = jsonParser.parse('{"name":null,"tags":[]}', {
       name: "partial-shape",
     });
 
@@ -108,7 +108,7 @@ describe("integration: json -> ir -> typescript", () => {
 
   it("supports configured parser and generator instances in the same pipeline", () => {
     const configuredParser = configureJsonParser(
-      (input, options) => jsonSchemaParser.parse(input, { name: options.name }),
+      (input, options) => jsonParser.parse(input, { name: options.name }),
       {
         name: "user-profile",
       },
@@ -156,7 +156,7 @@ describe("integration: json -> ir -> typescript", () => {
 
   it("supports numeric and rendering configuration together in the same pipeline", () => {
     const configuredParser = configureJsonParser(
-      (input, options) => jsonSchemaParser.parse(input, options),
+      (input, options) => jsonParser.parse(input, options),
       {
         name: "numeric-list",
         inference: {
@@ -186,7 +186,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves inferred tuples across the full pipeline when tuple inference is enabled", () => {
-    const parsed = jsonSchemaParser.parse('{"pair":[1,"north"]}', {
+    const parsed = jsonParser.parse('{"pair":[1,"north"]}', {
       name: "coordinate-pair",
       inference: {
         tupleInferenceMode: "heterogeneous-only",
@@ -208,7 +208,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves inferred records across the full pipeline when record inference is enabled", () => {
-    const parsed = jsonSchemaParser.parse(
+    const parsed = jsonParser.parse(
       '[{"en":"Hello","fr":"Bonjour"},{"de":"Hallo","es":"Hola"}]',
       {
         name: "translation-table",
@@ -229,7 +229,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves discriminated object unions across the full pipeline in union mode", () => {
-    const parsed = jsonSchemaParser.parse(
+    const parsed = jsonParser.parse(
       '[{"type":"a","value":"x"},{"type":"b","count":1}]',
       {
         name: "discriminated-value",
@@ -258,7 +258,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("preserves collapsed mixed-type unknown semantics across the full pipeline in unknown mode", () => {
-    const parsed = jsonSchemaParser.parse('[{"value":1},{"value":"x"}]', {
+    const parsed = jsonParser.parse('[{"value":1},{"value":"x"}]', {
       name: "mixed-value-unknown",
       inference: {
         mixedTypeMode: "unknown",
@@ -315,9 +315,9 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("surfaces unsupported parser behavior before generation for invalid inference cases", () => {
-    expect(preparedJsonSchemaParserOptions.errors).toEqual([]);
+    expect(preparedJsonParserOptions.errors).toEqual([]);
 
-    const parsed = jsonSchemaParser.parse('[1,"a"]', {
+    const parsed = jsonParser.parse('[1,"a"]', {
       name: "mixed-array",
     });
 
@@ -325,13 +325,13 @@ describe("integration: json -> ir -> typescript", () => {
       ok: false,
       code: "unsupported-mixed-types",
       message:
-        "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+        "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
       diagnostics: [
         {
           severity: "error",
           code: "unsupported-mixed-types",
           message:
-            "The input is valid JSON, but array elements do not share a common inferable type in AST v0.",
+            "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
           path: [],
           source: "parser-json",
         },
@@ -340,7 +340,7 @@ describe("integration: json -> ir -> typescript", () => {
   });
 
   it("surfaces structured generator failures in the integrated pipeline", () => {
-    const parsed = jsonSchemaParser.parse('{"user_id":1}', {
+    const parsed = jsonParser.parse('{"user_id":1}', {
       name: "user-profile",
     });
 

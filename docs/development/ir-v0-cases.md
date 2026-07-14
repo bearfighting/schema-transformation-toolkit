@@ -65,7 +65,7 @@ Source Sample:
 "hello"
 ```
 
-Expected AST:
+Expected Schema IR:
 
 ```ts
 schemaDocument("ScalarString", schemaScalarNode("string"));
@@ -79,7 +79,7 @@ Source Sample:
 42
 ```
 
-Expected AST:
+Expected Schema IR:
 
 ```ts
 schemaDocument("ScalarInteger", schemaScalarNode("integer"));
@@ -93,7 +93,7 @@ Source Sample:
 3.14
 ```
 
-Expected AST:
+Expected Schema IR:
 
 ```ts
 schemaDocument("ScalarNumber", schemaScalarNode("number"));
@@ -107,7 +107,7 @@ Source Sample:
 true
 ```
 
-Expected AST:
+Expected Schema IR:
 
 ```ts
 schemaDocument("ScalarBoolean", schemaScalarNode("boolean"));
@@ -125,7 +125,7 @@ Source Sample:
 }
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -151,7 +151,7 @@ Source Sample:
 }
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -176,7 +176,7 @@ Source Sample:
 ["a", "b", "c"]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument("ArrayOfString", schemaArrayNode(schemaScalarNode("string")));
@@ -199,7 +199,7 @@ Source Sample:
 ]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -229,7 +229,7 @@ Source Sample:
 ]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -260,7 +260,7 @@ Source Sample:
 ]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -294,7 +294,7 @@ Source Sample:
 ]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -331,7 +331,7 @@ Source Sample:
 ]
 ```
 
-Expected AST Sketch:
+Expected Schema IR Sketch:
 
 ```ts
 schemaDocument(
@@ -362,7 +362,7 @@ Source Sample:
 }
 ```
 
-Expected AST Note:
+Expected Schema IR Note:
 
 - explicit `null` must be tracked as nullable evidence
 - missing and `null` must not collapse into one signal
@@ -376,10 +376,10 @@ Source Sample:
 [1, "a"]
 ```
 
-Expected AST Note:
+Expected Schema IR Note:
 
 - this is valid JSON
-- this does not produce a stable schema in AST v0
+- this does not produce a stable schema in schema IR v0
 - parser result should be `unsupported-mixed-types`
 
 ### 15. mixed-object-scalar-array-is-valid-but-not-inferable
@@ -390,7 +390,7 @@ Source Sample:
 [{ "id": 1 }, "a"]
 ```
 
-Expected AST Note:
+Expected Schema IR Note:
 
 - this is valid JSON
 - object and scalar elements do not share a common inferable type
@@ -404,11 +404,11 @@ Source Sample:
 []
 ```
 
-Expected AST Note:
+Expected Schema IR Note:
 
 - this is valid JSON
 - there is no element type evidence
-- parser result should be a valid AST containing `array<unknown>`
+- parser result should be a valid schema IR containing `array<unknown>`
 
 ### 17. standalone-null-is-valid-but-not-inferable
 
@@ -418,19 +418,19 @@ Source Sample:
 null
 ```
 
-Expected AST Note:
+Expected Schema IR Note:
 
 - this is valid JSON
-- a standalone `null` is preserved as unresolved semantics in AST v0
-- parser result should be a valid AST containing `unknown | null`
+- a standalone `null` is preserved as unresolved semantics in schema IR v0
+- parser result should be a valid schema IR containing `unknown | null`
 
-## AST and Inference Rules Locked By These Cases
+## Schema IR and Inference Rules Locked By These Cases
 
 1. Missing field means `optional`.
 2. Explicit `null` means `nullable`.
 3. `optional` and `nullable` are independent flags.
 4. `integer` and `number` stay separate.
 5. A field is only `required` when it appears in every relevant sample.
-6. The v0 AST only needs `scalar`, `object`, `array`, `field`, and `document`.
+6. The v0 schema IR only needs `scalar`, `object`, `array`, `field`, and `document`.
 7. Valid JSON is not guaranteed to be inferable into a schema.
 8. Arrays must have a common inferable element type.

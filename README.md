@@ -32,10 +32,10 @@ The current implementation is intentionally conservative.
 This workspace is still in active development, but the intended package usage looks like this:
 
 ```ts
-import { jsonSchemaParser } from "@aio/parser-json";
+import { jsonParser } from "@aio/parser-json";
 import { typeScriptGenerator } from "@aio/generator-typescript";
 
-const parsed = jsonSchemaParser.parse('{"user_id":1}', { name: "UserProfile" });
+const parsed = jsonParser.parse('{"user_id":1}', { name: "UserProfile" });
 
 if (parsed.ok) {
   const generated = typeScriptGenerator.generate(parsed.document);

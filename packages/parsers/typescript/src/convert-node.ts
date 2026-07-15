@@ -261,6 +261,27 @@ function convertTypeScriptTypeReferenceNode(
   node: ts.TypeReferenceNode,
   context: TypeScriptConvertContext,
 ): SchemaNode {
+  if (ts.isQualifiedName(node.typeName)) {
+    const leftmostIdentifier = getLeftmostQualifiedNameIdentifier(node.typeName);
+    const importedFrom = context.importedTypeMap.get(leftmostIdentifier.text);
+
+    if (importedFrom) {
+      throwTypeScriptUnsupportedNode(
+        context,
+        node,
+        "unsupported-typescript-namespace-import-reference",
+        `Namespace-imported TypeScript type reference "${node.getText()}" from "${importedFrom}" is outside the current single-file schema subset.`,
+        `Namespace-imported TypeScript type reference requires cross-file resolution: ${node.getText()}.`,
+        {
+          importSource: importedFrom,
+          importedNamespace: leftmostIdentifier.text,
+          qualifiedReference: node.getText(),
+          typeReference: node.getText(),
+        },
+      );
+    }
+  }
+
   if (
     ts.isIdentifier(node.typeName) &&
     (node.typeName.text === "Array" || node.typeName.text === "ReadonlyArray")
@@ -275,7 +296,9 @@ function convertTypeScriptTypeReferenceNode(
         `${node.typeName.text}<T> requires exactly one type argument.`,
         `${node.typeName.text}<T> requires one type argument.`,
         {
+          expectedTypeArguments: 1,
           typeReference: node.getText(),
+          utilityType: node.typeName.text,
         },
       );
     }
@@ -308,7 +331,10 @@ function convertTypeScriptTypeReferenceNode(
       "Record utility types currently require a string key type in the shared schema IR.",
       `Unsupported Record key type in: ${node.getText()}.`,
       {
+        keyType: keyType?.getText() ?? null,
+        keyTypeKind: keyType ? ts.SyntaxKind[keyType.kind] : null,
         typeReference: node.getText(),
+        valueType: valueType?.getText() ?? null,
       },
     );
   }
@@ -361,6 +387,23 @@ function convertTypeScriptTypeReferenceNode(
 
       return schemaReferenceNode(name);
     }
+
+    const importedFrom = context.importedTypeMap.get(name);
+
+    if (importedFrom) {
+      throwTypeScriptUnsupportedNode(
+        context,
+        node,
+        "unsupported-typescript-imported-type-reference",
+        `Imported TypeScript type reference "${name}" from "${importedFrom}" is outside the current single-file schema subset.`,
+        `Imported TypeScript type reference requires cross-file resolution: ${node.getText()}.`,
+        {
+          importSource: importedFrom,
+          importedName: name,
+          typeReference: node.getText(),
+        },
+      );
+    }
   }
 
   throwTypeScriptUnsupportedNode(
@@ -387,6 +430,9 @@ function convertTypeScriptTupleElement(
         "unsupported-typescript-tuple-rest-element",
         "Tuple rest elements are not implemented in the TypeScript parser v0 subset.",
         "Tuple rest elements are not implemented yet.",
+        {
+          tupleElementKind: "named-rest",
+        },
       );
     }
 
@@ -414,6 +460,9 @@ function convertTypeScriptTupleElement(
       "unsupported-typescript-tuple-rest-element",
       "Tuple rest elements are not implemented in the TypeScript parser v0 subset.",
       "Tuple rest elements are not implemented yet.",
+      {
+        tupleElementKind: "rest",
+      },
     );
   }
 
@@ -444,6 +493,10 @@ function getTypeScriptPropertyName(
         nodeKind: "property-name",
         sourceLocation: getTypeScriptSourceLocation(name),
         detail: `Unsupported TypeScript property name kind: ${ts.SyntaxKind[name.kind]}.`,
+        evidence: {
+          nodeText: name.getText(),
+          syntaxKind: ts.SyntaxKind[name.kind],
+        },
       }),
     ],
   );
@@ -462,8 +515,10 @@ function throwTypeScriptUnsupportedNode(
   code:
     | "unsupported-typescript-conditional-type"
     | "unsupported-typescript-function-type"
+    | "unsupported-typescript-imported-type-reference"
     | "unsupported-typescript-intersection-type"
     | "unsupported-typescript-mapped-type"
+    | "unsupported-typescript-namespace-import-reference"
     | "unsupported-typescript-record-key"
     | "unsupported-typescript-syntax"
     | "unsupported-typescript-tuple-rest-element"
@@ -474,6 +529,7 @@ function throwTypeScriptUnsupportedNode(
   detail: string,
   evidence?: Record<string, unknown>,
 ): never {
+  const syntaxKind = ts.SyntaxKind[node.kind];
   const diagnostic = createTypeScriptUnsupportedDiagnostic({
     code,
     message,
@@ -483,6 +539,8 @@ function throwTypeScriptUnsupportedNode(
     sourceLocation: getTypeScriptSourceLocation(node),
     evidence: {
       documentName: context.sourceName,
+      nodeText: node.getText(),
+      syntaxKind,
       ...(evidence ?? {}),
     },
   });
@@ -493,6 +551,14 @@ function throwTypeScriptUnsupportedNode(
 
 function inferDiagnosticNodeKind(code: string, path: string[]): string {
   if (code === "unsupported-typescript-type-reference") {
+    return "type-reference";
+  }
+
+  if (code === "unsupported-typescript-imported-type-reference") {
+    return "type-reference";
+  }
+
+  if (code === "unsupported-typescript-namespace-import-reference") {
     return "type-reference";
   }
 
@@ -533,4 +599,14 @@ function inferDiagnosticNodeKind(code: string, path: string[]): string {
   }
 
   return "type";
+}
+
+function getLeftmostQualifiedNameIdentifier(name: ts.QualifiedName): ts.Identifier {
+  let currentLeft: ts.EntityName = name.left;
+
+  while (ts.isQualifiedName(currentLeft)) {
+    currentLeft = currentLeft.left;
+  }
+
+  return currentLeft;
 }

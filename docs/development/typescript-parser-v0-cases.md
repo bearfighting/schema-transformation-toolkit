@@ -331,7 +331,28 @@ Expected result:
 - failure code should be `unsupported-typescript-enum-member-initializer`
 - implicit enum values should only work at the start of an enum or after numeric-valued members
 
-#### 20. Conditional Type
+#### 20. Interface Extends Clause
+
+Source:
+
+```ts
+interface User extends Base {
+  id: number;
+}
+
+interface Base {
+  name: string;
+}
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-interface-heritage`
+- the parser should not silently drop inherited fields
+- diagnostic evidence should preserve the explicit `extends` clause text
+
+#### 21. Conditional Type
 
 Source:
 
@@ -345,7 +366,7 @@ Expected result:
 - failure code should be stable and specific to conditional types
 - failure should explain that conditional types are outside the supported schema subset
 
-#### 21. Mapped Type
+#### 22. Mapped Type
 
 Source:
 
@@ -361,7 +382,7 @@ Expected result:
 - failure code should be stable and specific to mapped types
 - mapped types are outside the supported schema subset
 
-#### 22. Function Type
+#### 23. Function Type
 
 Source:
 
@@ -375,7 +396,7 @@ Expected result:
 - failure code should be stable and specific to function types
 - function types are outside the supported schema subset
 
-#### 23. Intersection Type
+#### 24. Intersection Type
 
 Source:
 
@@ -390,7 +411,7 @@ Expected result:
 - parser failure for v0 unless a later explicit decision expands the IR
 - failure code should be stable and specific to intersection types
 
-#### 24. Generic Unsupported Syntax Kind
+#### 25. Generic Unsupported Syntax Kind
 
 Source:
 
@@ -406,7 +427,45 @@ Expected result:
 
 ### Type Reference Failures
 
-#### 25. Malformed ReadonlyArray Type Reference
+#### 26. Unsupported Named Entry Declaration Kind
+
+Source:
+
+```ts
+class User implements Serializable {}
+```
+
+Requested entry:
+
+- `User`
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-entry-declaration-kind`
+- the failure should explain that a declaration with the requested name exists, but the declaration kind is outside the supported entry subset
+- diagnostic evidence should preserve the declaration kind and declaration text
+
+#### 27. Re-Exported Entry
+
+Source:
+
+```ts
+export { User } from "./models";
+```
+
+Requested entry:
+
+- `User`
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-reexported-entry`
+- the failure should explain that the requested entry exists only as a re-export
+- diagnostic evidence should preserve the module specifier and export-forwarding text
+
+#### 28. Malformed ReadonlyArray Type Reference
 
 Source:
 
@@ -420,7 +479,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-type-reference`
 - readonly array syntax should preserve the same array-shape contract as `Array<T>`
 
-#### 26. Non-String Record Key
+#### 29. Non-String Record Key
 
 Source:
 
@@ -434,7 +493,7 @@ Expected result:
 - failure code should be stable and specific to non-string record keys
 - current schema IR record keys are intentionally constrained to string
 
-#### 27. Type-Level Utility Outside Record
+#### 30. Type-Level Utility Outside Record
 
 Source:
 
@@ -447,7 +506,41 @@ Expected result:
 - parser failure
 - utility-type computation is outside the supported subset
 
-#### 28. Malformed Built-In Type Reference
+#### 31. Imported Type Reference
+
+Source:
+
+```ts
+import type { ExternalUser } from "./models";
+
+type User = ExternalUser;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-imported-type-reference`
+- the failure should explain that the parser would need cross-file resolution
+- diagnostic evidence should preserve both the imported name and module specifier
+
+#### 32. Namespace-Imported Type Reference
+
+Source:
+
+```ts
+import * as Models from "./models";
+
+type User = Models.ExternalUser;
+```
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-namespace-import-reference`
+- the failure should explain that namespace-imported references need cross-file resolution
+- diagnostic evidence should preserve the namespace alias and full qualified reference
+
+#### 33. Malformed Built-In Type Reference
 
 Source:
 
@@ -461,7 +554,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-type-reference`
 - diagnostics should preserve the malformed built-in text in evidence
 
-#### 29. Unsupported External Type Reference
+#### 34. Unsupported External Type Reference
 
 Source:
 
@@ -476,7 +569,7 @@ Expected result:
 
 ### Tuple Failures
 
-#### 30. Readonly Tuple Rest Element
+#### 35. Readonly Tuple Rest Element
 
 Source:
 
@@ -490,7 +583,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-tuple-rest-element`
 - readonly tuple syntax should not weaken the current tuple-rest boundary
 
-#### 31. Tuple Rest Element
+#### 36. Tuple Rest Element
 
 Source:
 
@@ -505,7 +598,7 @@ Expected result:
 
 ### Type Member And Field Failures
 
-#### 32. Unsupported Object Type Member
+#### 37. Unsupported Object Type Member
 
 Source:
 
@@ -521,7 +614,7 @@ Expected result:
 - failure code should be `unsupported-typescript-type-member`
 - diagnostic node kind should identify a type member failure
 
-#### 33. Computed Property Name
+#### 38. Computed Property Name
 
 Source:
 
@@ -536,7 +629,7 @@ Expected result:
 - parser failure
 - failure code should be stable and specific to unsupported property-name forms
 
-#### 34. Missing Property Type Annotation
+#### 39. Missing Property Type Annotation
 
 Source:
 
@@ -551,7 +644,7 @@ Expected result:
 - parser failure
 - failure code should be stable and specific to missing property type annotations
 
-#### 35. Nested Unsupported Field Syntax
+#### 40. Nested Unsupported Field Syntax
 
 Source:
 

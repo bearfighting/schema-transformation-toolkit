@@ -2,13 +2,15 @@ import {
   schemaDefinition,
   schemaDocument,
   schemaReferenceNode,
-  tryValidateSchemaDocument,
   type SchemaDiagnostic,
+  tryValidateSchemaDocument,
   type SchemaDocument,
 } from "@aio/core";
 import ts from "typescript";
 import { convertTypeScriptEnumDeclaration } from "./convert-enum.js";
+import { createUnsupportedDeclarationShapeDiagnostic } from "./declaration-shape.js";
 import { convertTypeScriptTypeNode } from "./convert-node.js";
+import { throwTypeScriptInferenceError } from "./errors.js";
 import type {
   TypeScriptConvertContext,
   TypeScriptEntryDeclaration,
@@ -19,6 +21,7 @@ export function convertTypeScriptEntryDeclarationToSchemaDocument(
   sourceName: string,
   declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
   declarationNames: Set<string>,
+  importedTypeMap: ReadonlyMap<string, string>,
 ): {
   ok: true;
   document: SchemaDocument;
@@ -29,6 +32,7 @@ export function convertTypeScriptEntryDeclarationToSchemaDocument(
     diagnostics: [],
     declarationMap,
     declarationNames,
+    importedTypeMap,
     convertedDefinitionNames: new Set<string>(),
     activeDefinitionNames: new Set<string>(),
     path: [],
@@ -77,6 +81,11 @@ function ensureDefinitionForDeclaration(
 
   context.activeDefinitionNames.add(name);
 
+  assertSupportedDeclarationShape(declaration, context.sourceName, [
+    "definitions",
+    name,
+  ]);
+
   const type = ts.isTypeAliasDeclaration(declaration)
     ? convertTypeScriptTypeNode(declaration.type, {
         ...context,
@@ -98,4 +107,24 @@ function ensureDefinitionForDeclaration(
   context.activeDefinitionNames.delete(name);
   context.definitions.push(schemaDefinition(name, type));
   context.convertedDefinitionNames.add(name);
+}
+
+function assertSupportedDeclarationShape(
+  declaration: TypeScriptEntryDeclaration,
+  sourceName: string,
+  path: string[],
+): void {
+  const diagnostic = createUnsupportedDeclarationShapeDiagnostic(
+    declaration,
+    sourceName,
+    path,
+  );
+
+  if (diagnostic) {
+    throwTypeScriptInferenceError(
+      "unsupported-typescript-interface-heritage",
+      "Interface extends clauses are outside the supported TypeScript schema subset.",
+      [diagnostic],
+    );
+  }
 }

@@ -171,13 +171,19 @@ Chosen direction for v0:
 
 ### Should
 
-- [ ] expand failure diagnostics so deep nested failures preserve both logical `path` information and useful source evidence
+- [x] expand representative unsupported-node diagnostics so they preserve both logical `path` information and useful source evidence
+- [ ] continue broadening that richer evidence coverage to future unsupported parser surfaces such as declaration-level pre-processing or multi-file boundaries
 - [ ] decide which currently unsupported features are "not yet supported" versus intentionally outside the project boundary
 
 ### Can Wait
 
+- [x] make preprocess an explicit code-level step rather than only an architectural/documentation boundary
+- [x] move interface-heritage blocking checks for the reachable local declaration graph into preprocess
 - [ ] automatic root declaration discovery from a full file
-- [ ] import or export aware parsing across multiple files
+- [ ] import-aware parsing across multiple files
+- [x] add explicit parser diagnostics for direct imported type references, namespace-imported type references, and re-export-only entries in the current single-file subset
+- [ ] decide whether broader export-forwarding forms such as `export * from` should get equally explicit diagnostics or remain entry lookup misses for now
+- [ ] decide whether unsupported top-level module statements should be ignored, pre-processed away, or reported explicitly when they affect entry resolution
 - [ ] checker-driven semantic resolution
 - [ ] source span metadata in the shared IR itself rather than only parser diagnostics
 

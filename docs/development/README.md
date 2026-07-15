@@ -27,7 +27,7 @@ It should answer questions like:
 
 - [roadmap.md](roadmap.md): near-term development direction
 - [progress.md](progress.md): current phase, completed work, next milestones
-- [plan.md](plan.md): staged execution plan for `core`, `web`, and `cli`
+- [plan.md](plan.md): staged execution plan for `core` and `web`, plus deferred follow-on surfaces
 - [typescript-parser-todo.md](typescript-parser-todo.md): implementation checklist for the first TypeScript parser
 
 ### Reference

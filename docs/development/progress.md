@@ -140,7 +140,7 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 
 ### Should
 
-- review whether the current top-level `core` export surface is clearer enough for future `web` and `cli` consumers
+- review whether the current top-level `core` export surface is clearer enough for future `web` and other consumers
 - decide whether literal-preserving or additional parser-facing semantics require any real IR expansion instead of parser-only behavior
 - continue using and extending the TypeScript schema-subset parser as the current second-language validation surface for the IR
 - keep the TypeScript parser case inventory and todo list aligned with actual implementation progress

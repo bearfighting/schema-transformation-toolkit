@@ -14,7 +14,8 @@ import {
 import { validateJsonSchemaDocument } from "./validate.js";
 
 const defaultConfiguredJsonSchemaGenerator = configureJsonSchemaGenerator();
-const defaultJsonSchemaGenerator = defaultConfiguredJsonSchemaGenerator.generator;
+const defaultJsonSchemaGenerator =
+  defaultConfiguredJsonSchemaGenerator.generator;
 
 export function generateJsonSchema(
   doc: SchemaDocument,

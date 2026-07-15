@@ -262,7 +262,9 @@ function convertTypeScriptTypeReferenceNode(
   context: TypeScriptConvertContext,
 ): SchemaNode {
   if (ts.isQualifiedName(node.typeName)) {
-    const leftmostIdentifier = getLeftmostQualifiedNameIdentifier(node.typeName);
+    const leftmostIdentifier = getLeftmostQualifiedNameIdentifier(
+      node.typeName,
+    );
     const importedFrom = context.importedTypeMap.get(leftmostIdentifier.text);
 
     if (importedFrom) {
@@ -601,7 +603,9 @@ function inferDiagnosticNodeKind(code: string, path: string[]): string {
   return "type";
 }
 
-function getLeftmostQualifiedNameIdentifier(name: ts.QualifiedName): ts.Identifier {
+function getLeftmostQualifiedNameIdentifier(
+  name: ts.QualifiedName,
+): ts.Identifier {
   let currentLeft: ts.EntityName = name.left;
 
   while (ts.isQualifiedName(currentLeft)) {

@@ -385,9 +385,7 @@ describe("generator-json-schema", () => {
         reason: "no-evidence",
       }),
       {
-        definitions: [
-          schemaDefinition("Status", schemaLiteralNode("open")),
-        ],
+        definitions: [schemaDefinition("Status", schemaLiteralNode("open"))],
       },
     );
 
@@ -569,7 +567,9 @@ describe("generator-json-schema", () => {
       definitions: [
         schemaDefinition(
           "User",
-          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+          ]),
         ),
       ],
     });

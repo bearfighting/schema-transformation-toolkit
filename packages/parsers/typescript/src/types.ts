@@ -5,9 +5,7 @@ export type TypeScriptEntryDeclaration =
   ts.TypeAliasDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration;
 
 export type TypeScriptNamedTopLevelStatement =
-  | TypeScriptEntryDeclaration
-  | ts.ClassDeclaration
-  | ts.ModuleDeclaration;
+  TypeScriptEntryDeclaration | ts.ClassDeclaration | ts.ModuleDeclaration;
 
 export interface TypeScriptReExportReference {
   exportedName: string;

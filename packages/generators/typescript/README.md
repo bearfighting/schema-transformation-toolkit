@@ -84,7 +84,12 @@ These rules come from the configured naming strategy and can be replaced.
 ## Minimal Usage
 
 ```ts
-import { schemaDocument, schemaFieldNode, schemaObjectNode, schemaScalarNode } from "@aio/core";
+import {
+  schemaDocument,
+  schemaFieldNode,
+  schemaObjectNode,
+  schemaScalarNode,
+} from "@aio/core";
 import { generateTypeScript } from "@aio/generator-typescript";
 
 const document = schemaDocument(

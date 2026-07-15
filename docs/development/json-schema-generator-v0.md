@@ -232,10 +232,7 @@ Suggested nullable field rendering:
 
 ```json
 {
-  "oneOf": [
-    { "type": "string" },
-    { "type": "null" }
-  ]
+  "oneOf": [{ "type": "string" }, { "type": "null" }]
 }
 ```
 

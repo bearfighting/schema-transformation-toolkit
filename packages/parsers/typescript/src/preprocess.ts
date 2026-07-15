@@ -44,8 +44,7 @@ export interface TypeScriptPreprocessFailureResult {
 }
 
 export type TypeScriptPreprocessResult =
-  | TypeScriptPreprocessSuccessResult
-  | TypeScriptPreprocessFailureResult;
+  TypeScriptPreprocessSuccessResult | TypeScriptPreprocessFailureResult;
 
 export function preprocessTypeScriptSource(
   input: string,
@@ -75,7 +74,10 @@ export function preprocessTypeScriptSource(
   );
 
   if (!entryDeclaration) {
-    const namedStatement = findNamedTopLevelStatement(sourceFile, options.entry);
+    const namedStatement = findNamedTopLevelStatement(
+      sourceFile,
+      options.entry,
+    );
 
     if (namedStatement) {
       const declarationKind = ts.SyntaxKind[namedStatement.kind];

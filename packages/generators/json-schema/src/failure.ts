@@ -10,5 +10,4 @@ export type JsonSchemaGenerateFailureResult =
   GenerateFailureResult<JsonSchemaGeneratorFailureCode>;
 
 export type JsonSchemaGenerateResult =
-  | GenerateSuccessResult<JsonSchemaOutput>
-  | JsonSchemaGenerateFailureResult;
+  GenerateSuccessResult<JsonSchemaOutput> | JsonSchemaGenerateFailureResult;

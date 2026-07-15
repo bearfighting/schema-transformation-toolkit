@@ -15,6 +15,7 @@ describe("parser-typescript api contract", () => {
       "isTypeScriptInferenceError",
       "prepareTypeScriptParseOptions",
       "preparedTypeScriptParserOptions",
+      "preprocessTypeScriptSource",
       "resolveTypeScriptParseOptions",
       "tryInferTypeScriptDocument",
       "tryInferTypeScriptDocumentWithOptions",

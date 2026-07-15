@@ -61,7 +61,12 @@ The current generator supports:
 ## Minimal Usage
 
 ```ts
-import { schemaDocument, schemaFieldNode, schemaObjectNode, schemaScalarNode } from "@aio/core";
+import {
+  schemaDocument,
+  schemaFieldNode,
+  schemaObjectNode,
+  schemaScalarNode,
+} from "@aio/core";
 import { generateJsonSchema } from "@aio/generator-json-schema";
 
 const document = schemaDocument(

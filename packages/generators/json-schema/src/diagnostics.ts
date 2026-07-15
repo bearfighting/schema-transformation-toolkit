@@ -122,7 +122,7 @@ function collectNodeDiagnostics(
         );
       }
       return;
-    case "union":
+    case "union": {
       const overlappingPairs = findOverlappingUnionPairs(
         node.members,
         definitionLookup,
@@ -141,7 +141,10 @@ function collectNodeDiagnostics(
             evidence: {
               unionComposition: options.unionComposition,
               overlappingPairs,
-              memberKinds: describeOverlappingPairs(node.members, overlappingPairs),
+              memberKinds: describeOverlappingPairs(
+                node.members,
+                overlappingPairs,
+              ),
             },
           });
         } else {
@@ -156,7 +159,10 @@ function collectNodeDiagnostics(
             evidence: {
               unionComposition: options.unionComposition,
               overlappingPairs,
-              memberKinds: describeOverlappingPairs(node.members, overlappingPairs),
+              memberKinds: describeOverlappingPairs(
+                node.members,
+                overlappingPairs,
+              ),
             },
           });
         }
@@ -172,6 +178,7 @@ function collectNodeDiagnostics(
         );
       }
       return;
+    }
     case "scalar":
     case "literal":
     case "null":
@@ -194,14 +201,7 @@ function findOverlappingUnionPairs(
         continue;
       }
 
-      if (
-        mayOverlap(
-          leftMember,
-          rightMember,
-          definitionLookup,
-          new Set(),
-        )
-      ) {
+      if (mayOverlap(leftMember, rightMember, definitionLookup, new Set())) {
         overlappingPairs.push({ left, right });
       }
     }

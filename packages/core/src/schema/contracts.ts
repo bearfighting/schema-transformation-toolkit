@@ -46,7 +46,11 @@ export interface SchemaParser<
 export type GenerateOptions = Record<never, never>;
 
 export interface ConfiguredGenerator<
-  TGenerator extends SchemaGenerator<unknown, GenerateOptions, GenerateResult<unknown>> = SchemaGenerator,
+  TGenerator extends SchemaGenerator<
+    unknown,
+    GenerateOptions,
+    GenerateResult<unknown>
+  > = SchemaGenerator,
   TResolved = unknown,
 > {
   generator: TGenerator;

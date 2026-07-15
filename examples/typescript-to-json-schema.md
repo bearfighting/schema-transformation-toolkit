@@ -156,10 +156,7 @@ Generated JSON Schema:
           "additionalProperties": {
             "type": "array",
             "items": {
-              "oneOf": [
-                { "$ref": "#/$defs/User" },
-                { "type": "null" }
-              ]
+              "oneOf": [{ "$ref": "#/$defs/User" }, { "type": "null" }]
             }
           }
         }
@@ -184,7 +181,7 @@ TypeScript:
 ```ts
 enum Status {
   Open = "open",
-  Closed = "closed"
+  Closed = "closed",
 }
 
 type Response = { status: Status };

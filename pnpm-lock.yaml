@@ -45,6 +45,12 @@ importers:
 
   packages/core: {}
 
+  packages/generators/json-schema:
+    dependencies:
+      '@aio/core':
+        specifier: workspace:*
+        version: link:../../core
+
   packages/generators/typescript:
     dependencies:
       '@aio/core':
@@ -68,6 +74,9 @@ importers:
       '@aio/core':
         specifier: workspace:*
         version: link:../core
+      '@aio/generator-json-schema':
+        specifier: workspace:*
+        version: link:../generators/json-schema
       '@aio/generator-typescript':
         specifier: workspace:*
         version: link:../generators/typescript

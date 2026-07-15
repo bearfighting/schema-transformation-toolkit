@@ -1,5 +1,5 @@
 {
-  "name": "@aio/sdk",
+  "name": "@aio/generator-json-schema",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,13 +12,10 @@
     }
   },
   "dependencies": {
-    "@aio/core": "workspace:*",
-    "@aio/generator-json-schema": "workspace:*",
-    "@aio/generator-typescript": "workspace:*",
-    "@aio/parser-json": "workspace:*"
+    "@aio/core": "workspace:*"
   },
   "scripts": {
-    "build": "tsup --config ../../tsup.config.ts",
+    "build": "tsup --config ../../../tsup.config.ts",
     "clean": "rm -rf dist"
   }
 }

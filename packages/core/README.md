@@ -4,6 +4,20 @@ Shared IR, contracts, and cross-package naming utilities.
 
 For the current canonical IR contract, see [docs/development/ir-contract.md](../../docs/development/ir-contract.md).
 
+## Responsibilities
+
+- define the shared schema IR used across parsers and generators
+- provide public schema construction helpers
+- enforce core document and node invariants
+- expose shared result-shape and diagnostic contracts
+- centralize reusable semantics such as identifier normalization, equivalence, and validation
+
+If you want end-to-end examples first, start with:
+
+- [examples/json-to-typescript.md](../../examples/json-to-typescript.md)
+- [examples/json-to-json-schema.md](../../examples/json-to-json-schema.md)
+- [examples/typescript-to-json-schema.md](../../examples/typescript-to-json-schema.md)
+
 ## Current Scope
 
 The current `schema` IR intentionally stays small:
@@ -22,9 +36,57 @@ The current `schema` IR intentionally stays small:
 - `SchemaDefinition`
 - `SchemaDocument`
 
-That v0 shape is enough for the currently supported `json -> schema ir -> typescript` path, but it is not yet broad enough to represent all meaningful JSON samples as stable TypeScript types.
+That v0 shape is enough for the currently supported end-to-end paths:
+
+- `json -> schema ir -> typescript`
+- `json -> schema ir -> json-schema`
+- `typescript -> schema ir -> typescript`
+- `typescript -> schema ir -> json-schema`
+
+It is not yet broad enough to represent all meaningful JSON samples or all meaningful source-language type constructs as stable shared schema semantics.
 
 The shared contract layer now also includes a lightweight structured diagnostics model so parsers and generators can report richer explanations without replacing the current success/failure result shapes.
+
+## Minimal Usage
+
+```ts
+import {
+  schemaDocument,
+  schemaFieldNode,
+  schemaObjectNode,
+  schemaScalarNode,
+} from "@aio/core";
+
+const document = schemaDocument(
+  "User",
+  schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+);
+```
+
+The resulting `SchemaDocument` can then be passed to any supported generator.
+
+## Key Public Concepts
+
+The core package revolves around a few central shapes:
+
+- `SchemaDocument`: one logical schema model with one root and zero or more reusable definitions
+- `SchemaNode`: the union of supported semantic node kinds
+- `SchemaFieldNode`: field-level required and nullable semantics
+- `SchemaDiagnostic`: structured parser/generator explanation shape
+- `SchemaGenerator` and `SchemaParser`: shared cross-package interfaces
+
+The public factories intentionally keep construction ergonomic while still validating invariants at the IR boundary.
+
+## Current End-To-End Role
+
+Today `@aio/core` is the only required handoff between:
+
+- `@aio/parser-json`
+- `@aio/parser-typescript`
+- `@aio/generator-typescript`
+- `@aio/generator-json-schema`
+
+That means changes here should be treated as shared semantic changes, not package-local implementation details.
 
 ## Schema IR v1 Roadmap
 
@@ -215,6 +277,18 @@ Current intent:
 - result objects may now carry `diagnostics` in addition to existing `ok`, `code`, `message`, `document`, and `output` fields
 - `code` and `message` remain the compatibility surface for callers that do not yet consume structured diagnostics
 
+## Core Invariants To Remember
+
+Some invariants are especially important when constructing or transforming IR directly:
+
+- references must resolve to a definition in the same document
+- definition names must be unique within one document
+- record keys must currently be `string` scalar nodes
+- `nullable: true` must not wrap a type that already includes `null`
+- tuple optionality and explicit `null` remain distinct semantics
+
+If you are not sure whether a shape is valid, prefer going through the public factories rather than constructing plain objects by hand.
+
 ## Current Tuple Semantics
 
 - `SchemaTupleNode` represents an ordered, fixed-position sequence
@@ -292,3 +366,10 @@ Project rule:
 - do not overfit to JSON parser implementation details
 - let parser limitations stay in parsers when they do not need to become IR concepts
 - preserve room for future `value` and `xml` IR families without reusing schema names too loosely
+
+## Where To Look Next
+
+- see [docs/development/ir-contract.md](../../docs/development/ir-contract.md) for the canonical current contract
+- see [docs/development/progress.md](../../docs/development/progress.md) for current implementation status and active focus
+- see [packages/parsers/json/README.md](../parsers/json/README.md) and [packages/parsers/typescript/README.md](../parsers/typescript/README.md) for current source-language boundaries
+- see [packages/generators/typescript/README.md](../generators/typescript/README.md) and [packages/generators/json-schema/README.md](../generators/json-schema/README.md) for target-output behavior

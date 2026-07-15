@@ -43,12 +43,6 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
-  packages/cli:
-    dependencies:
-      cac:
-        specifier: ^6.7.14
-        version: 6.7.14
-
   packages/core: {}
 
   packages/generators/typescript:

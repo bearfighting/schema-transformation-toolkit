@@ -8,7 +8,7 @@ The intended delivery order still is:
 
 1. finish stabilizing `core`
 2. validate the product shape through `web`
-3. add `cli` after the core API and interaction model are more stable
+3. defer any additional surfaces until the core API and interaction model are more stable
 
 But `core` is now in a much later state than when this plan was first drafted: the main semantic gaps around references, diagnostics, unknown handling, and internal modularization have already been addressed.
 
@@ -56,25 +56,16 @@ Expected outcome:
 - faster feedback on core semantics and diagnostics quality
 - a clearer product direction before adding more surfaces
 
-### Phase 3: CLI Later
+### Phase 3: Additional Surfaces Later
 
-The `cli` should be treated as an automation and local integration surface, not the primary product-validation surface.
+Any CLI or other automation surface should be treated as follow-on work, not the primary product-validation surface.
 
-Recommended responsibilities:
+Recommended responsibilities when that work resumes:
 
 - batch conversion
 - validation in local workflows and CI
 - scriptable inspection of inferred documents and diagnostics
 - a stable local interface for future desktop or other local-first applications
-
-Recommended first commands:
-
-- `convert`
-- `parse`
-- `generate`
-- `validate`
-
-The CLI should expose both human-readable terminal output and machine-readable structured output such as `--json`.
 
 Expected outcome:
 
@@ -143,18 +134,18 @@ Deliverables:
 - clearer feedback loops for both product and IR design decisions
 - stronger confidence in the public API ergonomics
 
-### Step 5: Stabilize And Prepare CLI
+### Step 5: Stabilize And Prepare Follow-On Surfaces
 
 Focus:
 
 - stabilize any rough edges discovered during `web` integration
-- draft the future CLI command surface
-- define structured CLI output expectations using already-validated core behavior
+- decide which follow-on surface should exist next, if any
+- define structured integration expectations using already-validated core behavior
 
 Deliverables:
 
-- a CLI design ready for implementation
-- a short list of stable API entry points that both `web` and `cli` should depend on
+- a short design note for the next surface to build
+- a short list of stable API entry points that future surfaces should depend on
 - a cleaner handoff into the next development cycle
 
 ## Suggested Milestones
@@ -172,16 +163,16 @@ Deliverables:
 - input, IR, output, and diagnostics are visible in one place
 - the UI depends on `core` semantics rather than reimplementing them
 
-### Milestone 3: Stable Surface For CLI
+### Milestone 3: Stable Surface For Follow-On Work
 
-- the public API is clear enough to support both `web` and `cli`
-- CLI command design is documented
-- structured output expectations are defined before command implementation
+- the public API is clear enough to support the next chosen surface
+- the next surface is explicitly selected instead of assumed
+- structured integration expectations are defined before implementation
 
 ## Guardrails
 
 - do not let `web` introduce schema semantics that belong in `core`
-- do not let planned `cli` behavior push unstable requirements into `core` too early
+- do not let deferred follow-on surfaces push unstable requirements into `core` too early
 - prefer a narrow but well-explained playground over a broad but confusing web product
 - keep unsupported cases explicit rather than masking them with weak fallback behavior
 - do not keep polishing `core` internals indefinitely once the next real consumer is ready

@@ -20,7 +20,7 @@ This split exists to keep shared semantics centralized while avoiding another la
 
 ## Purpose
 
-The schema IR is the semantic handoff between parsers, generators, and future product surfaces such as `web` and `cli`.
+The schema IR is the semantic handoff between parsers, generators, and future product surfaces such as `web` and other later integration layers.
 
 The IR is intentionally about serializable data-shape semantics:
 

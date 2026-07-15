@@ -3,20 +3,9 @@ import type {
   SchemaDiagnostic,
   SchemaDocument,
 } from "@aio/core";
-import {
-  createTypeScriptSourceFile,
-  getTypeScriptSourceLocation,
-} from "./syntax.js";
-import {
-  collectTopLevelDeclarations,
-  findTypeScriptEntryDeclaration,
-} from "./entry.js";
+import { getTypeScriptSourceLocation } from "./syntax.js";
 import { convertTypeScriptEntryDeclarationToSchemaDocument } from "./convert.js";
-import {
-  missingEntryDeclarationDiagnostic,
-  missingEntryNameDiagnostic,
-  unsupportedTypeScriptParserV0Diagnostic,
-} from "./diagnostics.js";
+import { unsupportedTypeScriptParserV0Diagnostic } from "./diagnostics.js";
 import { isTypeScriptInferenceError } from "./errors.js";
 import {
   assertSupportedTypeScriptParseOptions,
@@ -25,6 +14,7 @@ import {
   type ResolvedTypeScriptParseOptions,
   type TypeScriptParseOptions,
 } from "./options.js";
+import { preprocessTypeScriptSource } from "./preprocess.js";
 
 export interface TypeScriptInferenceSuccessResult {
   ok: true;
@@ -37,12 +27,17 @@ export type TypeScriptInferenceFailureResult = ParseFailureResult<
   | "missing-typescript-entry-declaration"
   | "missing-typescript-property-type"
   | "unsupported-typescript-enum-member-initializer"
+  | "unsupported-typescript-entry-declaration-kind"
   | "unsupported-typescript-conditional-type"
   | "unsupported-typescript-function-type"
+  | "unsupported-typescript-imported-type-reference"
+  | "unsupported-typescript-interface-heritage"
   | "unsupported-typescript-intersection-type"
   | "unsupported-typescript-mapped-type"
+  | "unsupported-typescript-namespace-import-reference"
   | "unsupported-typescript-parser-v0"
   | "unsupported-typescript-property-name"
+  | "unsupported-typescript-reexported-entry"
   | "unsupported-typescript-record-key"
   | "unsupported-typescript-syntax"
   | "unsupported-typescript-tuple-rest-element"
@@ -125,49 +120,23 @@ function tryInferTypeScriptDocumentWithResolvedOptions(
   input: string,
   options: ResolvedTypeScriptParseOptions,
 ): TypeScriptInferenceResult {
-  const sourceFile = createTypeScriptSourceFile(input);
+  const preprocessed = preprocessTypeScriptSource(input, options);
 
-  if (!options.entry) {
+  if (!preprocessed.ok) {
     return createFailureResult(
-      "missing-typescript-entry",
-      "TypeScript parser v0 requires an explicit entry declaration name.",
-      [missingEntryNameDiagnostic(getTypeScriptSourceLocation(sourceFile))],
-    );
-  }
-
-  const declarationMap = collectTopLevelDeclarations(sourceFile);
-  const declarationNames = new Set(declarationMap.keys());
-  const entryDeclaration = findTypeScriptEntryDeclaration(
-    sourceFile,
-    options.entry,
-  );
-
-  if (!entryDeclaration) {
-    return createFailureResult(
-      "missing-typescript-entry-declaration",
-      `The TypeScript parser could not find a supported declaration named "${options.entry}".`,
-      [
-        {
-          ...missingEntryDeclarationDiagnostic(
-            options.entry,
-            getTypeScriptSourceLocation(sourceFile),
-          ),
-          evidence: {
-            entry: options.entry,
-            availableDeclarations: Array.from(declarationNames).sort(),
-            sourceLocation: getTypeScriptSourceLocation(sourceFile),
-          },
-        },
-      ],
+      preprocessed.code,
+      preprocessed.message,
+      preprocessed.diagnostics,
     );
   }
 
   try {
     const converted = convertTypeScriptEntryDeclarationToSchemaDocument(
-      entryDeclaration,
+      preprocessed.entryDeclaration,
       options.name,
-      declarationMap,
-      declarationNames,
+      preprocessed.declarationMap,
+      preprocessed.declarationNames,
+      preprocessed.importedTypeMap,
     );
 
     return {
@@ -188,7 +157,7 @@ function tryInferTypeScriptDocumentWithResolvedOptions(
 
     return createUnsupportedTypeScriptParserResult(
       options,
-      getTypeScriptSourceLocation(sourceFile),
+      getTypeScriptSourceLocation(preprocessed.sourceFile),
     );
   }
 }

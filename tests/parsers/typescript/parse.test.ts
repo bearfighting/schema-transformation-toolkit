@@ -137,6 +137,43 @@ describe("parser-typescript success paths", () => {
     });
   });
 
+  it("parses exported top-level declarations when their underlying schema subset is supported", () => {
+    expect(
+      typeScriptParser.parse(
+        [
+          "export interface User {",
+          "  id: number;",
+          "}",
+          "export type UserList = ReadonlyArray<User>;",
+        ].join("\n"),
+        {
+          entry: "UserList",
+          name: "ExportedUserListDocument",
+        },
+      ),
+    ).toEqual({
+      ok: true,
+      document: schemaDocument(
+        "ExportedUserListDocument",
+        schemaReferenceNode("UserList"),
+        {
+          definitions: [
+            schemaDefinition(
+              "User",
+              schemaObjectNode([
+                schemaFieldNode("id", schemaScalarNode("number")),
+              ]),
+            ),
+            schemaDefinition(
+              "UserList",
+              schemaArrayNode(schemaReferenceNode("User")),
+            ),
+          ],
+        },
+      ),
+    });
+  });
+
   it("parses optional-only and nullable-only field semantics distinctly", () => {
     expect(
       typeScriptParser.parse(

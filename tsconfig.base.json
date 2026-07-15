@@ -5,6 +5,9 @@
     "moduleResolution": "Bundler",
     "paths": {
       "@aio/core": ["./packages/core/src/index.ts"],
+      "@aio/generator-json-schema": [
+        "./packages/generators/json-schema/src/index.ts"
+      ],
       "@aio/generator-typescript": [
         "./packages/generators/typescript/src/index.ts"
       ],

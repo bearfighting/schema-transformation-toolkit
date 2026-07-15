@@ -135,6 +135,88 @@ describe("parser-typescript failure matrix", () => {
       });
     });
 
+    it("fails explicitly for interface extends clauses", () => {
+      expect(
+        typeScriptParser.parse(
+          "interface User extends Base { id: number }\ninterface Base { name: string }",
+          {
+            entry: "User",
+          },
+        ),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-interface-heritage",
+        message:
+          "Interface extends clauses are outside the supported TypeScript schema subset.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-interface-heritage",
+            message:
+              "Interface extends clauses are outside the supported TypeScript schema subset.",
+            path: ["definitions", "User"],
+            nodeKind: "definition",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
+              detail: "Unsupported interface heritage: extends Base.",
+              heritageClauses: ["extends Base"],
+              nodeText: "interface User extends Base { id: number }",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 42, line: 1, column: 43 },
+                length: 42,
+              },
+              syntaxKind: "InterfaceDeclaration",
+            }),
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly when a reachable referenced interface uses extends", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            "type User = Base;",
+            "interface Base extends Extra { id: number }",
+            "interface Extra { name: string }",
+          ].join("\n"),
+          {
+            entry: "User",
+          },
+        ),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-interface-heritage",
+        message:
+          "Interface extends clauses are outside the supported TypeScript schema subset.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-interface-heritage",
+            message:
+              "Interface extends clauses are outside the supported TypeScript schema subset.",
+            path: ["definitions", "Base"],
+            nodeKind: "definition",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
+              detail: "Unsupported interface heritage: extends Extra.",
+              heritageClauses: ["extends Extra"],
+              nodeText: "interface Base extends Extra { id: number }",
+              sourceLocation: {
+                start: { offset: 18, line: 2, column: 1 },
+                end: { offset: 61, line: 2, column: 44 },
+                length: 43,
+              },
+              syntaxKind: "InterfaceDeclaration",
+            }),
+          },
+        ],
+      });
+    });
+
     it("fails explicitly for intersection types", () => {
       expect(
         typeScriptParser.parse("type User = Base & { id: number }", {
@@ -226,6 +308,13 @@ describe("parser-typescript failure matrix", () => {
             evidence: expect.objectContaining({
               documentName: "TypeScriptDocument",
               detail: "Unsupported TypeScript syntax kind: MappedType.",
+              nodeText: "{ [K in keyof T]: T[K] }",
+              sourceLocation: {
+                start: { offset: 14, line: 1, column: 15 },
+                end: { offset: 38, line: 1, column: 39 },
+                length: 24,
+              },
+              syntaxKind: "MappedType",
             }),
           },
         ],
@@ -254,6 +343,13 @@ describe("parser-typescript failure matrix", () => {
             evidence: expect.objectContaining({
               documentName: "TypeScriptDocument",
               detail: "Unsupported TypeScript syntax kind: FunctionType.",
+              nodeText: "(value: string) => void",
+              sourceLocation: {
+                start: { offset: 15, line: 1, column: 16 },
+                end: { offset: 38, line: 1, column: 39 },
+                length: 23,
+              },
+              syntaxKind: "FunctionType",
             }),
           },
         ],
@@ -282,6 +378,13 @@ describe("parser-typescript failure matrix", () => {
             evidence: expect.objectContaining({
               documentName: "TypeScriptDocument",
               detail: "Unsupported TypeScript syntax kind: SymbolKeyword.",
+              nodeText: "symbol",
+              sourceLocation: {
+                start: { offset: 13, line: 1, column: 14 },
+                end: { offset: 19, line: 1, column: 20 },
+                length: 6,
+              },
+              syntaxKind: "SymbolKeyword",
             }),
           },
         ],
@@ -429,6 +532,75 @@ describe("parser-typescript failure matrix", () => {
   });
 
   describe("type reference failures", () => {
+    it("fails explicitly when the requested entry is a class declaration", () => {
+      expect(
+        typeScriptParser.parse("class User implements Serializable {}", {
+          entry: "User",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-entry-declaration-kind",
+        message:
+          'The TypeScript parser found a declaration named "User", but top-level ClassDeclaration entries are outside the supported schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-entry-declaration-kind",
+            message:
+              'The TypeScript parser found a declaration named "User", but top-level ClassDeclaration entries are outside the supported schema subset.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              declarationKind: "ClassDeclaration",
+              declarationText: "class User implements Serializable {}",
+              entry: "User",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 37, line: 1, column: 38 },
+                length: 37,
+              },
+            }),
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly when the requested entry is only available through a re-export", () => {
+      expect(
+        typeScriptParser.parse('export { User } from "./models";', {
+          entry: "User",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-reexported-entry",
+        message:
+          'The TypeScript parser found entry "User" only as a re-export from "./models", which is outside the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-reexported-entry",
+            message:
+              'The TypeScript parser found entry "User" only as a re-export from "./models", which is outside the current single-file schema subset.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              declarationText: 'export { User } from "./models";',
+              entry: "User",
+              importedName: "User",
+              moduleSpecifier: "./models",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 32, line: 1, column: 33 },
+                length: 32,
+              },
+            }),
+          },
+        ],
+      });
+    });
+
     it("fails explicitly for malformed readonly array type references", () => {
       expect(
         typeScriptParser.parse("type Values = ReadonlyArray", {
@@ -483,7 +655,17 @@ describe("parser-typescript failure matrix", () => {
             evidence: expect.objectContaining({
               documentName: "TypeScriptDocument",
               detail: "Unsupported Record key type in: Record<number, string>.",
+              keyType: "number",
+              keyTypeKind: "NumberKeyword",
+              nodeText: "Record<number, string>",
+              sourceLocation: {
+                start: { offset: 14, line: 1, column: 15 },
+                end: { offset: 36, line: 1, column: 37 },
+                length: 22,
+              },
+              syntaxKind: "TypeReference",
               typeReference: "Record<number, string>",
+              valueType: "string",
             }),
           },
         ],
@@ -524,6 +706,97 @@ describe("parser-typescript failure matrix", () => {
       });
     });
 
+    it("fails explicitly for imported type references that require cross-file resolution", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            'import type { ExternalUser } from "./models";',
+            "type User = ExternalUser;",
+          ].join("\n"),
+          {
+            entry: "User",
+          },
+        ),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-imported-type-reference",
+        message:
+          'Imported TypeScript type reference "ExternalUser" from "./models" is outside the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-imported-type-reference",
+            message:
+              'Imported TypeScript type reference "ExternalUser" from "./models" is outside the current single-file schema subset.',
+            path: ["definitions", "User"],
+            nodeKind: "type-reference",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
+              detail:
+                "Imported TypeScript type reference requires cross-file resolution: ExternalUser.",
+              importSource: "./models",
+              importedName: "ExternalUser",
+              nodeText: "ExternalUser",
+              sourceLocation: {
+                start: { offset: 58, line: 2, column: 13 },
+                end: { offset: 70, line: 2, column: 25 },
+                length: 12,
+              },
+              syntaxKind: "TypeReference",
+              typeReference: "ExternalUser",
+            }),
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly for namespace-imported type references that require cross-file resolution", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            'import * as Models from "./models";',
+            "type User = Models.ExternalUser;",
+          ].join("\n"),
+          {
+            entry: "User",
+          },
+        ),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-namespace-import-reference",
+        message:
+          'Namespace-imported TypeScript type reference "Models.ExternalUser" from "./models" is outside the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-namespace-import-reference",
+            message:
+              'Namespace-imported TypeScript type reference "Models.ExternalUser" from "./models" is outside the current single-file schema subset.',
+            path: ["definitions", "User"],
+            nodeKind: "type-reference",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
+              detail:
+                "Namespace-imported TypeScript type reference requires cross-file resolution: Models.ExternalUser.",
+              importSource: "./models",
+              importedNamespace: "Models",
+              nodeText: "Models.ExternalUser",
+              qualifiedReference: "Models.ExternalUser",
+              sourceLocation: {
+                start: { offset: 48, line: 2, column: 13 },
+                end: { offset: 67, line: 2, column: 32 },
+                length: 19,
+              },
+              syntaxKind: "TypeReference",
+              typeReference: "Models.ExternalUser",
+            }),
+          },
+        ],
+      });
+    });
+
     it("fails explicitly for utility types outside Record", () => {
       expect(
         typeScriptParser.parse('type UserPreview = Pick<User, "id">', {
@@ -547,6 +820,13 @@ describe("parser-typescript failure matrix", () => {
               documentName: "TypeScriptDocument",
               detail:
                 'Unsupported TypeScript type reference: Pick<User, "id">.',
+              nodeText: 'Pick<User, "id">',
+              sourceLocation: {
+                start: { offset: 19, line: 1, column: 20 },
+                end: { offset: 35, line: 1, column: 36 },
+                length: 16,
+              },
+              syntaxKind: "TypeReference",
               typeReference: 'Pick<User, "id">',
             }),
           },
@@ -574,12 +854,16 @@ describe("parser-typescript failure matrix", () => {
             evidence: expect.objectContaining({
               documentName: "TypeScriptDocument",
               detail: "Array<T> requires one type argument.",
+              expectedTypeArguments: 1,
+              nodeText: "Array",
               typeReference: "Array",
               sourceLocation: {
                 start: { offset: 14, line: 1, column: 15 },
                 end: { offset: 19, line: 1, column: 20 },
                 length: 5,
               },
+              syntaxKind: "TypeReference",
+              utilityType: "Array",
             }),
           },
         ],
@@ -615,6 +899,9 @@ describe("parser-typescript failure matrix", () => {
                 end: { offset: 41, line: 1, column: 42 },
                 length: 11,
               },
+              nodeText: "...string[]",
+              syntaxKind: "RestType",
+              tupleElementKind: "rest",
             }),
           },
         ],
@@ -648,6 +935,9 @@ describe("parser-typescript failure matrix", () => {
                 end: { offset: 32, line: 1, column: 33 },
                 length: 11,
               },
+              nodeText: "...string[]",
+              syntaxKind: "RestType",
+              tupleElementKind: "rest",
             }),
           },
         ],

@@ -10,6 +10,8 @@ It should answer questions like:
 - how we decide a feature is complete
 - what the current plan and progress are
 
+Use these docs when you want to understand why the project behaves the way it does, what is intentionally unsupported, or what sequence of work the repository is currently optimized for.
+
 ## Index
 
 ### Principles And Scope
@@ -28,13 +30,24 @@ It should answer questions like:
 - [roadmap.md](roadmap.md): near-term development direction
 - [progress.md](progress.md): current phase, completed work, next milestones
 - [plan.md](plan.md): staged execution plan for `core` and `web`, plus deferred follow-on surfaces
+- [json-schema-generator-v0.md](json-schema-generator-v0.md): working plan for the first JSON Schema generator
 - [typescript-parser-todo.md](typescript-parser-todo.md): implementation checklist for the first TypeScript parser
+- [typescript-parser-preprocess.md](typescript-parser-preprocess.md): preprocess boundary for single-file parsing vs future module-aware resolution
 
 ### Reference
 
 - [ir-contract.md](ir-contract.md): canonical current IR semantics and shared diagnostic contract
 - [ir-v0-cases.md](ir-v0-cases.md): test-oriented working cases for current schema IR support
 - [typescript-parser-v0-cases.md](typescript-parser-v0-cases.md): test-oriented support and failure cases for the first TypeScript parser
+- [typescript-parser-preprocess.md](typescript-parser-preprocess.md): architectural note for module-related preprocessing and future multi-file expansion
+
+## Suggested Reading Order
+
+- start with [scope.md](scope.md) if you want the project boundary first
+- read [ir-contract.md](ir-contract.md) before changing parser or generator behavior
+- read [progress.md](progress.md) for the current implementation state
+- read [json-schema-generator-v0.md](json-schema-generator-v0.md) or [typescript-parser-todo.md](typescript-parser-todo.md) when working on a specific active track
+- read [typescript-parser-preprocess.md](typescript-parser-preprocess.md) before changing TypeScript parser behavior around `import`, `export`, re-exports, or entry preparation
 
 ## Documentation Rule
 

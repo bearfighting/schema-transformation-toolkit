@@ -39,6 +39,56 @@ export function missingEntryDeclarationDiagnostic(
   };
 }
 
+export function unsupportedEntryDeclarationKindDiagnostic(options: {
+  entry: string;
+  declarationKind: string;
+  declarationText: string;
+  sourceLocation?: TypeScriptSourceLocation;
+}): SchemaDiagnostic {
+  return {
+    severity: "error",
+    code: "unsupported-typescript-entry-declaration-kind",
+    message: `The TypeScript parser found a declaration named "${options.entry}", but top-level ${options.declarationKind} entries are outside the supported schema subset.`,
+    path: ["entry", options.entry],
+    nodeKind: "entry",
+    source: "parser-typescript",
+    evidence: {
+      entry: options.entry,
+      declarationKind: options.declarationKind,
+      declarationText: options.declarationText,
+      ...(options.sourceLocation
+        ? { sourceLocation: options.sourceLocation }
+        : {}),
+    },
+  };
+}
+
+export function unsupportedReExportedEntryDiagnostic(options: {
+  entry: string;
+  importedName: string;
+  moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation?: TypeScriptSourceLocation;
+}): SchemaDiagnostic {
+  return {
+    severity: "error",
+    code: "unsupported-typescript-reexported-entry",
+    message: `The TypeScript parser found entry "${options.entry}" only as a re-export from "${options.moduleSpecifier}", which is outside the current single-file schema subset.`,
+    path: ["entry", options.entry],
+    nodeKind: "entry",
+    source: "parser-typescript",
+    evidence: {
+      entry: options.entry,
+      importedName: options.importedName,
+      moduleSpecifier: options.moduleSpecifier,
+      declarationText: options.declarationText,
+      ...(options.sourceLocation
+        ? { sourceLocation: options.sourceLocation }
+        : {}),
+    },
+  };
+}
+
 export function unsupportedTypeScriptParserV0Diagnostic(options: {
   documentName: string;
   entry?: string;

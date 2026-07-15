@@ -9,6 +9,8 @@ TypeScript generator for the shared schema IR.
 - apply TypeScript-specific naming and identifier rules
 - expose transparent generator configuration for callers and UIs
 
+This package is intentionally a focused IR-to-TypeScript generator, not a general-purpose TypeScript code synthesis layer.
+
 ## Current Output Support
 
 The current generator supports:
@@ -78,6 +80,20 @@ These rules come from the configured naming strategy and can be replaced.
 
 - returns `{ generator, prepared }`
 - useful when a caller wants both the generator instance and the fully prepared configuration state
+
+## Minimal Usage
+
+```ts
+import { schemaDocument, schemaFieldNode, schemaObjectNode, schemaScalarNode } from "@aio/core";
+import { generateTypeScript } from "@aio/generator-typescript";
+
+const document = schemaDocument(
+  "User",
+  schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+);
+
+const output = generateTypeScript(document);
+```
 
 ## Current Configuration Surface
 
@@ -183,9 +199,16 @@ The generator does not yet support:
 
 - choosing `class` emission via configuration
 - `enum`
-- references/shared named models
 - imports/exports beyond the current single-document output
 - target-specific formatting families beyond the current naming/object-root/array-style options
+
+Current definition and reference support:
+
+- document-local reusable definitions are supported
+- root and nested references are supported when they resolve within the same `SchemaDocument`
+- the generator still does not support cross-document reuse or import/export modeling
+
+Unsupported cases should fail explicitly rather than being approximated loosely.
 
 ## Failure Model
 
@@ -203,3 +226,9 @@ Current diagnostics behavior:
 - generator failures also include structured diagnostics with the same primary `code` and `message`
 - generator failure diagnostics now also include stable `path` and `nodeKind`, plus `evidence` for rendered/source naming failures where useful
 - success results currently stay quiet unless future generator warnings become useful
+
+## Where To Look Next
+
+- see [examples/json-to-typescript.md](../../../examples/json-to-typescript.md) for JSON-driven examples
+- see [examples/typescript-to-json-schema.md](../../../examples/typescript-to-json-schema.md) for a second target that consumes the same IR
+- see [tests/integration/typescript-to-typescript.test.ts](../../../tests/integration/typescript-to-typescript.test.ts) for definitions-heavy TypeScript round-trips

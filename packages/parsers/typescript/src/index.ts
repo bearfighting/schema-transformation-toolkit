@@ -13,6 +13,12 @@ export {
   type TypeScriptInferenceResult,
   type TypeScriptInferenceSuccessResult,
 } from "./parse.js";
+export {
+  preprocessTypeScriptSource,
+  type TypeScriptPreprocessFailureResult,
+  type TypeScriptPreprocessResult,
+  type TypeScriptPreprocessSuccessResult,
+} from "./preprocess.js";
 export { createTypeScriptSourceFile } from "./syntax.js";
 export {
   DEFAULT_TYPESCRIPT_PARSE_OPTIONS,

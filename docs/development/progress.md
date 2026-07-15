@@ -38,6 +38,17 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - added TypeScript parser support for object types, optional and nullable fields, arrays, tuples, unions, literal unions, `Record<string, T>`, interfaces, and reachable named references
 - added stable TypeScript parser failure codes for common unsupported subset cases
 - added more precise TypeScript parser diagnostic `path` and `nodeKind` coverage for common unsupported cases
+- strengthened TypeScript parser unsupported-syntax diagnostics with stable `syntaxKind`, `nodeText`, and category-specific evidence for built-in type references, `Record` keys, and tuple rest failures
+- added explicit TypeScript parser failures for interface `extends` clauses and unsupported named entry declaration kinds such as classes
+- added explicit TypeScript parser failures for imported type references that would require cross-file resolution
+- added explicit TypeScript parser failures for namespace-imported type references and re-export-only entries in single-file parsing
+- documented a dedicated TypeScript parser preprocess boundary for module-related syntax and future multi-file expansion
+- extracted a real TypeScript parser preprocess step so entry preparation and module-boundary classification are no longer inlined inside `parse.ts`
+- moved reachable declaration-shape prechecks into preprocess for interface-heritage failures, while keeping convert-level safety checks as a fallback
+- added a first JSON Schema generator package targeting Draft 2020-12
+- added integration coverage for `json -> ir -> json-schema`
+- added integration coverage for `typescript -> ir -> json-schema`, including definitions-heavy reachable-reference cases
+- documented JSON Schema generator scope, examples, and current semantics
 
 ## Current Supported Schema Capabilities
 
@@ -55,9 +66,11 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 ## Current Focus
 
 - keep parser, IR, and generator boundaries explicit
+- keep TypeScript preprocess, single-file conversion, and future module resolution responsibilities explicit
 - keep core semantics centralized so parser and generator packages do not drift
 - improve development documentation and decision traceability
 - assess the next expansion boundary for the TypeScript schema-subset parser without letting it turn into a full TypeScript type-system parser
+- keep the new JSON Schema generator aligned with the actual shared IR semantics instead of drifting toward ad hoc JSON Schema-specific behavior
 
 ## Current Core Internal Shape
 
@@ -78,15 +91,31 @@ This is a meaningful improvement over the earlier state where these responsibili
 1. decide the next small data-shape-preserving syntax slice after the new `enum`, enum-member-reference, and readonly support
 2. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
 3. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
+4. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf`, object closure, and compact nullable rendering
 
-### Planned Next Slice For Diagnostics
+## Current JSON Schema Generator Status
 
-The next TypeScript parser improvement should likely happen in this order:
+The JSON Schema generator now exists as a real second target surface for the shared IR.
 
-1. the source-location shape is now decided: parser-specific diagnostic `evidence.sourceLocation`
-2. representative parser failures now capture source-location evidence
-3. the failure matrix now locks representative `path + sourceLocation` pairs across entry, definition, field, type-reference, and tuple failures
-4. next diagnostic work can focus on breadth decisions rather than shape decisions
+### Currently Supported In The JSON Schema Generator
+
+- Draft 2020-12 output
+- scalar, literal, null, object, array, tuple, record, union, reference, and unknown nodes
+- document-local reusable definitions through `$defs`
+- root `$ref` output when the document root is a reference
+- nullable fields through structural `oneOf`
+- tuple optionality through `prefixItems`, `minItems`, and `items: false`
+- record semantics through `additionalProperties`
+
+### Current JSON Schema Generator Gaps
+
+- external `$ref`
+- multi-document or multi-file output
+- draft switching
+- schema annotation generation such as `description`, `examples`, or `default`
+- configurable `oneOf` vs `anyOf`
+- configurable object closure semantics
+- compact nullable rendering such as `type: ["string", "null"]`
 
 ## Current TypeScript Parser Status
 
@@ -100,6 +129,8 @@ Its success-path coverage and failure-matrix coverage are now tracked separately
 - `interface` declarations
 - `enum` declarations that map cleanly to literal values
 - earlier-member enum references when they resolve to supported literal values
+- `export`-modified supported declarations when their underlying declaration shape remains inside the current subset
+- single-file reachable declarations without cross-file import resolution
 - object type literals
 - scalar keywords: `string`, `number`, `boolean`
 - `null`
@@ -117,6 +148,10 @@ Its success-path coverage and failure-matrix coverage are now tracked separately
 ### Current TypeScript Parser Gaps
 
 - tuple rest elements
+- interface `extends` clauses
+- named entries that resolve to unsupported declaration kinds such as classes
+- imported type references that require cross-file resolution
+- namespace-imported type references and re-export-only entries that require cross-file resolution
 - external or unresolved type references
 - utility types outside `Record`
 - conditional, mapped, function, and intersection types
@@ -124,10 +159,19 @@ Its success-path coverage and failure-matrix coverage are now tracked separately
 - generic unsupported syntax kinds that do not map into the current data-shape IR
 - computed enum evaluation beyond the current literal, implicit-numeric, and earlier-member-reference subset
 - readonly syntax still shares the current tuple-rest and malformed array-reference boundaries
-- parser-facing source spans or line-column diagnostics
 - automatic root declaration discovery from a full file
 - checker-driven semantic resolution
 - shared IR-level source span metadata
+
+### Planned Next Slice For Diagnostics
+
+The next TypeScript parser improvement should likely happen in this order:
+
+1. the source-location shape is now decided: parser-specific diagnostic `evidence.sourceLocation`
+2. representative parser failures now capture source-location evidence
+3. the failure matrix now locks representative `path + sourceLocation` pairs across entry, definition, field, type-reference, and tuple failures
+4. unsupported-node diagnostics now also preserve stable `syntaxKind`, `nodeText`, and targeted category evidence where useful
+5. next diagnostic work can focus on breadth decisions rather than shape decisions
 
 ## Remaining Core Work
 
@@ -145,6 +189,7 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 - continue using and extending the TypeScript schema-subset parser as the current second-language validation surface for the IR
 - keep the TypeScript parser case inventory and todo list aligned with actual implementation progress
 - decide whether the next TypeScript parser work should prioritize more success-path coverage or richer diagnostics and source-location information
+- decide which JSON Schema generator output choices are stable semantic decisions versus temporary v0 simplifications
 
 ### Can Wait
 

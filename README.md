@@ -17,6 +17,7 @@ That separation is intended to make parsers and generators independently replace
 - `@aio/core`: shared IR, contracts, and core result types
 - `@aio/parser-json`: JSON to IR parsing and inference
 - `@aio/parser-typescript`: TypeScript schema-subset parser for the shared IR
+- `@aio/generator-json-schema`: IR to JSON Schema generation
 - `@aio/generator-typescript`: IR to TypeScript generation
 - `@aio/sdk`: optional aggregate re-export package
 
@@ -26,8 +27,32 @@ The current implementation is intentionally conservative.
 
 - `@aio/parser-json` supports the currently implemented IR subset
 - `@aio/parser-typescript` supports a narrow, explicit TypeScript schema subset with structured failures for unsupported syntax
+- `@aio/generator-json-schema` supports the currently implemented IR subset
 - `@aio/generator-typescript` supports the currently implemented IR subset
 - unsupported cases are reported through structured failures instead of silent guessing
+
+## Current End-To-End Flows
+
+The currently validated flows are:
+
+- `json -> schema ir -> typescript`
+- `json -> schema ir -> json-schema`
+- `typescript -> schema ir -> typescript`
+- `typescript -> schema ir -> json-schema`
+
+That does not mean every JSON sample or every TypeScript type is supported.
+It means the current explicit subset is wired end to end and covered by tests.
+
+## Current Limits
+
+This project currently supports explicit, documented subsets rather than full ecosystems.
+
+- the JSON parser is not a universal schema inference engine for every possible sample
+- the TypeScript parser is not a full TypeScript front-end
+- the JSON Schema generator is not yet a full JSON Schema platform with external `$ref`, draft switching, or multi-file output
+- unsupported cases are expected to fail explicitly instead of being guessed silently
+
+If you need the exact current boundary for one surface, prefer the package README and examples for that parser or generator over assuming broad language-level support.
 
 ## Installation
 
@@ -35,37 +60,59 @@ This workspace is still in active development, but the intended package usage lo
 
 ```ts
 import { jsonParser } from "@aio/parser-json";
-import { typeScriptGenerator } from "@aio/generator-typescript";
+import { tryGenerateJsonSchema } from "@aio/generator-json-schema";
+import { tryGenerateTypeScript } from "@aio/generator-typescript";
 
 const parsed = jsonParser.parse('{"user_id":1}', { name: "UserProfile" });
 
 if (parsed.ok) {
-  const generated = typeScriptGenerator.generate(parsed.document);
-  console.log(generated.output);
+  const schema = tryGenerateJsonSchema(parsed.document);
+  const generated = tryGenerateTypeScript(parsed.document);
+
+  if (schema.ok) {
+    console.log(schema.output);
+  }
+
+  if (generated.ok) {
+    console.log(generated.output);
+  }
 }
 ```
 
+The convenience `generate...()` functions still exist and throw on generation failure.
+The `tryGenerate...()` functions are often a better fit when you want structured diagnostics and explicit failure handling.
+
 ## Documentation
 
-User-facing documentation:
+### Start Here
 
-- Root overview: [README.md](README.md)
-- Core package overview and schema IR roadmap: [packages/core/README.md](packages/core/README.md)
-- JSON parser usage: [packages/parsers/json/README.md](packages/parsers/json/README.md)
-- TypeScript generator usage: [packages/generators/typescript/README.md](packages/generators/typescript/README.md)
-- Examples: [examples/README.md](examples/README.md)
+- [README.md](README.md): project overview, package map, and current validated flows
+- [packages/core/README.md](packages/core/README.md): shared IR model, invariants, and cross-package semantic boundary
+- [examples/README.md](examples/README.md): quick tour of current end-to-end examples
 
-Development documentation:
+### By Flow
 
-- Development index: [docs/development/README.md](docs/development/README.md)
-- Development scope: [docs/development/scope.md](docs/development/scope.md)
-- Development workflow: [docs/development/workflow.md](docs/development/workflow.md)
-- Acceptance criteria: [docs/development/acceptance.md](docs/development/acceptance.md)
-- Design decisions: [docs/development/decisions.md](docs/development/decisions.md)
-- Roadmap: [docs/development/roadmap.md](docs/development/roadmap.md)
-- Progress: [docs/development/progress.md](docs/development/progress.md)
-- IR working cases: [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md)
-- TypeScript parser cases: [docs/development/typescript-parser-v0-cases.md](docs/development/typescript-parser-v0-cases.md)
+- [packages/parsers/json/README.md](packages/parsers/json/README.md): JSON parsing and inference
+- [packages/parsers/typescript/README.md](packages/parsers/typescript/README.md): supported TypeScript schema-subset parsing
+- [packages/generators/json-schema/README.md](packages/generators/json-schema/README.md): JSON Schema Draft 2020-12 generation
+- [packages/generators/typescript/README.md](packages/generators/typescript/README.md): TypeScript generation
+- [examples/json-to-typescript.md](examples/json-to-typescript.md): representative `json -> schema ir -> typescript` examples
+- [examples/json-to-json-schema.md](examples/json-to-json-schema.md): representative `json -> schema ir -> json-schema` examples
+- [examples/typescript-to-json-schema.md](examples/typescript-to-json-schema.md): representative `typescript -> schema ir -> json-schema` examples
+
+### Deep Dive
+
+- [docs/development/README.md](docs/development/README.md): development-doc index and suggested reading order
+- [docs/development/scope.md](docs/development/scope.md): project boundary and support philosophy
+- [docs/development/ir-contract.md](docs/development/ir-contract.md): canonical shared IR contract
+- [docs/development/workflow.md](docs/development/workflow.md): implementation and testing loop
+- [docs/development/acceptance.md](docs/development/acceptance.md): definition of done
+- [docs/development/decisions.md](docs/development/decisions.md): durable design decisions
+- [docs/development/progress.md](docs/development/progress.md): current implementation state and active focus
+- [docs/development/roadmap.md](docs/development/roadmap.md): near-term direction
+- [docs/development/json-schema-generator-v0.md](docs/development/json-schema-generator-v0.md): JSON Schema generator working plan
+- [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md): IR-oriented working cases
+- [docs/development/typescript-parser-v0-cases.md](docs/development/typescript-parser-v0-cases.md): TypeScript parser support and failure cases
 
 ## Development
 

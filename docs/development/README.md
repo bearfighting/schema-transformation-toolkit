@@ -33,6 +33,7 @@ Use these docs when you want to understand why the project behaves the way it do
 - [json-schema-generator-v0.md](json-schema-generator-v0.md): working plan for the first JSON Schema generator
 - [typescript-parser-todo.md](typescript-parser-todo.md): implementation checklist for the first TypeScript parser
 - [typescript-parser-preprocess.md](typescript-parser-preprocess.md): preprocess boundary for single-file parsing vs future module-aware resolution
+- [improvements.md](improvements.md): prioritized improvement plan from code review
 
 ### Reference
 

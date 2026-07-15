@@ -69,7 +69,7 @@ function renderJsonSchemaNode(
     case "null":
       return { type: "null" };
     case "unknown":
-      return options.unknownStrategy === "true" ? true : true;
+      return true;
     case "reference":
       return { $ref: `#/$defs/${node.name}` };
     case "array":

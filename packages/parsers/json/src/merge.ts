@@ -187,10 +187,6 @@ function mergeUnknownTypeNodes(
   right: SchemaUnknownNode,
 ): SchemaUnknownNode {
   left.nullable = left.nullable || right.nullable;
-  if (left.reason === undefined && right.reason !== undefined) {
-    left.reason = right.reason;
-  }
-
   return left;
 }
 

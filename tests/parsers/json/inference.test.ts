@@ -363,7 +363,9 @@ describe("parser-json inference", () => {
               numericMode: "number-only",
             },
           }),
-        ).toEqual(schemaDocument("ScalarNumberOnly", schemaScalarNode("number")));
+        ).toEqual(
+          schemaDocument("ScalarNumberOnly", schemaScalarNode("number")),
+        );
 
         expect(
           inferJsonDocumentWithOptions('{"age":32}', {

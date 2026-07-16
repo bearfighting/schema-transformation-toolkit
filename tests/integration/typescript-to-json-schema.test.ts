@@ -216,7 +216,10 @@ describe("integration: typescript -> ir -> json-schema", () => {
       kind: "reference",
       name: "Response",
     });
-    expect(definitionNames(enumParsed.document)).toEqual(["Status", "Response"]);
+    expect(definitionNames(enumParsed.document)).toEqual([
+      "Status",
+      "Response",
+    ]);
 
     expect(jsonSchemaGenerator.generate(enumParsed.document)).toEqual({
       ok: true,

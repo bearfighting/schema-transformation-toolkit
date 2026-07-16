@@ -130,10 +130,10 @@ Some earlier improvement suggestions were directionally correct but now need to 
 
 ## Tracking
 
-| Status | Count |
-|--------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 2 |
+| Status    | Count |
+| --------- | ----- |
+| Critical  | 0     |
+| High      | 0     |
+| Medium    | 0     |
+| Low       | 2     |
 | **Total** | **2** |

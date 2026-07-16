@@ -100,7 +100,9 @@ export function tryInferRecordNodeFromObjectSamples(
   path: string[],
   dependencies: Pick<
     ObjectInferenceDependencies,
-    "emitMixedTypesCollapsedDiagnostic" | "inferValuesAsSharedType" | "isMixedTypesCollapsedUnknownNode"
+    | "emitMixedTypesCollapsedDiagnostic"
+    | "inferValuesAsSharedType"
+    | "isMixedTypesCollapsedUnknownNode"
   >,
 ): SchemaNode | null {
   if (options.schema.recordInferenceMode !== "shared-value-type") {

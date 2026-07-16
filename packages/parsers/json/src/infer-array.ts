@@ -168,7 +168,12 @@ function inferTupleNodeFromValues(
 ): SchemaNode {
   return schemaTupleNode(
     values.map((value) =>
-      dependencies.inferSchemaNodeFromJsonValue(value, options, diagnostics, path),
+      dependencies.inferSchemaNodeFromJsonValue(
+        value,
+        options,
+        diagnostics,
+        path,
+      ),
     ),
   );
 }
@@ -262,7 +267,12 @@ function inferValuesAsTuplePositionType(
 
   return schemaUnionNode(
     values.map((value) =>
-      dependencies.inferSchemaNodeFromJsonValue(value, options, diagnostics, path),
+      dependencies.inferSchemaNodeFromJsonValue(
+        value,
+        options,
+        diagnostics,
+        path,
+      ),
     ),
   );
 }

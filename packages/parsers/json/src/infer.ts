@@ -6,18 +6,13 @@ import {
   schemaArrayNode,
   type SchemaDiagnostic,
   schemaFieldNode,
-  schemaLiteralNode,
   schemaNullNode,
   schemaObjectNode,
-  schemaRecordNode,
   schemaScalarNode,
-  schemaUnionNode,
   schemaUnknownNode,
-  type SchemaFieldNode,
   type SchemaNode,
   type SchemaObjectNode,
 } from "@aio/core";
-import { JsonInferenceError, isJsonInferenceError } from "./errors.js";
 import {
   inferArrayNodeFromSamples,
   inferArrayNodeWithTupleFallback,
@@ -153,13 +148,7 @@ function inferFieldType(
   }
 
   if (values.every(Array.isArray)) {
-    return inferFieldArrayType(
-      name,
-      values,
-      options,
-      diagnostics,
-      fieldPath,
-    );
+    return inferFieldArrayType(name, values, options, diagnostics, fieldPath);
   }
 
   const inferredType = inferSharedTypeAcrossValues(

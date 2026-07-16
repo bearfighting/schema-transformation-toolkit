@@ -417,9 +417,7 @@ describe("parser-typescript success paths", () => {
           "EnabledDocument",
           schemaReferenceNode("Enabled"),
           {
-            definitions: [
-              schemaDefinition("Enabled", schemaLiteralNode(true)),
-            ],
+            definitions: [schemaDefinition("Enabled", schemaLiteralNode(true))],
           },
         ),
       });

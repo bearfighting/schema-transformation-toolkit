@@ -181,6 +181,7 @@ Current defaults:
 
 `unknownStrategy` currently remains a one-value option on purpose.
 It acts as a forward-compatibility placeholder for future widening strategies, while the v0 generator always renders `unknown` as the widest valid schema.
+
 - `objectAdditionalPropertiesMode: "omit"`
 - `unionComposition: "oneOf"`
 

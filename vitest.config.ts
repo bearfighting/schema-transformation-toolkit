@@ -9,6 +9,7 @@ export default defineConfig({
       "@aio/generator-typescript":
         "/packages/generators/typescript/src/index.ts",
       "@aio/parser-json": "/packages/parsers/json/src/index.ts",
+      "@aio/parser-typescript": "/packages/parsers/typescript/src/index.ts",
       "@aio/sdk": "/packages/sdk/src/index.ts",
     },
   },

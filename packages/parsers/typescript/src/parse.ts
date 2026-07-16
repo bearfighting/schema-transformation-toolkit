@@ -48,6 +48,7 @@ export type TypeScriptInferenceFailureResult = ParseFailureResult<
 export type TypeScriptInferenceResult =
   TypeScriptInferenceSuccessResult | TypeScriptInferenceFailureResult;
 
+/** Parses TypeScript source and returns the inferred schema document or throws on failure. */
 export function inferTypeScriptDocument(
   input: string,
   name = "TypeScriptDocument",
@@ -55,6 +56,7 @@ export function inferTypeScriptDocument(
   return inferTypeScriptDocumentWithOptions(input, { name });
 }
 
+/** Parses TypeScript source with explicit parser options and returns the inferred schema document or throws on failure. */
 export function inferTypeScriptDocumentWithOptions(
   input: string,
   options: TypeScriptParseOptions = {},
@@ -68,6 +70,7 @@ export function inferTypeScriptDocumentWithOptions(
   return result.document;
 }
 
+/** Parses TypeScript source and returns a structured success or failure result. */
 export function tryInferTypeScriptDocument(
   input: string,
   name = "TypeScriptDocument",
@@ -75,6 +78,7 @@ export function tryInferTypeScriptDocument(
   return tryInferTypeScriptDocumentWithOptions(input, { name });
 }
 
+/** Parses TypeScript source with explicit parser options and returns a structured success or failure result. */
 export function tryInferTypeScriptDocumentWithOptions(
   input: string,
   options: TypeScriptParseOptions = {},
@@ -91,7 +95,9 @@ const defaultConfiguredTypeScriptParser = configureTypeScriptParser(
     tryInferTypeScriptDocumentWithResolvedOptions(input, options),
 );
 
+/** Shared default TypeScript parser instance using the default v0 options. */
 export const typeScriptParser = defaultConfiguredTypeScriptParser.parser;
+/** Prepared default option state for the shared TypeScript parser instance. */
 export const preparedTypeScriptParserOptions =
   defaultConfiguredTypeScriptParser.prepared;
 

@@ -1,4 +1,9 @@
-import type { SchemaDiagnostic, SchemaDocument, SchemaNode } from "@aio/core";
+import type {
+  SchemaDiagnostic,
+  SchemaDiagnosticNodeKind,
+  SchemaDocument,
+  SchemaNode,
+} from "@aio/core";
 import type { JsonSchemaGenerateFailureResult } from "./failure.js";
 
 export function validateJsonSchemaDocument(
@@ -23,6 +28,8 @@ function validateJsonSchemaNode(
   doc: SchemaDocument,
   path: string[],
 ): JsonSchemaGenerateFailureResult | null {
+  const runtimeNodeKind: string = node.kind;
+
   switch (node.kind) {
     case "scalar":
     case "literal":
@@ -98,9 +105,9 @@ function validateJsonSchemaNode(
     default:
       return createValidationFailure(
         "unsupported-node-kind",
-        `The JSON Schema generator does not support node kind "${String((node as { kind: string }).kind)}".`,
+        `The JSON Schema generator does not support node kind "${runtimeNodeKind}".`,
         path,
-        String((node as { kind: string }).kind),
+        toSchemaDiagnosticNodeKind(runtimeNodeKind),
       );
   }
 }
@@ -109,7 +116,7 @@ function createValidationFailure(
   code: JsonSchemaGenerateFailureResult["code"],
   message: string,
   path: string[],
-  nodeKind: string,
+  nodeKind?: SchemaDiagnosticNodeKind,
   evidence?: Record<string, unknown>,
 ): JsonSchemaGenerateFailureResult {
   const diagnostic: SchemaDiagnostic = {
@@ -117,9 +124,12 @@ function createValidationFailure(
     code,
     message,
     path,
-    nodeKind,
     source: "generator-json-schema",
   };
+
+  if (nodeKind !== undefined) {
+    diagnostic.nodeKind = nodeKind;
+  }
 
   if (evidence !== undefined) {
     diagnostic.evidence = evidence;
@@ -131,4 +141,32 @@ function createValidationFailure(
     message,
     diagnostics: [diagnostic],
   };
+}
+
+function toSchemaDiagnosticNodeKind(
+  value: string,
+): SchemaDiagnosticNodeKind | undefined {
+  switch (value) {
+    case "scalar":
+    case "literal":
+    case "reference":
+    case "union":
+    case "tuple":
+    case "record":
+    case "null":
+    case "unknown":
+    case "field":
+    case "object":
+    case "array":
+    case "document":
+    case "definition":
+    case "entry":
+    case "type":
+    case "type-member":
+    case "property-name":
+    case "type-reference":
+      return value;
+    default:
+      return undefined;
+  }
 }

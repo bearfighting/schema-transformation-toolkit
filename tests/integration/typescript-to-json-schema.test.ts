@@ -21,6 +21,12 @@ describe("integration: typescript -> ir -> json-schema", () => {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
 
+    expect(parsed.document.root).toEqual({
+      kind: "reference",
+      name: "User",
+    });
+    expect(definitionNames(parsed.document)).toEqual(["User"]);
+
     expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
       ok: true,
       output: {
@@ -63,6 +69,17 @@ describe("integration: typescript -> ir -> json-schema", () => {
     if (!parsed.ok) {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
+
+    expect(parsed.document.root).toEqual({
+      kind: "reference",
+      name: "Response",
+    });
+    expect(definitionNames(parsed.document)).toEqual([
+      "Status",
+      "Audit",
+      "User",
+      "Response",
+    ]);
 
     expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -134,6 +151,12 @@ describe("integration: typescript -> ir -> json-schema", () => {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
 
+    expect(parsed.document.root).toEqual({
+      kind: "reference",
+      name: "Response",
+    });
+    expect(definitionNames(parsed.document)).toEqual(["User", "Response"]);
+
     expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
       ok: true,
       output: {
@@ -189,6 +212,12 @@ describe("integration: typescript -> ir -> json-schema", () => {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
 
+    expect(enumParsed.document.root).toEqual({
+      kind: "reference",
+      name: "Response",
+    });
+    expect(definitionNames(enumParsed.document)).toEqual(["Status", "Response"]);
+
     expect(jsonSchemaGenerator.generate(enumParsed.document)).toEqual({
       ok: true,
       output: {
@@ -230,6 +259,12 @@ describe("integration: typescript -> ir -> json-schema", () => {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
 
+    expect(readonlyParsed.document.root).toEqual({
+      kind: "reference",
+      name: "User",
+    });
+    expect(definitionNames(readonlyParsed.document)).toEqual(["User"]);
+
     expect(jsonSchemaGenerator.generate(readonlyParsed.document)).toEqual({
       ok: true,
       output: {
@@ -263,3 +298,9 @@ describe("integration: typescript -> ir -> json-schema", () => {
     });
   });
 });
+
+function definitionNames(document: {
+  definitions: Array<{ name: { source: string } }>;
+}): string[] {
+  return document.definitions.map((definition) => definition.name.source);
+}

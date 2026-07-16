@@ -8,12 +8,12 @@ export function createTypeScriptSourceFile(
   return ts.createSourceFile(fileName, input, ts.ScriptTarget.Latest, true);
 }
 
-export function getTypeScriptSourceLocation(
-  node: ts.Node | ts.SourceFile,
+export function getTypeScriptSourceLocationFromSpan(
+  sourceFile: ts.SourceFile,
+  startOffset: number,
+  length: number,
 ): TypeScriptSourceLocation {
-  const sourceFile = node.getSourceFile();
-  const startOffset = ts.isSourceFile(node) ? 0 : node.getStart(sourceFile);
-  const endOffset = node.getEnd();
+  const endOffset = startOffset + length;
   const start = sourceFile.getLineAndCharacterOfPosition(startOffset);
   const end = sourceFile.getLineAndCharacterOfPosition(endOffset);
 
@@ -28,6 +28,19 @@ export function getTypeScriptSourceLocation(
       line: end.line + 1,
       column: end.character + 1,
     },
-    length: endOffset - startOffset,
+    length,
   };
+}
+
+export function getTypeScriptSourceLocation(
+  node: ts.Node | ts.SourceFile,
+): TypeScriptSourceLocation {
+  const sourceFile = node.getSourceFile();
+  const startOffset = ts.isSourceFile(node) ? 0 : node.getStart(sourceFile);
+  const endOffset = node.getEnd();
+  return getTypeScriptSourceLocationFromSpan(
+    sourceFile,
+    startOffset,
+    endOffset - startOffset,
+  );
 }

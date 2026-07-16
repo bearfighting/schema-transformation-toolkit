@@ -113,7 +113,7 @@ function renderFieldType(
     return renderedType;
   }
 
-  return `${wrapForUnion(renderedType)} | null`;
+  return `${wrapForParens(renderedType)} | null`;
 }
 
 function renderTypeNode(
@@ -236,7 +236,7 @@ function renderTupleElement(
     return renderedType;
   }
 
-  return `${wrapForOptionalTupleElement(renderedType)}?`;
+  return `${wrapForParens(renderedType)}?`;
 }
 
 function renderRecordType(
@@ -279,11 +279,11 @@ function renderArrayType(
     case "generic":
       return `Array<${renderedElementType}>`;
     case "compact":
-      return `${wrapForArray(renderedElementType)}[]`;
+      return `${wrapForParens(renderedElementType)}[]`;
     case "smart":
     default:
       return isCompactArrayCandidate(renderedElementType)
-        ? `${wrapForArray(renderedElementType)}[]`
+        ? `${wrapForParens(renderedElementType)}[]`
         : `Array<${renderedElementType}>`;
   }
 }
@@ -303,31 +303,7 @@ function renderInlineObjectType(
   return `{\n${fields}\n${indent(depth)}}`;
 }
 
-function wrapForArray(renderedType: string): string {
-  if (renderedType.startsWith("{\n")) {
-    return `(${renderedType})`;
-  }
-
-  if (renderedType.includes(" | ")) {
-    return `(${renderedType})`;
-  }
-
-  return renderedType;
-}
-
-function wrapForUnion(renderedType: string): string {
-  if (renderedType.startsWith("{\n")) {
-    return `(${renderedType})`;
-  }
-
-  if (renderedType.includes(" | ")) {
-    return `(${renderedType})`;
-  }
-
-  return renderedType;
-}
-
-function wrapForOptionalTupleElement(renderedType: string): string {
+function wrapForParens(renderedType: string): string {
   if (renderedType.startsWith("{\n")) {
     return `(${renderedType})`;
   }

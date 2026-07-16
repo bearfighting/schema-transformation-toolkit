@@ -1,4 +1,4 @@
-import type { SchemaDiagnostic } from "@aio/core";
+import type { SchemaDiagnostic, SchemaDiagnosticNodeKind } from "@aio/core";
 import type { TypeScriptInferenceErrorCode } from "./errors.js";
 import type { TypeScriptSourceLocation } from "./types.js";
 
@@ -120,12 +120,32 @@ export function unsupportedTypeScriptParserV0Diagnostic(options: {
   };
 }
 
+export function invalidTypeScriptSyntaxDiagnostic(options: {
+  detail: string;
+  sourceLocation?: TypeScriptSourceLocation;
+}): SchemaDiagnostic {
+  return {
+    severity: "error",
+    code: "unsupported-typescript-syntax",
+    message:
+      "The TypeScript parser could not parse the source because it contains syntax errors.",
+    path: ["document"],
+    source: "parser-typescript",
+    evidence: {
+      detail: options.detail,
+      ...(options.sourceLocation
+        ? { sourceLocation: options.sourceLocation }
+        : {}),
+    },
+  };
+}
+
 export function createTypeScriptUnsupportedDiagnostic(options: {
   code: TypeScriptInferenceErrorCode;
   message: string;
   detail?: string;
   path?: string[];
-  nodeKind?: string;
+  nodeKind?: SchemaDiagnosticNodeKind;
   sourceLocation?: TypeScriptSourceLocation;
   evidence?: Record<string, unknown>;
 }): SchemaDiagnostic {

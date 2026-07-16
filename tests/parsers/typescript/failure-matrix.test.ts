@@ -2,6 +2,35 @@ import { describe, expect, it } from "vitest";
 import { typeScriptParser } from "../../../packages/parsers/typescript/src/index.js";
 
 describe("parser-typescript failure matrix", () => {
+  describe("syntax parse failures", () => {
+    it("fails explicitly for malformed TypeScript input", () => {
+      expect(
+        typeScriptParser.parse("type User = { id: number ", {
+          entry: "User",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-syntax",
+        message:
+          "The TypeScript parser could not parse the source because it contains syntax errors.",
+        diagnostics: [
+          expect.objectContaining({
+            severity: "error",
+            code: "unsupported-typescript-syntax",
+            message:
+              "The TypeScript parser could not parse the source because it contains syntax errors.",
+            path: ["document"],
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              detail: expect.any(String),
+              sourceLocation: expect.any(Object),
+            }),
+          }),
+        ],
+      });
+    });
+  });
+
   describe("entry contract failures", () => {
     it("requires an explicit entry declaration name in v0", () => {
       expect(typeScriptParser.parse("type User = { id: number }")).toEqual({

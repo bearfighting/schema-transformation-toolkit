@@ -11,6 +11,9 @@ TypeScript generator for the shared schema IR.
 
 This package is intentionally a focused IR-to-TypeScript generator, not a general-purpose TypeScript code synthesis layer.
 
+The current v0 implementation is still string-based rather than AST-based.
+That tradeoff is intentional for now: the supported output surface is still small enough that direct string rendering stays easier to read, test, and refactor.
+
 ## Current Output Support
 
 The current generator supports:

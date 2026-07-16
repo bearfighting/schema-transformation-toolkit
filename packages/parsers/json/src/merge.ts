@@ -78,15 +78,17 @@ export function mergeTypeNodes(
   }
 
   if (left.kind === "array" && right.kind === "array") {
-    left.elementType = mergeTypeNodes(
-      left.elementType,
-      right.elementType,
-      context,
-      mixedTypeMode,
-      diagnostics,
-      path,
-    );
-    return left;
+    return {
+      ...left,
+      elementType: mergeTypeNodes(
+        left.elementType,
+        right.elementType,
+        context,
+        mixedTypeMode,
+        diagnostics,
+        path,
+      ),
+    };
   }
 
   if (left.kind === "object" && right.kind === "object") {
@@ -117,8 +119,10 @@ function mergeScalarTypeNodes(
   }
 
   if (isNumericScalar(left.scalar) && isNumericScalar(right.scalar)) {
-    left.scalar = "number";
-    return left;
+    return {
+      ...left,
+      scalar: "number",
+    };
   }
 
   if (mixedTypeMode === "union") {
@@ -142,7 +146,7 @@ function mergeObjectTypeNodes(
   const fieldMap = new Map<string, SchemaFieldNode>();
 
   for (const field of left.fields) {
-    fieldMap.set(field.name.source, field);
+    fieldMap.set(field.name.source, { ...field });
   }
 
   for (const rightField of right.fields) {
@@ -171,23 +175,32 @@ function mergeObjectTypeNodes(
     if (
       !right.fields.some((field) => field.name.source === leftField.name.source)
     ) {
-      leftField.required = false;
+      const mergedField = fieldMap.get(leftField.name.source);
+
+      if (mergedField) {
+        mergedField.required = false;
+      }
     }
   }
 
-  left.fields = Array.from(fieldMap.values()).sort((leftField, rightField) =>
-    leftField.name.source.localeCompare(rightField.name.source),
-  );
-
-  return left;
+  return {
+    ...left,
+    fields: Array.from(fieldMap.values()).sort((leftField, rightField) =>
+      leftField.name.source.localeCompare(rightField.name.source),
+    ),
+  };
 }
 
 function mergeUnknownTypeNodes(
   left: SchemaUnknownNode,
   right: SchemaUnknownNode,
 ): SchemaUnknownNode {
-  left.nullable = left.nullable || right.nullable;
-  return left;
+  // Unknown-reason retention is intentionally left-biased for now; merging only
+  // widens nullability unless the unknown-node model is expanded later.
+  return {
+    ...left,
+    nullable: left.nullable || right.nullable,
+  };
 }
 
 function mergeNullTypeNodes(left: SchemaNullNode): SchemaNullNode {
@@ -220,7 +233,7 @@ function mergeTupleTypeNodes(
 ): SchemaNode {
   const maxLength = Math.max(left.elements.length, right.elements.length);
 
-  left.elements = Array.from({ length: maxLength }, (_, index) => {
+  const elements = Array.from({ length: maxLength }, (_, index) => {
     const element = left.elements[index];
     const rightElement = right.elements[index];
 
@@ -278,7 +291,10 @@ function mergeTupleTypeNodes(
     }
   });
 
-  return left;
+  return {
+    ...left,
+    elements,
+  };
 }
 
 function mergeRecordTypeNodes(
@@ -289,24 +305,25 @@ function mergeRecordTypeNodes(
   diagnostics: SchemaDiagnostic[],
   path: string[],
 ): SchemaRecordNode {
-  left.key = mergeTypeNodes(
-    left.key,
-    right.key,
-    `${context} record keys`,
-    mixedTypeMode,
-    diagnostics,
-    path,
-  );
-  left.value = mergeTypeNodes(
-    left.value,
-    right.value,
-    `${context} record values`,
-    mixedTypeMode,
-    diagnostics,
-    path,
-  );
-
-  return left;
+  return {
+    ...left,
+    key: mergeTypeNodes(
+      left.key,
+      right.key,
+      `${context} record keys`,
+      mixedTypeMode,
+      diagnostics,
+      path,
+    ),
+    value: mergeTypeNodes(
+      left.value,
+      right.value,
+      `${context} record values`,
+      mixedTypeMode,
+      diagnostics,
+      path,
+    ),
+  };
 }
 
 function mergeAsUnion(left: SchemaNode, right: SchemaNode): SchemaUnionNode {

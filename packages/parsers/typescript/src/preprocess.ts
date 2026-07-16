@@ -8,6 +8,7 @@ import {
   findNamedTopLevelStatement,
 } from "./entry.js";
 import {
+  invalidTypeScriptSyntaxDiagnostic,
   missingEntryDeclarationDiagnostic,
   missingEntryNameDiagnostic,
   unsupportedEntryDeclarationKindDiagnostic,
@@ -17,6 +18,7 @@ import { createUnsupportedDeclarationShapeDiagnostic } from "./declaration-shape
 import {
   createTypeScriptSourceFile,
   getTypeScriptSourceLocation,
+  getTypeScriptSourceLocationFromSpan,
 } from "./syntax.js";
 import { collectReachableDeclarationNames } from "./reachability.js";
 import type { ResolvedTypeScriptParseOptions } from "./options.js";
@@ -36,6 +38,7 @@ export interface TypeScriptPreprocessFailureResult {
   code:
     | "missing-typescript-entry"
     | "missing-typescript-entry-declaration"
+    | "unsupported-typescript-syntax"
     | "unsupported-typescript-entry-declaration-kind"
     | "unsupported-typescript-interface-heritage"
     | "unsupported-typescript-reexported-entry";
@@ -51,6 +54,38 @@ export function preprocessTypeScriptSource(
   options: ResolvedTypeScriptParseOptions,
 ): TypeScriptPreprocessResult {
   const sourceFile = createTypeScriptSourceFile(input);
+  const firstParseDiagnostic = (
+    sourceFile as ts.SourceFile & {
+      parseDiagnostics?: readonly ts.DiagnosticWithLocation[];
+    }
+  ).parseDiagnostics?.[0];
+
+  if (firstParseDiagnostic) {
+    const location =
+      firstParseDiagnostic.start !== undefined
+        ? getTypeScriptSourceLocationFromSpan(
+            sourceFile,
+            firstParseDiagnostic.start,
+            firstParseDiagnostic.length ?? 0,
+          )
+        : getTypeScriptSourceLocation(sourceFile);
+
+    return {
+      ok: false,
+      code: "unsupported-typescript-syntax",
+      message:
+        "The TypeScript parser could not parse the source because it contains syntax errors.",
+      diagnostics: [
+        invalidTypeScriptSyntaxDiagnostic({
+          detail: ts.flattenDiagnosticMessageText(
+            firstParseDiagnostic.messageText,
+            "\n",
+          ),
+          sourceLocation: location,
+        }),
+      ],
+    };
+  }
 
   if (!options.entry) {
     return {

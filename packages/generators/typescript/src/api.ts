@@ -15,6 +15,7 @@ const defaultConfiguredTypeScriptGenerator = configureTypeScriptGenerator();
 const defaultTypeScriptGenerator =
   defaultConfiguredTypeScriptGenerator.generator;
 
+/** Renders a schema document to TypeScript source or throws on generation failure. */
 export function generateTypeScript(
   doc: SchemaDocument,
   options: TypeScriptGeneratorOptions = {},
@@ -30,6 +31,7 @@ export function generateTypeScript(
   return result.output;
 }
 
+/** Renders a schema document to TypeScript source and returns a structured success or failure result. */
 export function tryGenerateTypeScript(
   doc: SchemaDocument,
   options: TypeScriptGeneratorOptions = {},
@@ -40,6 +42,7 @@ export function tryGenerateTypeScript(
   );
 }
 
+/** Creates a TypeScript generator instance with fixed base options. */
 export function createTypeScriptGenerator(
   options: TypeScriptGeneratorOptions = {},
 ): SchemaGenerator<
@@ -50,6 +53,7 @@ export function createTypeScriptGenerator(
   return configureTypeScriptGenerator(options).generator;
 }
 
+/** Prepares options and returns both the configured TypeScript generator and its prepared option state. */
 export function configureTypeScriptGenerator(
   options: TypeScriptGeneratorOptions = {},
 ): ConfiguredTypeScriptGenerator {
@@ -78,12 +82,14 @@ export function configureTypeScriptGenerator(
   };
 }
 
+/** Shared default TypeScript generator instance using the default options. */
 export const typeScriptGenerator: SchemaGenerator<
   string,
   TypeScriptGeneratorOptions,
   TypeScriptGenerateResult
 > = defaultTypeScriptGenerator;
 
+/** Prepared default option state for the shared TypeScript generator instance. */
 export const preparedTypeScriptGeneratorOptions =
   defaultConfiguredTypeScriptGenerator.prepared;
 

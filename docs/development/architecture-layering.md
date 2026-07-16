@@ -142,6 +142,101 @@ Non-goals:
 - user code callbacks
 - library-specific execution hooks that cannot be shared meaningfully
 
+## Constraint IR Relationship To Shape IR
+
+`Constraint IR` should be layered on top of `Shape IR`, but it should not be merged into the same node model.
+
+That means:
+
+- `Constraint IR` depends on `Shape IR`
+- `Constraint IR` should reuse `Shape IR` as the source of structural truth
+- `Constraint IR` should remain structurally separate so validation and annotation semantics do not bloat `Shape IR`
+
+This avoids two opposite problems:
+
+- a fully separate model that redundantly re-describes shape
+- a merged model where every validator-specific concern starts inflating the shared shape layer
+
+## Recommended Modeling Rule
+
+The preferred model is:
+
+- one shape document that describes structure
+- one constraint document or constraint layer that points into that shape document
+
+Conceptually:
+
+```ts
+interface ShapeDocument {
+  root: ShapeNode;
+  definitions: ShapeDefinition[];
+}
+
+interface ConstraintDocument {
+  shape: ShapeDocument;
+  constraints: ConstraintEntry[];
+}
+```
+
+The exact runtime shape can change later.
+The important rule is that shape stays authoritative for structure, while constraints are attached separately.
+
+## Avoiding Semantic And Code Duplication
+
+The main anti-duplication rule should be:
+
+- `Shape IR` answers: "what is this serialized structure?"
+- `Constraint IR` answers: "what extra rules or annotations also apply to it?"
+
+If removing a piece of information still leaves a meaningful, though broader, structural type, it is usually a `Constraint IR` concern.
+
+Examples that usually belong in `Constraint IR`:
+
+- `minimum`
+- `maximum`
+- `pattern`
+- `format`
+- `description`
+- `default`
+- object closure or similar validation-oriented constraints
+
+If removing a piece of information changes the core serializable structure itself, it is usually a `Shape IR` concern.
+
+Examples that usually belong in `Shape IR`:
+
+- optional presence
+- nullable value semantics
+- tuple structure
+- object versus record
+- unions
+- references and reusable definitions
+
+## Recommended Attachment Strategy
+
+Constraint entries should point to shape-level structure rather than re-encode it.
+
+The preferred long-term target is a stable identifier or node reference model.
+If that does not exist yet, a path-based attachment model can be acceptable as an intermediate step.
+
+The key rule is:
+
+- constraints should target shape nodes
+- constraints should not restate the whole shape subtree they decorate
+
+## Routing Implication
+
+This relationship clarifies source and target routing:
+
+- value formats primarily target `Value IR`
+- serializable language type definitions primarily target `Shape IR`
+- schema and validator definitions may target `Shape IR + Constraint IR`
+
+Likewise for generation:
+
+- language-type generators can often consume only `Shape IR`
+- richer schema and validator generators may need `Shape IR + Constraint IR`
+- value-format generators should stay in the `Value IR` lane unless a separate inference or lowering step is involved
+
 ## Layering Rule
 
 The intended dependency direction should be:

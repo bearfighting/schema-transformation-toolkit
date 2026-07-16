@@ -80,6 +80,20 @@
 - the current `core` schema package is the `Shape IR`, not the final home for every future source or target semantic
 - future `Value IR` and `Constraint IR` layers should be allowed to grow separately instead of forcing every concern into one shared schema model
 
+### Shape IR Center Of Gravity
+
+- `Shape IR` should stay centered on the shared serializable structure that different programming-language type definitions can represent cleanly
+- when a feature pressure mainly comes from validation rules, annotations, schema-system behavior, or validator-specific semantics, it should not be treated as automatic evidence that `Shape IR` must expand
+- those semantics should first be evaluated as likely `Constraint IR` responsibilities instead
+- this rule is intended to reduce repeated debates where JSON Schema or validator features look important locally but are not actually shared shape semantics across language targets
+
+### Constraint IR Separation Rule
+
+- `Constraint IR` should be layered on top of `Shape IR`, not merged into the same node model
+- `Shape IR` remains the source of truth for serializable structure
+- `Constraint IR` should attach extra validation, annotation, and schema-system semantics to shape nodes instead of re-describing structure from scratch
+- this separation is the main tool for avoiding repeated code and repeated meaning between shape modeling and richer schema or validator semantics
+
 ### Typed Capability Registration
 
 - parser, transformer, and generator capabilities should eventually be registered through typed code-level metadata rather than only by documentation convention

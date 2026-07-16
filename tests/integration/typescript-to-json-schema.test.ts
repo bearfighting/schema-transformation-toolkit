@@ -40,7 +40,7 @@ describe("integration: typescript -> ir -> json-schema", () => {
                 type: "number",
               },
               name: {
-                oneOf: [{ type: "string" }, { type: "null" }],
+                type: ["string", "null"],
               },
             },
             required: ["id"],

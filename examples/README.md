@@ -12,22 +12,30 @@ They are best read as:
 ## Start Here
 
 - [json-to-typescript.md](json-to-typescript.md): the most familiar current flow and a good first pass through the shared IR semantics
+- [json-schema-to-typescript.md](json-schema-to-typescript.md): the newest parser-to-generator flow and the best entry point for the current JSON Schema subset
+- [json-schema-to-json-schema.md](json-schema-to-json-schema.md): the best entry point for understanding the current JSON Schema round-trip boundary
 
 ## By Source Input
 
 - [json-to-typescript.md](json-to-typescript.md): examples starting from JSON samples
 - [json-to-json-schema.md](json-to-json-schema.md): examples starting from JSON samples
+- [json-schema-to-typescript.md](json-schema-to-typescript.md): examples starting from the current supported JSON Schema subset
+- [json-schema-to-json-schema.md](json-schema-to-json-schema.md): examples starting from the current supported JSON Schema subset
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): examples starting from supported TypeScript schema declarations
 
 ## By Output Target
 
 - [json-to-typescript.md](json-to-typescript.md): examples ending in TypeScript declarations
+- [json-schema-to-typescript.md](json-schema-to-typescript.md): examples ending in TypeScript declarations
 - [json-to-json-schema.md](json-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
+- [json-schema-to-json-schema.md](json-schema-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
 
 ## By Complexity
 
 - [json-to-typescript.md](json-to-typescript.md): best for simple objects, optional fields, tuples, and basic inference modes
+- [json-schema-to-typescript.md](json-schema-to-typescript.md): best for local `$defs`, `$ref`, tuple schemas, record-like objects, and the current parser boundary
+- [json-schema-to-json-schema.md](json-schema-to-json-schema.md): best for seeing where the current JSON Schema parser is exact, where it is normalized, and where it still fails explicitly
 - [json-to-json-schema.md](json-to-json-schema.md): best for seeing how JSON-oriented IR semantics render structurally in JSON Schema
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): best for reusable definitions, references, enum-like literals, and richer type composition
 

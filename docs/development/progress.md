@@ -92,7 +92,7 @@ This is a meaningful improvement over the earlier state where these responsibili
 1. decide the next small data-shape-preserving syntax slice after the new `enum`, enum-member-reference, and readonly support
 2. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
 3. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
-4. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf`, object closure, and compact nullable rendering
+4. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf` and object closure
 5. document likely shared-IR gaps separately from JSON Schema-specific gaps before any future IR expansion work begins
 
 ## Current JSON Schema Generator Status
@@ -105,7 +105,7 @@ The JSON Schema generator now exists as a real second target surface for the sha
 - scalar, literal, null, object, array, tuple, record, union, reference, and unknown nodes
 - document-local reusable definitions through `$defs`
 - root `$ref` output when the document root is a reference
-- nullable fields through structural `oneOf`
+- simple nullable fields through compact `type: ["T", "null"]`
 - tuple optionality through `prefixItems`, `minItems`, and `items: false`
 - record semantics through `additionalProperties`
 
@@ -117,7 +117,6 @@ The JSON Schema generator now exists as a real second target surface for the sha
 - schema annotation generation such as `description`, `examples`, or `default`
 - configurable `oneOf` vs `anyOf`
 - configurable object closure semantics
-- compact nullable rendering such as `type: ["string", "null"]`
 
 ## Current TypeScript Parser Status
 

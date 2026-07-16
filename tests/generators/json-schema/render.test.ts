@@ -49,7 +49,7 @@ describe("generator-json-schema", () => {
           type: "integer",
         },
         name: {
-          oneOf: [{ type: "string" }, { type: "null" }],
+          type: ["string", "null"],
         },
       },
       required: ["id"],

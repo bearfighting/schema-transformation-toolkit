@@ -171,7 +171,35 @@ function renderFieldSchema(
     return rendered;
   }
 
+  const compactNullable = tryRenderCompactNullableSchema(rendered);
+
+  if (compactNullable !== null) {
+    return compactNullable;
+  }
+
   return {
     oneOf: [rendered, { type: "null" }],
+  };
+}
+
+function tryRenderCompactNullableSchema(
+  rendered: JsonSchemaOutput,
+): JsonSchemaOutput | null {
+  if (typeof rendered === "boolean") {
+    return null;
+  }
+
+  const keys = Object.keys(rendered);
+
+  if (keys.length !== 1 || rendered.type === undefined) {
+    return null;
+  }
+
+  if (typeof rendered.type !== "string" || rendered.type === "null") {
+    return null;
+  }
+
+  return {
+    type: [rendered.type, "null"],
   };
 }

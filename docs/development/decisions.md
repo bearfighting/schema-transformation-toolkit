@@ -74,6 +74,18 @@
   - a gray area that needs more parser or generator evidence before we decide
 - when the answer is still unclear, prefer documenting semantic loss and continuing to expand parser or generator coverage before changing `core`
 
+### Multi-Layer Architecture Direction
+
+- the long-term architecture should distinguish value-format concerns, shared serializable-shape concerns, and richer constraint or validator concerns
+- the current `core` schema package is the `Shape IR`, not the final home for every future source or target semantic
+- future `Value IR` and `Constraint IR` layers should be allowed to grow separately instead of forcing every concern into one shared schema model
+
+### Typed Capability Registration
+
+- parser, transformer, and generator capabilities should eventually be registered through typed code-level metadata rather than only by documentation convention
+- capability registration should declare which input or output format a component handles and which IR layer it consumes or produces
+- application-level conversion entry points should rely on that registration model to validate and route conversion chains
+
 ## How To Add A Decision
 
 Record a decision here when it affects:

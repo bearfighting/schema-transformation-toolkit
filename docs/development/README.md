@@ -17,6 +17,7 @@ Use these docs when you want to understand why the project behaves the way it do
 ### Principles And Scope
 
 - [scope.md](scope.md): project boundary and supported vs unsupported feature classes
+- [architecture-layering.md](architecture-layering.md): source-target families, IR layering, and typed capability registration
 - [decisions.md](decisions.md): durable design decisions and guardrails
 - [ir-contract.md](ir-contract.md): current shared schema IR contract, invariants, and diagnostic conventions
 
@@ -31,6 +32,7 @@ Use these docs when you want to understand why the project behaves the way it do
 - [progress.md](progress.md): current phase, completed work, next milestones
 - [plan.md](plan.md): staged execution plan for `core` and `web`, plus deferred follow-on surfaces
 - [json-schema-generator-v0.md](json-schema-generator-v0.md): working plan for the first JSON Schema generator
+- [json-schema-parser-v0.md](json-schema-parser-v0.md): current scoped design for a JSON Schema parser without new IR expansion
 - [typescript-parser-todo.md](typescript-parser-todo.md): implementation checklist for the first TypeScript parser
 - [typescript-parser-preprocess.md](typescript-parser-preprocess.md): preprocess boundary for single-file parsing vs future module-aware resolution
 - [improvements.md](improvements.md): prioritized improvement plan from code review
@@ -45,9 +47,10 @@ Use these docs when you want to understand why the project behaves the way it do
 ## Suggested Reading Order
 
 - start with [scope.md](scope.md) if you want the project boundary first
+- read [architecture-layering.md](architecture-layering.md) when deciding which IR layer or capability kind a new source or target belongs to
 - read [ir-contract.md](ir-contract.md) before changing parser or generator behavior
 - read [progress.md](progress.md) for the current implementation state
-- read [json-schema-generator-v0.md](json-schema-generator-v0.md) or [typescript-parser-todo.md](typescript-parser-todo.md) when working on a specific active track
+- read [json-schema-generator-v0.md](json-schema-generator-v0.md), [json-schema-parser-v0.md](json-schema-parser-v0.md), or [typescript-parser-todo.md](typescript-parser-todo.md) when working on a specific active track
 - read [typescript-parser-preprocess.md](typescript-parser-preprocess.md) before changing TypeScript parser behavior around `import`, `export`, re-exports, or entry preparation
 
 ## Documentation Rule

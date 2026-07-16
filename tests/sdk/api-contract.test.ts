@@ -8,4 +8,11 @@ describe("sdk api contract", () => {
     expect(sdkModule.preprocessTypeScriptSource).toBeDefined();
     expect(sdkModule.createTypeScriptSourceFile).toBeDefined();
   });
+
+  it("re-exports the JSON Schema parser surface", () => {
+    expect(sdkModule.jsonSchemaParser).toBeDefined();
+    expect(sdkModule.configureJsonSchemaParser).toBeDefined();
+    expect(sdkModule.inferJsonSchemaDocument).toBeDefined();
+    expect(sdkModule.tryInferJsonSchemaDocument).toBeDefined();
+  });
 });

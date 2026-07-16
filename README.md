@@ -16,6 +16,7 @@ That separation is intended to make parsers and generators independently replace
 
 - `@aio/core`: shared IR, contracts, and core result types
 - `@aio/parser-json`: JSON to IR parsing and inference
+- `@aio/parser-json-schema`: JSON Schema Draft 2020-12 parser for the current shared IR subset
 - `@aio/parser-typescript`: TypeScript schema-subset parser for the shared IR
 - `@aio/generator-json-schema`: IR to JSON Schema generation
 - `@aio/generator-typescript`: IR to TypeScript generation
@@ -26,6 +27,7 @@ That separation is intended to make parsers and generators independently replace
 The current implementation is intentionally conservative.
 
 - `@aio/parser-json` supports the currently implemented IR subset
+- `@aio/parser-json-schema` supports a strict, generator-aligned JSON Schema Draft 2020-12 subset that fits the current IR without new core expansion
 - `@aio/parser-typescript` supports a narrow, explicit TypeScript schema subset with structured failures for unsupported syntax
 - `@aio/generator-json-schema` supports the currently implemented IR subset
 - `@aio/generator-typescript` supports the currently implemented IR subset
@@ -37,17 +39,25 @@ The currently validated flows are:
 
 - `json -> schema ir -> typescript`
 - `json -> schema ir -> json-schema`
+- `json-schema -> schema ir -> typescript`
+- `json-schema -> schema ir -> json-schema`
 - `typescript -> schema ir -> typescript`
 - `typescript -> schema ir -> json-schema`
 
 That does not mean every JSON sample or every TypeScript type is supported.
 It means the current explicit subset is wired end to end and covered by tests.
 
+For JSON Schema specifically, the `json-schema -> schema ir -> json-schema` path should be read as:
+
+- semantic round-tripping for the current IR-aligned subset
+- explicit non-goals for unsupported validation-heavy and document-system semantics
+
 ## Current Limits
 
 This project currently supports explicit, documented subsets rather than full ecosystems.
 
 - the JSON parser is not a universal schema inference engine for every possible sample
+- the JSON Schema parser is not a full JSON Schema platform and intentionally fails for non-representable or validation-heavy schema semantics
 - the TypeScript parser is not a full TypeScript front-end
 - the JSON Schema generator is not yet a full JSON Schema platform with external `$ref`, draft switching, or multi-file output
 - unsupported cases are expected to fail explicitly instead of being guessed silently
@@ -93,11 +103,14 @@ The `tryGenerate...()` functions are often a better fit when you want structured
 ### By Flow
 
 - [packages/parsers/json/README.md](packages/parsers/json/README.md): JSON parsing and inference
+- [packages/parsers/json-schema/README.md](packages/parsers/json-schema/README.md): supported JSON Schema parsing
 - [packages/parsers/typescript/README.md](packages/parsers/typescript/README.md): supported TypeScript schema-subset parsing
 - [packages/generators/json-schema/README.md](packages/generators/json-schema/README.md): JSON Schema Draft 2020-12 generation
 - [packages/generators/typescript/README.md](packages/generators/typescript/README.md): TypeScript generation
 - [examples/json-to-typescript.md](examples/json-to-typescript.md): representative `json -> schema ir -> typescript` examples
 - [examples/json-to-json-schema.md](examples/json-to-json-schema.md): representative `json -> schema ir -> json-schema` examples
+- [examples/json-schema-to-typescript.md](examples/json-schema-to-typescript.md): representative `json-schema -> schema ir -> typescript` examples
+- [examples/json-schema-to-json-schema.md](examples/json-schema-to-json-schema.md): representative `json-schema -> schema ir -> json-schema` examples
 - [examples/typescript-to-json-schema.md](examples/typescript-to-json-schema.md): representative `typescript -> schema ir -> json-schema` examples
 
 ### Deep Dive
@@ -111,6 +124,7 @@ The `tryGenerate...()` functions are often a better fit when you want structured
 - [docs/development/progress.md](docs/development/progress.md): current implementation state and active focus
 - [docs/development/roadmap.md](docs/development/roadmap.md): near-term direction
 - [docs/development/json-schema-generator-v0.md](docs/development/json-schema-generator-v0.md): JSON Schema generator working plan
+- [docs/development/json-schema-parser-v0.md](docs/development/json-schema-parser-v0.md): JSON Schema parser scoped design for the current IR
 - [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md): IR-oriented working cases
 - [docs/development/typescript-parser-v0-cases.md](docs/development/typescript-parser-v0-cases.md): TypeScript parser support and failure cases
 

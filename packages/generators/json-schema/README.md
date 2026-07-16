@@ -31,7 +31,7 @@ The current generator supports:
 - record root documents
 - union root documents
 - reusable definitions and `$ref`
-- `nullable` fields through `oneOf`
+- simple `nullable` fields through compact `type: ["T", "null"]` rendering
 - `unknown` nodes as the widest valid schema
 
 ## API
@@ -91,9 +91,7 @@ Object root:
   "type": "object",
   "properties": {
     "id": { "type": "integer" },
-    "name": {
-      "oneOf": [{ "type": "string" }, { "type": "null" }]
-    }
+    "name": { "type": ["string", "null"] }
   },
   "required": ["id"]
 }
@@ -206,7 +204,8 @@ Unsupported cases should fail explicitly rather than being approximated loosely.
 
 - ordinary object nodes do not automatically render `additionalProperties: false`
 - record nodes render through `additionalProperties`
-- `nullable` fields render structurally through `oneOf`
+- simple nullable scalar fields render through `type: ["T", "null"]`
+- non-simple nullable fields still render structurally when they cannot be compacted safely
 - document-local references render through `#/$defs/...`
 - unknown nodes render as the widest valid schema
 - tuple optionality renders through `minItems` plus `prefixItems`

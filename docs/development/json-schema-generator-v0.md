@@ -232,13 +232,13 @@ Suggested nullable field rendering:
 
 ```json
 {
-  "oneOf": [{ "type": "string" }, { "type": "null" }]
+  "type": ["string", "null"]
 }
 ```
 
-v0 should prefer consistent structural rendering over compact special cases such as `type: ["string", "null"]`.
+v0 should prefer the compact nullable form when the non-null branch is a simple scalar schema.
 
-That keeps implementation and testing simpler.
+If a nullable field cannot be represented safely in compact form, the generator may still fall back to a structural composition.
 
 ## Document-Level Output Shape
 
@@ -395,7 +395,7 @@ Representative failure cases:
 These should wait until v0 exists and has real test coverage:
 
 - configurable `oneOf` vs `anyOf`
-- compact nullable rendering such as `type: ["string", "null"]`
+- alternative nullable rendering strategies beyond the current compact-default behavior
 - object closure configuration
 - external `$ref`
 - multi-document schema emission

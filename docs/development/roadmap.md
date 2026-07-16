@@ -10,6 +10,7 @@ The current direction is to strengthen the shared schema IR as a stable handoff 
 2. make an explicit stop-or-continue decision on further core-only cleanup
 3. expand the current TypeScript schema-subset parser deliberately without turning it into a full TypeScript front-end
 4. expand parser and generator coverage further before making the next shared-IR expansion decision
+5. document the intended multi-layer IR architecture and typed capability registration model before more source and target families arrive
 
 ## Why These Matter
 
@@ -17,6 +18,7 @@ The current direction is to strengthen the shared schema IR as a stable handoff 
 - being explicit about the remaining core work helps avoid polishing internals indefinitely
 - the existing TypeScript schema-subset parser already validates that the IR is not overly biased toward JSON, and now needs controlled expansion
 - delaying the next IR expansion until more parser and generator surfaces exist reduces the risk of overfitting shared semantics to one format, especially JSON Schema
+- documenting the long-term IR layering and registry model early reduces the chance that future value-format, validator, and language targets all grow different routing rules by accident
 
 ## Current Core Status
 

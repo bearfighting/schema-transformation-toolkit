@@ -71,6 +71,7 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - improve development documentation and decision traceability
 - assess the next expansion boundary for the TypeScript schema-subset parser without letting it turn into a full TypeScript type-system parser
 - keep the new JSON Schema generator aligned with the actual shared IR semantics instead of drifting toward ad hoc JSON Schema-specific behavior
+- defer the next shared-IR expansion until more parser and generator evidence exists across multiple surfaces
 
 ## Current Core Internal Shape
 
@@ -92,6 +93,7 @@ This is a meaningful improvement over the earlier state where these responsibili
 2. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
 3. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
 4. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf`, object closure, and compact nullable rendering
+5. document likely shared-IR gaps separately from JSON Schema-specific gaps before any future IR expansion work begins
 
 ## Current JSON Schema Generator Status
 
@@ -190,6 +192,10 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 - keep the TypeScript parser case inventory and todo list aligned with actual implementation progress
 - decide whether the next TypeScript parser work should prioritize more success-path coverage or richer diagnostics and source-location information
 - decide which JSON Schema generator output choices are stable semantic decisions versus temporary v0 simplifications
+- keep a running distinction between:
+  - likely shared-IR capability gaps
+  - likely JSON Schema-local concerns
+  - still-undecided gray areas that need more parser/generator evidence
 
 ### Can Wait
 
@@ -205,3 +211,15 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 - references and reuse may become increasingly important as generated output grows
 - parser and generator options can become hard to reason about if defaults and capability boundaries are not kept clear
 - core internal helpers could still drift again if new semantics are added without being placed in the right internal module
+
+## Current IR-Expansion Guardrail
+
+The current stance is to avoid expanding the shared IR just to make an early JSON Schema parser more source-faithful.
+
+Until more parser and generator surfaces are implemented, new pressure should be classified in one of three buckets:
+
+- likely shared-IR gap: semantics that plausibly matter across multiple schema ecosystems
+- likely JSON Schema-specific concern: semantics tied mostly to JSON Schema drafts, refs, or validation keywords
+- undecided gray area: semantics that may become shared later, but do not yet have enough cross-surface evidence
+
+This is meant to keep the project honest about where its next abstraction pressure is really coming from.

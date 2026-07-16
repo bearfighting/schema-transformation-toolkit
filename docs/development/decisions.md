@@ -65,6 +65,15 @@
 - unsupported cases should fail explicitly instead of being guessed silently
 - parser limitations should stay in parsers unless they need to become IR concepts
 
+### IR Expansion Evidence Rule
+
+- the shared IR should not expand just because one source format has richer native semantics
+- before adding a new shared IR concept, we should first ask whether the pressure is:
+  - a reusable serialized-shape concept likely to matter across multiple schema surfaces
+  - a format-local concern that should remain in parser or generator behavior
+  - a gray area that needs more parser or generator evidence before we decide
+- when the answer is still unclear, prefer documenting semantic loss and continuing to expand parser or generator coverage before changing `core`
+
 ## How To Add A Decision
 
 Record a decision here when it affects:

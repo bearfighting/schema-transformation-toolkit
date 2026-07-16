@@ -85,6 +85,9 @@ importers:
       "@aio/parser-json":
         specifier: workspace:*
         version: link:../parsers/json
+      "@aio/parser-typescript":
+        specifier: workspace:*
+        version: link:../parsers/typescript
 
 packages:
   "@babel/helper-string-parser@7.29.7":

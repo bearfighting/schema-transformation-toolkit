@@ -13,13 +13,34 @@ export interface SchemaUnknownEvidence {
 }
 
 export type SchemaDiagnosticSeverity = "error" | "warning" | "info";
+export type SchemaNodeKind =
+  | "scalar"
+  | "literal"
+  | "reference"
+  | "union"
+  | "tuple"
+  | "record"
+  | "null"
+  | "unknown"
+  | "field"
+  | "object"
+  | "array";
+export type SchemaDiagnosticNodeKind =
+  | SchemaNodeKind
+  | "document"
+  | "definition"
+  | "entry"
+  | "type"
+  | "type-member"
+  | "property-name"
+  | "type-reference";
 
 export interface SchemaDiagnostic {
   severity: SchemaDiagnosticSeverity;
   code: string;
   message: string;
   path?: string[];
-  nodeKind?: string;
+  nodeKind?: SchemaDiagnosticNodeKind;
   source?: string;
   evidence?: unknown;
 }
@@ -37,7 +58,7 @@ export type SchemaValidationResult =
   SchemaValidationSuccessResult | SchemaValidationFailureResult;
 
 export interface SchemaBaseNode {
-  kind: string;
+  kind: SchemaNodeKind;
 }
 
 export interface IdentifierName {

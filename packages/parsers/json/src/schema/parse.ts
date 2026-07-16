@@ -28,6 +28,7 @@ export type JsonInferenceFailureResult = ParseFailureResult<
 export type JsonInferenceResult =
   JsonInferenceSuccessResult | JsonInferenceFailureResult;
 
+/** Parses JSON text and returns the inferred schema document or throws on failure. */
 export function inferJsonDocument(
   input: string,
   name = "JsonDocument",
@@ -38,6 +39,7 @@ export function inferJsonDocument(
   });
 }
 
+/** Parses JSON text with explicit parser options and returns the inferred schema document or throws on failure. */
 export function inferJsonDocumentWithOptions(
   input: string,
   options: JsonParseOptions = {},
@@ -49,6 +51,7 @@ export function inferJsonDocumentWithOptions(
   return inferJsonDocumentWithResolvedOptions(input, resolvedOptions);
 }
 
+/** Parses JSON text and returns a structured success or failure result. */
 export function tryInferJsonDocument(
   input: string,
   name = "JsonDocument",
@@ -56,6 +59,7 @@ export function tryInferJsonDocument(
   return tryInferJsonDocumentWithOptions(input, { name });
 }
 
+/** Parses JSON text with explicit parser options and returns a structured success or failure result. */
 export function tryInferJsonDocumentWithOptions(
   input: string,
   options: JsonParseOptions = {},
@@ -71,7 +75,9 @@ const defaultConfiguredJsonParser = configureJsonParser((input, options) =>
   tryInferJsonDocumentWithResolvedOptions(input, options),
 );
 
+/** Shared default JSON parser instance using the default v0 options. */
 export const jsonParser = defaultConfiguredJsonParser.parser;
+/** Prepared default option state for the shared JSON parser instance. */
 export const preparedJsonParserOptions = defaultConfiguredJsonParser.prepared;
 
 function tryInferJsonDocumentWithResolvedOptions(

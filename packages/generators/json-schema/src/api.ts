@@ -17,6 +17,7 @@ const defaultConfiguredJsonSchemaGenerator = configureJsonSchemaGenerator();
 const defaultJsonSchemaGenerator =
   defaultConfiguredJsonSchemaGenerator.generator;
 
+/** Renders a schema document to JSON Schema output or throws on generation failure. */
 export function generateJsonSchema(
   doc: SchemaDocument,
   options: JsonSchemaGeneratorOptions = {},
@@ -32,6 +33,7 @@ export function generateJsonSchema(
   return result.output;
 }
 
+/** Renders a schema document to JSON Schema output and returns a structured success or failure result. */
 export function tryGenerateJsonSchema(
   doc: SchemaDocument,
   options: JsonSchemaGeneratorOptions = {},
@@ -42,6 +44,7 @@ export function tryGenerateJsonSchema(
   );
 }
 
+/** Creates a JSON Schema generator instance with fixed base options. */
 export function createJsonSchemaGenerator(
   options: JsonSchemaGeneratorOptions = {},
 ): SchemaGenerator<
@@ -52,6 +55,7 @@ export function createJsonSchemaGenerator(
   return configureJsonSchemaGenerator(options).generator;
 }
 
+/** Prepares options and returns both the configured JSON Schema generator and its prepared option state. */
 export function configureJsonSchemaGenerator(
   options: JsonSchemaGeneratorOptions = {},
 ): ConfiguredJsonSchemaGenerator {
@@ -80,12 +84,14 @@ export function configureJsonSchemaGenerator(
   };
 }
 
+/** Shared default JSON Schema generator instance using the default options. */
 export const jsonSchemaGenerator: SchemaGenerator<
   JsonSchemaOutput,
   JsonSchemaGeneratorOptions,
   JsonSchemaGenerateResult
 > = defaultJsonSchemaGenerator;
 
+/** Prepared default option state for the shared JSON Schema generator instance. */
 export const preparedJsonSchemaGeneratorOptions =
   defaultConfiguredJsonSchemaGenerator.prepared;
 

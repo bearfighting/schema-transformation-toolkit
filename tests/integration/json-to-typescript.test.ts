@@ -30,14 +30,12 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    expect(parsed).toEqual({
-      ok: true,
-      document: parsed.ok ? parsed.document : undefined,
-    });
-
     if (!parsed.ok) {
       throw new Error("Expected the JSON parser to succeed.");
     }
+
+    expect(parsed.document.name.source).toBe("user-profile-list");
+    expect(parsed.document.root.kind).toBe("array");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,

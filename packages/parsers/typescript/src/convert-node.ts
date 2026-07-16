@@ -12,6 +12,7 @@ import {
   schemaTupleElement,
   schemaTupleNode,
   schemaUnionNode,
+  type SchemaDiagnosticNodeKind,
   type SchemaFieldNode,
   type SchemaNode,
 } from "@aio/core";
@@ -20,7 +21,10 @@ import { convertTypeScriptEnumDeclaration } from "./convert-enum.js";
 import { createTypeScriptUnsupportedDiagnostic } from "./diagnostics.js";
 import { throwTypeScriptInferenceError } from "./errors.js";
 import { getTypeScriptSourceLocation } from "./syntax.js";
-import type { TypeScriptConvertContext } from "./types.js";
+import type {
+  TypeScriptConvertContext,
+  TypeScriptEntryDeclaration,
+} from "./types.js";
 
 export function convertTypeScriptTypeNode(
   node: ts.TypeNode,
@@ -345,47 +349,7 @@ function convertTypeScriptTypeReferenceNode(
     const name = node.typeName.text;
 
     if (context.declarationNames.has(name)) {
-      if (!context.activeDefinitionNames.has(name)) {
-        const declaration = context.declarationMap.get(name);
-
-        if (!declaration) {
-          throw new Error(`Unknown TypeScript declaration "${name}".`);
-        }
-
-        if (!context.convertedDefinitionNames.has(name)) {
-          if (ts.isTypeAliasDeclaration(declaration)) {
-            context.activeDefinitionNames.add(name);
-            const type = convertTypeScriptTypeNode(declaration.type, {
-              ...context,
-              path: ["definitions", name],
-            });
-            context.activeDefinitionNames.delete(name);
-            context.definitions.push(schemaDefinition(name, type));
-            context.convertedDefinitionNames.add(name);
-          } else if (ts.isEnumDeclaration(declaration)) {
-            context.activeDefinitionNames.add(name);
-            const type = convertTypeScriptEnumDeclaration(declaration, {
-              sourceName: context.sourceName,
-              path: ["definitions", name],
-            });
-            context.activeDefinitionNames.delete(name);
-            context.definitions.push(schemaDefinition(name, type));
-            context.convertedDefinitionNames.add(name);
-          } else {
-            context.activeDefinitionNames.add(name);
-            const type = convertTypeScriptTypeNode(
-              ts.factory.createTypeLiteralNode(declaration.members),
-              {
-                ...context,
-                path: ["definitions", name],
-              },
-            );
-            context.activeDefinitionNames.delete(name);
-            context.definitions.push(schemaDefinition(name, type));
-            context.convertedDefinitionNames.add(name);
-          }
-        }
-      }
+      ensureReachableDefinition(name, context);
 
       return schemaReferenceNode(name);
     }
@@ -551,7 +515,10 @@ function throwTypeScriptUnsupportedNode(
   throwTypeScriptInferenceError(code, message, [diagnostic]);
 }
 
-function inferDiagnosticNodeKind(code: string, path: string[]): string {
+function inferDiagnosticNodeKind(
+  code: string,
+  path: string[],
+): SchemaDiagnosticNodeKind {
   if (code === "unsupported-typescript-type-reference") {
     return "type-reference";
   }
@@ -601,6 +568,64 @@ function inferDiagnosticNodeKind(code: string, path: string[]): string {
   }
 
   return "type";
+}
+
+function ensureReachableDefinition(
+  name: string,
+  context: TypeScriptConvertContext,
+): void {
+  if (
+    context.activeDefinitionNames.has(name) ||
+    context.convertedDefinitionNames.has(name)
+  ) {
+    return;
+  }
+
+  const declaration = context.declarationMap.get(name);
+
+  if (!declaration) {
+    throw new Error(`Unknown TypeScript declaration "${name}".`);
+  }
+
+  context.activeDefinitionNames.add(name);
+
+  try {
+    const type = convertReachableDeclarationType(name, declaration, context);
+    context.definitions.push(schemaDefinition(name, type));
+    context.convertedDefinitionNames.add(name);
+  } finally {
+    context.activeDefinitionNames.delete(name);
+  }
+}
+
+function convertReachableDeclarationType(
+  name: string,
+  declaration: TypeScriptEntryDeclaration,
+  context: TypeScriptConvertContext,
+): SchemaNode {
+  const definitionPath = ["definitions", name];
+
+  if (ts.isTypeAliasDeclaration(declaration)) {
+    return convertTypeScriptTypeNode(declaration.type, {
+      ...context,
+      path: definitionPath,
+    });
+  }
+
+  if (ts.isEnumDeclaration(declaration)) {
+    return convertTypeScriptEnumDeclaration(declaration, {
+      sourceName: context.sourceName,
+      path: definitionPath,
+    });
+  }
+
+  return convertTypeScriptTypeNode(
+    ts.factory.createTypeLiteralNode(declaration.members),
+    {
+      ...context,
+      path: definitionPath,
+    },
+  );
 }
 
 function getLeftmostQualifiedNameIdentifier(

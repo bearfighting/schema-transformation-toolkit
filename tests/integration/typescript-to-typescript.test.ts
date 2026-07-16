@@ -17,14 +17,12 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    expect(parsed).toEqual({
-      ok: true,
-      document: parsed.ok ? parsed.document : undefined,
-    });
-
     if (!parsed.ok) {
       throw new Error("Expected the TypeScript parser to succeed.");
     }
+
+    expect(parsed.document.name.source).toBe("UserDocument");
+    expect(parsed.document.root.kind).toBe("reference");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,

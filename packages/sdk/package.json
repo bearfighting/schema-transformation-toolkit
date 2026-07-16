@@ -15,7 +15,8 @@
     "@aio/core": "workspace:*",
     "@aio/generator-json-schema": "workspace:*",
     "@aio/generator-typescript": "workspace:*",
-    "@aio/parser-json": "workspace:*"
+    "@aio/parser-json": "workspace:*",
+    "@aio/parser-typescript": "workspace:*"
   },
   "scripts": {
     "build": "tsup --config ../../tsup.config.ts",

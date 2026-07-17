@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-The workspace is in an IR-hardening phase.
+The workspace is in an IR-separation and orchestration-hardening phase.
 
-The main goal is to make the current schema IR clear, testable, and reusable before broadening to more languages or more advanced schema features.
+The main goal is to make the three-layer IR model explicit in code and to turn parser-to-generator orchestration into a truthful, inspectable pipeline before broadening to more languages or more advanced schema features.
 
 ## Completed
 
@@ -49,6 +49,15 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - added integration coverage for `json -> ir -> json-schema`
 - added integration coverage for `typescript -> ir -> json-schema`, including definitions-heavy reachable-reference cases
 - documented JSON Schema generator scope, examples, and current semantics
+- documented IR boundaries, JSON Schema shape-gap analysis, and a shared capability-and-semantic-loss contract for parser and generator behavior
+- introduced explicit `Value IR`, `Shape IR`, `Constraint IR`, and combined `IrModel` entry points in `@aio/core`
+- evolved parser success contracts so parse results can return `constraints` alongside shape documents
+- implemented a first real `Constraint IR` overlay model with target paths and per-target constraints
+- implemented JSON Schema parser extraction of constraint semantics into `Constraint IR`
+- implemented JSON Schema generator consumption of `Constraint IR` for portable validation and annotation keywords
+- added SDK orchestration exports and route-planning primitives in `packages/sdk/src/convert.ts`
+- added SDK conversion artifacts for `value`, `shape`, and `constraints`
+- added tests covering constraint IR contracts and SDK route-planning behavior
 
 ## Current Supported Schema Capabilities
 
@@ -63,19 +72,43 @@ The main goal is to make the current schema IR clear, testable, and reusable bef
 - optional presence
 - enum-like literal nodes in IR and generator
 
+## Current Supported Constraint Capabilities
+
+The current `Constraint IR` and JSON Schema parser-generator path now support:
+
+- closed object semantics through `closed-object`
+- numeric constraints: `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`
+- string constraints: `pattern`, `minLength`, `maxLength`, `format`
+- collection constraints: `minItems`, `maxItems`, `uniqueItems`
+- object constraints: `minProperties`, `maxProperties`
+- portable annotations: `default`, `description`, `examples`, `readOnly`, `writeOnly`
+
 ## Current Focus
 
 - keep parser, IR, and generator boundaries explicit
+- keep the new `value`, `shape`, and `constraint` packages in `@aio/core` cleanly separated
 - keep TypeScript preprocess, single-file conversion, and future module resolution responsibilities explicit
 - keep core semantics centralized so parser and generator packages do not drift
 - improve development documentation and decision traceability
+- apply the new capability-and-loss documentation pattern consistently across active parser and generator design docs
+- evolve the current SDK route table into runtime parser-to-generator capability matching
 - assess the next expansion boundary for the TypeScript schema-subset parser without letting it turn into a full TypeScript type-system parser
 - keep the new JSON Schema generator aligned with the actual shared IR semantics instead of drifting toward ad hoc JSON Schema-specific behavior
-- defer the next shared-IR expansion until more parser and generator evidence exists across multiple surfaces
+- continue moving shape-adjacent validation and annotation semantics out of `Shape IR` and into `Constraint IR` when the split is structurally clearer there
 
 ## Current Core Internal Shape
 
-The current `core` schema layer is now intentionally split into focused internal modules:
+The current `core` layer is now intentionally split both by IR family and by focused internal modules.
+
+Public IR-family structure:
+
+- `value/*`
+- `shape/*`
+- `constraint/*`
+- `model/*`
+- `pipeline/*`
+
+Current `Shape IR` internal modules:
 
 - `types.ts`: shared IR and result-shape types
 - `factories.ts`: public construction entry points
@@ -87,13 +120,30 @@ The current `core` schema layer is now intentionally split into focused internal
 
 This is a meaningful improvement over the earlier state where these responsibilities were concentrated in one file.
 
+## Current Orchestration Status
+
+The SDK now has a real orchestration surface, but it is still in a transitional stage.
+
+Current behavior:
+
+- route planning is still driven by a static `sourceFormat -> targetFormat` table
+- route metadata exposes `irSequence` and stage lists
+- runtime artifacts can already carry `value`, `shape`, and `constraints`
+- JSON Schema routes already preserve `Constraint IR` at runtime when both sides support it
+
+Current limitation:
+
+- the route metadata does not yet derive itself from parser and generator capabilities
+- JSON Schema routes are still described mainly as `shape` routes even when constraints are preserved in practice
+
 ## Next Milestones
 
-1. decide the next small data-shape-preserving syntax slice after the new `enum`, enum-member-reference, and readonly support
-2. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
-3. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
-4. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf` and object closure
-5. document likely shared-IR gaps separately from JSON Schema-specific gaps before any future IR expansion work begins
+1. promote the current SDK route planner toward runtime capability matching between parser outputs and generator requirements
+2. make parser and generator capability declarations explicit in code rather than implicit in hand-authored routes
+3. decide the next small data-shape-preserving TypeScript parser slice after the new `enum`, enum-member-reference, and readonly support
+4. decide whether source-location coverage should expand to every current parser failure or remain targeted to representative failures
+5. keep the TypeScript parser supported subset, failure matrix, and package docs aligned as the next cases land
+6. decide which JSON Schema generator behaviors should remain fixed in v0 versus become future options, especially around `oneOf` and object closure
 
 ## Current JSON Schema Generator Status
 
@@ -108,15 +158,15 @@ The JSON Schema generator now exists as a real second target surface for the sha
 - simple nullable fields through compact `type: ["T", "null"]`
 - tuple optionality through `prefixItems`, `minItems`, and `items: false`
 - record semantics through `additionalProperties`
+- constraint-driven rendering for `closed-object`, string and numeric constraints, collection constraints, `format`, `default`, `description`, `examples`, `readOnly`, and `writeOnly`
 
 ### Current JSON Schema Generator Gaps
 
 - external `$ref`
 - multi-document or multi-file output
 - draft switching
-- schema annotation generation such as `description`, `examples`, or `default`
 - configurable `oneOf` vs `anyOf`
-- configurable object closure semantics
+- richer object-closure policy beyond the current option-plus-constraint model
 
 ## Current TypeScript Parser Status
 
@@ -182,6 +232,7 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 
 - keep the current internal split stable as new semantics are added
 - keep the shared IR contract, diagnostics contract, and package docs aligned with actual behavior
+- keep orchestration truthfully aligned with actual parser-produced and generator-consumed IR sets
 
 ### Should
 
@@ -191,6 +242,7 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 - keep the TypeScript parser case inventory and todo list aligned with actual implementation progress
 - decide whether the next TypeScript parser work should prioritize more success-path coverage or richer diagnostics and source-location information
 - decide which JSON Schema generator output choices are stable semantic decisions versus temporary v0 simplifications
+- evolve the route planner so parser and generator combinations are decided at runtime rather than only by hand-maintained format pairs
 - keep a running distinction between:
   - likely shared-IR capability gaps
   - likely JSON Schema-local concerns
@@ -210,6 +262,7 @@ The remaining `core` work is now narrower than before. The biggest structural ga
 - references and reuse may become increasingly important as generated output grows
 - parser and generator options can become hard to reason about if defaults and capability boundaries are not kept clear
 - core internal helpers could still drift again if new semantics are added without being placed in the right internal module
+- a static route table can drift away from actual parser and generator capabilities as multi-IR flows become more common
 
 ## Current IR-Expansion Guardrail
 

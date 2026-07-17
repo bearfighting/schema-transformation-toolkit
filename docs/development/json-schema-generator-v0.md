@@ -27,6 +27,19 @@ It should not yet support:
 - annotations such as `description`, `examples`, or `default`
 - source-language concerns such as `package`, `import`, or module resolution
 
+## Result Contract
+
+This generator should follow the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- return success without diagnostics when shared shape semantics render directly into the chosen JSON Schema target form
+- return success with diagnostics when the target output is truthful but wider, normalized, or policy-shaped
+- return failure when the generator cannot render the shared semantics safely under the current contract
+
+Success in this generator does not guarantee lossless projection into JSON Schema.
+It means the emitted schema is a truthful target rendering of the accepted shared semantics.
+
 ## Why Now
 
 This is a good next generator because:
@@ -128,6 +141,8 @@ Reason:
 - it preserves correctness without inventing non-standard pseudo-schema structure
 - the explanatory meaning of unknown already belongs in diagnostics, not in target schema keywords
 
+This is a target-side widening choice and should remain visible through diagnostics when source evidence was narrower.
+
 ### Reference Strategy
 
 References should remain document-local in v0 and always render through `$defs`.
@@ -137,6 +152,48 @@ Mapping:
 - `SchemaReferenceNode("User")` -> `{ "$ref": "#/$defs/User" }`
 
 This should stay aligned with current `core` document-local reference semantics.
+
+## Capability Status
+
+The v0 generator should describe its behavior in four classes.
+
+### Supported Directly
+
+- scalar nodes
+- literal nodes through `const`
+- `null`
+- ordinary objects
+- homogeneous arrays
+- tuples
+- records
+- unions
+- document-local references and definitions
+
+These cases should succeed without semantic-loss diagnostics unless another separate warning applies.
+
+### Supported With Normalization
+
+- nullable fields preferring compact `type: ["T", "null"]` when safe
+- root-wide schemas rendering as metadata-only documents when semantically equivalent to `true`
+
+These cases should succeed and are considered target-shape normalization rather than unsupported behavior.
+
+### Supported With Semantic Loss Or Widening
+
+- `SchemaUnknownNode` rendering as JSON Schema `true`
+- any future omission of source-only explanatory evidence that does not belong in target schema structure
+
+These cases should succeed only when the emitted JSON Schema remains truthful, and diagnostics should make the widening visible.
+
+### Unsupported Or Intentionally Deferred
+
+- external `$ref`
+- multi-file or bundled output
+- draft switching
+- annotation generation such as `description`, `examples`, or `default`
+- any future shared semantics that cannot yet be rendered safely in Draft 2020-12 output
+
+These cases should fail explicitly or remain out of scope until the target contract expands.
 
 ## Node Mapping Table
 
@@ -239,6 +296,22 @@ Suggested nullable field rendering:
 v0 should prefer the compact nullable form when the non-null branch is a simple scalar schema.
 
 If a nullable field cannot be represented safely in compact form, the generator may still fall back to a structural composition.
+
+## Diagnostics Expectations
+
+The generator should use diagnostics to make successful-but-imperfect rendering visible.
+
+Expected diagnostic classes in v0:
+
+- widening warnings when `unknown` renders as `true`
+- target-policy warnings when future options intentionally shape output more strongly than the shared IR states
+- explicit failure diagnostics when rendering cannot proceed safely
+
+Diagnostics should stay stable enough to support:
+
+- generator contract tests
+- integration tests for lossy but truthful rendering paths
+- future capability documentation per target
 
 ## Document-Level Output Shape
 

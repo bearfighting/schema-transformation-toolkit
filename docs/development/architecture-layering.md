@@ -297,7 +297,7 @@ Multiple layers give a clearer rule:
 
 ## Typed Capability Registry
 
-The project should also grow a typed registry that knows which capabilities connect to which IR layer.
+The project should also grow from the current static route table into a typed runtime registry that knows which capabilities connect to which IR layer.
 
 This registry should be the code-level source of truth for:
 
@@ -306,6 +306,30 @@ This registry should be the code-level source of truth for:
 - which generator handles which target format
 - which IR layer a generator consumes
 - which intermediate transformers exist between IR layers
+- which capabilities are required versus optional
+- which semantic loss boundaries apply to a chosen route
+
+## Current Repository Status
+
+The repository already has a first orchestration layer in `packages/sdk/src/convert.ts`.
+
+Today it provides:
+
+- `planConversion`
+- `listConversionRoutes`
+- `convert`
+- static `ConversionRoute` metadata with `irSequence` and `stages`
+
+Current route metadata is still hand-authored and format-pair-specific.
+
+That is useful as a first implementation, but it is now behind the actual parser and generator contracts because:
+
+- JSON Schema parsing can produce `Shape IR + Constraint IR`
+- JSON Schema generation can consume `Constraint IR`
+- route metadata still labels JSON Schema routes only as `shape` routes
+
+So the next step is not inventing orchestration from scratch.
+It is evolving the existing SDK planner from static route selection into runtime capability matching.
 
 ## Registry Responsibilities
 
@@ -372,37 +396,78 @@ This matters because a multi-layer architecture cannot be expressed clearly with
 
 ## Recommended Minimal Type Shape
 
-The first registry version can stay intentionally small.
+The next registry version should stay intentionally small, but it should be richer than the current static route table.
 
 ```ts
 type IrKind = "value" | "shape" | "constraint";
 
-type CapabilityKind = "parser" | "generator" | "transformer";
-
-interface ParserRegistration {
+interface ParserCapability {
   kind: "parser";
   id: string;
-  inputFormat: string;
-  outputIr: IrKind;
+  sourceFormat: string;
+  produces: IrKind[];
+  optionalProduces?: IrKind[];
+  semanticCapabilities?: string[];
 }
 
-interface GeneratorRegistration {
+interface GeneratorCapability {
   kind: "generator";
   id: string;
-  inputIr: IrKind;
-  outputFormat: string;
+  targetFormat: string;
+  requires: IrKind[];
+  optionalConsumes?: IrKind[];
+  semanticCapabilities?: string[];
 }
 
-interface TransformerRegistration {
+interface TransformerCapability {
   kind: "transformer";
   id: string;
-  inputIr: IrKind;
-  outputIr: IrKind;
+  from: IrKind;
+  to: IrKind;
+  semanticCapabilities?: string[];
 }
 ```
 
 The exact names can change later.
-What matters now is the typed separation of parser, transformer, and generator roles, plus explicit IR-layer boundaries.
+What matters now is:
+
+- typed separation of parser, transformer, and generator roles
+- explicit IR-layer boundaries
+- explicit required-versus-optional IR dependencies
+- a route planner that can operate from capabilities rather than only hard-coded format pairs
+
+## Runtime Planning Rule
+
+The runtime planner should answer two questions for every requested conversion.
+
+### 1. Can This Parser And Generator Be Matched Truthfully
+
+That requires checking:
+
+- whether the parser can produce the IRs the generator requires
+- whether missing IRs can be synthesized through declared transformers
+- whether the resulting route stays within allowed semantic-loss boundaries
+
+### 2. If They Can Be Matched, What Is The Best Route
+
+That route should include:
+
+- parser stage
+- zero or more transformer stages
+- generator stage
+- the materialized IR set carried between stages
+- capability and semantic-loss metadata for the final result
+
+## Planned Repository Transition
+
+The intended evolution path should be:
+
+1. keep the current static route table as the executable baseline
+2. add explicit parser and generator capability declarations next to route planning
+3. teach the planner to derive routes from capability declarations
+4. downgrade the hand-written route table into tests or fallback fixtures
+
+This keeps the current SDK working while moving orchestration toward the long-term architecture described in this document.
 
 ## Recommended First-Phase Rule
 

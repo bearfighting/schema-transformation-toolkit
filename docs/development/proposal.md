@@ -29,6 +29,13 @@ The next architectural milestone should **not** be adding more languages.
 
 Instead, it should be to stabilize the IR architecture before expanding parser and generator support.
 
+That is now partially underway in code:
+
+- `@aio/core` has explicit `value`, `shape`, `constraint`, and `model` layers
+- the JSON Schema parser can produce `Shape IR + Constraint IR`
+- the JSON Schema generator can consume `Constraint IR`
+- the SDK has a first route-planning layer, but it is still mostly static
+
 The proposed direction is to organize the project around three independent but related IR families:
 
 - Value IR
@@ -138,6 +145,13 @@ Validation DSL
 ```
 
 These three IRs are related, but they should not necessarily be generated together.
+
+The updated repository direction should be:
+
+- keep these three IRs separate in `@aio/core`
+- let each parser produce the IRs that naturally exist in its source
+- let each generator declare which IRs it requires and which it can optionally preserve
+- determine parser-to-generator compatibility at runtime from those declarations instead of only by a hand-written format-pair table
 
 ---
 
@@ -383,14 +397,14 @@ ConstraintTuple
 
 Each parser should produce only the IRs that naturally exist in its source.
 
-| Source | Value | Shape | Constraint |
-|---------|-------|--------|------------|
-| JSON | ✅ | inferred | none |
-| YAML | ✅ | inferred | none |
-| TOML | ✅ | inferred | none |
-| TypeScript | ❌ | ✅ | minimal |
-| JSON Schema | ❌ | ✅ | ✅ |
-| OpenAPI | ❌ | ✅ | ✅ |
+| Source      | Value | Shape    | Constraint |
+| ----------- | ----- | -------- | ---------- |
+| JSON        | ✅    | inferred | none       |
+| YAML        | ✅    | inferred | none       |
+| TOML        | ✅    | inferred | none       |
+| TypeScript  | ❌    | ✅       | minimal    |
+| JSON Schema | ❌    | ✅       | ✅         |
+| OpenAPI     | ❌    | ✅       | ✅         |
 
 ---
 

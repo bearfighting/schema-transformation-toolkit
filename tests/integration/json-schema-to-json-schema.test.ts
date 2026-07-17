@@ -144,6 +144,28 @@ describe("integration: json-schema -> ir -> json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root", "value"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "true-schema",
+            sourceEvidence: {
+              source: "parser-json",
+              detail:
+                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
+            },
+          },
+        },
+      ],
     });
 
     const nestedTrueParsed = jsonSchemaParser.parse(
@@ -188,6 +210,27 @@ describe("integration: json-schema -> ir -> json-schema", () => {
           path: ["root", "tags", "elementType"],
           nodeKind: "unknown",
           source: "generator-json-schema",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "true-schema",
+            sourceEvidence: {
+              source: "parser-json",
+              detail: "JSON Schema boolean true was lowered to unknown.",
+            },
+          },
+        },
+      ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root", "tags", "elementType"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
           evidence: {
             reason: "no-evidence",
             nullable: false,
@@ -324,6 +367,27 @@ describe("integration: json-schema -> ir -> json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "widening" as const,
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape" as const,
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "metadata-only-root",
+            sourceEvidence: {
+              source: "parser-json",
+              detail: "Metadata-only root schema was lowered to unknown.",
+            },
+          },
+        },
+      ],
     };
 
     expect(jsonSchemaGenerator.generate(metadataOnlyParsed.document)).toEqual(
@@ -334,6 +398,20 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       diagnostics: [
         {
           ...expected.diagnostics[0],
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "metadata-only-root",
+            sourceEvidence: {
+              source: "parser-json",
+              detail: "JSON Schema boolean true was lowered to unknown.",
+            },
+          },
+        },
+      ],
+      semanticNotes: [
+        {
+          ...expected.semanticNotes[0],
           evidence: {
             reason: "no-evidence",
             nullable: false,
@@ -582,41 +660,241 @@ describe("integration: json-schema -> ir -> json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["definitions", "LooseMap", "value"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "true-schema",
+            sourceEvidence: {
+              source: "parser-json",
+              detail:
+                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
+            },
+          },
+        },
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["definitions", "User", "metadata"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "true-schema",
+            sourceEvidence: {
+              source: "parser-json",
+              detail: "JSON Schema boolean true was lowered to unknown.",
+            },
+          },
+        },
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["definitions", "User", "tags", "elementType"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "true-schema",
+            sourceEvidence: {
+              source: "parser-json",
+              detail: "JSON Schema boolean true was lowered to unknown.",
+            },
+          },
+        },
+      ],
     });
   });
 
-  it("fails explicitly for closed objects instead of pretending to round-trip them", () => {
-    expect(
-      jsonSchemaParser.parse(
-        JSON.stringify({
-          $schema: "https://json-schema.org/draft/2020-12/schema",
-          title: "ClosedUser",
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-            },
+  it("parses closed objects into shape plus constraint artifacts", () => {
+    const parsed = jsonSchemaParser.parse(
+      JSON.stringify({
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: "ClosedUser",
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
           },
-          required: ["id"],
-          additionalProperties: false,
-        }),
-      ),
-    ).toEqual({
-      ok: false,
-      code: "unsupported-json-schema-closed-object",
-      message:
-        'Closed objects through "additionalProperties: false" are not supported by the current shared IR.',
-      diagnostics: [
+        },
+        required: ["id"],
+        additionalProperties: false,
+      }),
+    );
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON Schema parser to succeed.");
+    }
+
+    expect(parsed.constraints).toEqual({
+      kind: "constraint-document",
+      name: "ClosedUser",
+      entries: [
         {
-          severity: "error",
-          code: "unsupported-json-schema-closed-object",
-          message:
-            'Closed objects through "additionalProperties: false" are not supported by the current shared IR.',
-          path: ["root"],
-          nodeKind: "object",
-          source: "parser-json-schema",
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "closed-object",
+              value: false,
+              message:
+                'This JSON Schema "additionalProperties: false" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "additionalProperties",
+              },
+            },
+          ],
         },
       ],
+    });
+
+    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+      ok: true,
+      output: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: "ClosedUser",
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+        },
+        required: ["id"],
+      },
+    });
+  });
+
+  it("round-trips extracted constraints back into json schema output", () => {
+    const parsed = jsonSchemaParser.parse(
+      JSON.stringify({
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: "ConstrainedUser",
+        type: "object",
+        format: "json-pointer",
+        default: {
+          code: "AA",
+        },
+        examples: [{ code: "BB" }],
+        description: "User constraints",
+        minProperties: 1,
+        maxProperties: 8,
+        properties: {
+          code: {
+            type: "string",
+            format: "uuid",
+            default: "ABCD",
+            examples: ["EFGH"],
+            readOnly: true,
+            pattern: "^[A-Z]+$",
+            minLength: 2,
+            maxLength: 8,
+            description: "Uppercase code",
+          },
+          age: {
+            type: "integer",
+            minimum: 0,
+            exclusiveMinimum: -1,
+          },
+          score: {
+            type: "number",
+            maximum: 100,
+            exclusiveMaximum: 101,
+            multipleOf: 0.5,
+            writeOnly: true,
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            minItems: 1,
+            maxItems: 3,
+            uniqueItems: true,
+            description: "User tags",
+          },
+        },
+      }),
+    );
+
+    if (!parsed.ok) {
+      throw new Error("Expected the JSON Schema parser to succeed.");
+    }
+
+    expect(
+      jsonSchemaGenerator.generate(parsed.document, {
+        ...(parsed.constraints ? { constraints: parsed.constraints } : {}),
+      }),
+    ).toEqual({
+      ok: true,
+      output: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: "ConstrainedUser",
+        type: "object",
+        format: "json-pointer",
+        default: {
+          code: "AA",
+        },
+        examples: [{ code: "BB" }],
+        description: "User constraints",
+        minProperties: 1,
+        maxProperties: 8,
+        properties: {
+          code: {
+            type: "string",
+            format: "uuid",
+            default: "ABCD",
+            examples: ["EFGH"],
+            readOnly: true,
+            pattern: "^[A-Z]+$",
+            minLength: 2,
+            maxLength: 8,
+            description: "Uppercase code",
+          },
+          age: {
+            type: "integer",
+            minimum: 0,
+            exclusiveMinimum: -1,
+          },
+          score: {
+            type: "number",
+            maximum: 100,
+            exclusiveMaximum: 101,
+            multipleOf: 0.5,
+            writeOnly: true,
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            minItems: 1,
+            maxItems: 3,
+            uniqueItems: true,
+            description: "User tags",
+          },
+        },
+      },
     });
   });
 

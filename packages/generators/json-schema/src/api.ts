@@ -1,5 +1,5 @@
 import type { SchemaDocument, SchemaGenerator } from "@aio/core";
-import { collectJsonSchemaDiagnostics } from "./diagnostics.js";
+import { collectJsonSchemaSemanticObservations } from "./diagnostics.js";
 import { renderJsonSchemaDocument } from "./emit.js";
 import type { JsonSchemaGenerateResult } from "./failure.js";
 import {
@@ -107,11 +107,16 @@ function renderJsonSchemaDocumentResult(
     return validationFailure;
   }
 
-  const diagnostics = collectJsonSchemaDiagnostics(doc, options);
+  const observations = collectJsonSchemaSemanticObservations(doc, options);
 
   return {
     ok: true,
     output: renderJsonSchemaDocument(doc, options),
-    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+    ...(observations.diagnostics.length > 0
+      ? { diagnostics: observations.diagnostics }
+      : {}),
+    ...(observations.semanticNotes.length > 0
+      ? { semanticNotes: observations.semanticNotes }
+      : {}),
   };
 }

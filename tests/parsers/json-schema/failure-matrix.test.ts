@@ -22,38 +22,6 @@ describe("parser-json-schema failure matrix", () => {
     });
   });
 
-  it("fails explicitly for closed objects", () => {
-    expect(
-      jsonSchemaParser.parse(
-        JSON.stringify({
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-            },
-          },
-          additionalProperties: false,
-        }),
-      ),
-    ).toEqual({
-      ok: false,
-      code: "unsupported-json-schema-closed-object",
-      message:
-        'Closed objects through "additionalProperties: false" are not supported by the current shared IR.',
-      diagnostics: [
-        {
-          severity: "error",
-          code: "unsupported-json-schema-closed-object",
-          message:
-            'Closed objects through "additionalProperties: false" are not supported by the current shared IR.',
-          path: ["root"],
-          nodeKind: "object",
-          source: "parser-json-schema",
-        },
-      ],
-    });
-  });
-
   it("fails explicitly for mixed fixed-field and typed additionalProperties objects", () => {
     expect(
       jsonSchemaParser.parse(
@@ -304,6 +272,248 @@ describe("parser-json-schema failure matrix", () => {
             'The "minItems" keyword must be an integer between 0 and the "prefixItems" length.',
           path: ["root"],
           nodeKind: "tuple",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+  });
+
+  it("fails explicitly for invalid extracted constraint value types", () => {
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "string",
+          minLength: -1,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "minLength" keyword must be a non-negative integer.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "minLength" keyword must be a non-negative integer.',
+          path: ["root"],
+          nodeKind: "type",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "number",
+          exclusiveMinimum: "0",
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "exclusiveMinimum" keyword must be a finite number.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "exclusiveMinimum" keyword must be a finite number.',
+          path: ["root"],
+          nodeKind: "type",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "array",
+          items: {
+            type: "string",
+          },
+          maxItems: -1,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "maxItems" keyword must be a non-negative integer.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "maxItems" keyword must be a non-negative integer.',
+          path: ["root"],
+          nodeKind: "array",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "number",
+          multipleOf: 0,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message:
+        'The "multipleOf" keyword must be a finite number greater than 0.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message:
+            'The "multipleOf" keyword must be a finite number greater than 0.',
+          path: ["root"],
+          nodeKind: "type",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "array",
+          items: {
+            type: "string",
+          },
+          uniqueItems: "true",
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "uniqueItems" keyword must be a boolean.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "uniqueItems" keyword must be a boolean.',
+          path: ["root"],
+          nodeKind: "array",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "object",
+          minProperties: -1,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "minProperties" keyword must be a non-negative integer.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message:
+            'The "minProperties" keyword must be a non-negative integer.',
+          path: ["root"],
+          nodeKind: "object",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "object",
+          maxProperties: 1.5,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "maxProperties" keyword must be a non-negative integer.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message:
+            'The "maxProperties" keyword must be a non-negative integer.',
+          path: ["root"],
+          nodeKind: "object",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "string",
+          format: 42,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "format" keyword must be a string.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "format" keyword must be a string.',
+          path: ["root"],
+          nodeKind: "type",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "string",
+          examples: "demo",
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "examples" keyword must be an array.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "examples" keyword must be an array.',
+          path: ["root"],
+          nodeKind: "type",
+          source: "parser-json-schema",
+        },
+      ],
+    });
+
+    expect(
+      jsonSchemaParser.parse(
+        JSON.stringify({
+          type: "string",
+          readOnly: "true",
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      code: "invalid-json-schema-shape",
+      message: 'The "readOnly" keyword must be a boolean.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-json-schema-shape",
+          message: 'The "readOnly" keyword must be a boolean.',
+          path: ["root"],
+          nodeKind: "type",
           source: "parser-json-schema",
         },
       ],

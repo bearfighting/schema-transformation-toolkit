@@ -1,7 +1,9 @@
 import type {
+  ConstraintDocument,
   ParseFailureResult,
   SchemaDiagnostic,
   SchemaDocument,
+  SchemaSemanticNote,
 } from "@aio/core";
 import { configureJsonSchemaParser } from "./options.js";
 import { convertJsonSchemaToDocument } from "./convert.js";
@@ -17,7 +19,9 @@ import {
 export interface JsonSchemaInferenceSuccessResult {
   ok: true;
   document: SchemaDocument;
+  constraints?: ConstraintDocument;
   diagnostics?: SchemaDiagnostic[];
+  semanticNotes?: SchemaSemanticNote[];
 }
 
 export type JsonSchemaInferenceFailureResult = ParseFailureResult<
@@ -102,8 +106,14 @@ function tryInferJsonSchemaDocumentWithResolvedOptions(
     return {
       ok: true,
       document: converted.document,
+      ...(converted.constraints.entries.length > 0
+        ? { constraints: converted.constraints }
+        : {}),
       ...(converted.diagnostics.length > 0
         ? { diagnostics: converted.diagnostics }
+        : {}),
+      ...(converted.semanticNotes.length > 0
+        ? { semanticNotes: converted.semanticNotes }
         : {}),
     };
   } catch (error) {

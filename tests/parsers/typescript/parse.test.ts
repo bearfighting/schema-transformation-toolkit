@@ -1109,6 +1109,60 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "normalization",
+            code: "typescript-readonly-property-lowered",
+            message:
+              "This TypeScript readonly property was lowered into ordinary shared field semantics.",
+            path: ["definitions", "User", "id"],
+            nodeKind: "field",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              sourceKeyword: "readonly",
+            },
+          },
+          {
+            kind: "normalization",
+            code: "typescript-readonly-property-lowered",
+            message:
+              "This TypeScript readonly property was lowered into ordinary shared field semantics.",
+            path: ["definitions", "User", "tags"],
+            nodeKind: "field",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              sourceKeyword: "readonly",
+            },
+          },
+          {
+            kind: "normalization",
+            code: "typescript-readonly-property-lowered",
+            message:
+              "This TypeScript readonly property was lowered into ordinary shared field semantics.",
+            path: ["definitions", "User", "pair"],
+            nodeKind: "field",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              sourceKeyword: "readonly",
+            },
+          },
+          {
+            kind: "normalization",
+            code: "typescript-readonly-property-lowered",
+            message:
+              "This TypeScript readonly property was lowered into ordinary shared field semantics.",
+            path: ["definitions", "User", "names"],
+            nodeKind: "field",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              sourceKeyword: "readonly",
+            },
+          },
+        ],
       });
     });
   });
@@ -1149,6 +1203,24 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "normalization",
+            code: "typescript-enum-lowered",
+            message:
+              "This TypeScript enum declaration was lowered into shared literal or literal-union schema semantics.",
+            path: ["definitions", "Status"],
+            nodeKind: "definition",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              enumName: "Status",
+              memberCount: 2,
+              loweredForm: "literal-union",
+              containsMemberReferences: false,
+            },
+          },
+        ],
       });
     });
 
@@ -1176,6 +1248,24 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "normalization",
+            code: "typescript-enum-lowered",
+            message:
+              "This TypeScript enum declaration was lowered into shared literal or literal-union schema semantics.",
+            path: ["definitions", "Level"],
+            nodeKind: "definition",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              enumName: "Level",
+              memberCount: 3,
+              loweredForm: "literal-union",
+              containsMemberReferences: false,
+            },
+          },
+        ],
       });
     });
 
@@ -1202,6 +1292,24 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "normalization",
+            code: "typescript-enum-lowered",
+            message:
+              "This TypeScript enum declaration was lowered into shared literal or literal-union schema semantics.",
+            path: ["definitions", "Level"],
+            nodeKind: "definition",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              enumName: "Level",
+              memberCount: 4,
+              loweredForm: "literal-union",
+              containsMemberReferences: true,
+            },
+          },
+        ],
       });
     });
   });

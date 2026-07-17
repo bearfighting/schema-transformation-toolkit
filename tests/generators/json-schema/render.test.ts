@@ -112,6 +112,22 @@ describe("generator-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "policy",
+          code: "closed-object-schema",
+          message:
+            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
+          path: ["root"],
+          nodeKind: "object",
+          source: "generator-json-schema",
+          layer: "target",
+          evidence: {
+            objectAdditionalPropertiesMode: "false",
+            fieldNames: ["id"],
+          },
+        },
+      ],
     });
   });
 
@@ -263,6 +279,30 @@ describe("generator-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "policy",
+          code: "overlapping-oneof-members",
+          message:
+            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
+          path: ["root"],
+          nodeKind: "union",
+          source: "generator-json-schema",
+          layer: "target",
+          evidence: {
+            unionComposition: "oneOf",
+            overlappingPairs: [{ left: 0, right: 1 }],
+            memberKinds: [
+              {
+                left: 0,
+                right: 1,
+                leftKind: "scalar",
+                rightKind: "literal",
+              },
+            ],
+          },
+        },
+      ],
     });
 
     expect(
@@ -285,6 +325,30 @@ describe("generator-json-schema", () => {
           path: ["root"],
           nodeKind: "union",
           source: "generator-json-schema",
+          evidence: {
+            unionComposition: "anyOf",
+            overlappingPairs: [{ left: 0, right: 1 }],
+            memberKinds: [
+              {
+                left: 0,
+                right: 1,
+                leftKind: "scalar",
+                rightKind: "literal",
+              },
+            ],
+          },
+        },
+      ],
+      semanticNotes: [
+        {
+          kind: "policy",
+          code: "overlapping-anyof-members",
+          message:
+            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
+          path: ["root"],
+          nodeKind: "union",
+          source: "generator-json-schema",
+          layer: "target",
           evidence: {
             unionComposition: "anyOf",
             overlappingPairs: [{ left: 0, right: 1 }],
@@ -375,6 +439,23 @@ describe("generator-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "metadata-only-root",
+          },
+        },
+      ],
     });
   });
 
@@ -419,6 +500,23 @@ describe("generator-json-schema", () => {
           path: ["root"],
           nodeKind: "unknown",
           source: "generator-json-schema",
+          evidence: {
+            reason: "no-evidence",
+            nullable: false,
+            renderedForm: "metadata-only-root",
+          },
+        },
+      ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
           evidence: {
             reason: "no-evidence",
             nullable: false,

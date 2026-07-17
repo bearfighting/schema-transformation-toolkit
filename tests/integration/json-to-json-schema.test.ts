@@ -165,6 +165,21 @@ describe("integration: json -> ir -> json-schema", () => {
           }),
         },
       ],
+      semanticNotes: [
+        {
+          kind: "policy",
+          code: "overlapping-oneof-members",
+          message:
+            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
+          path: ["root", "elementType"],
+          nodeKind: "union",
+          source: "generator-json-schema",
+          layer: "target",
+          evidence: expect.objectContaining({
+            unionComposition: "oneOf",
+          }),
+        },
+      ],
     });
   });
 
@@ -197,6 +212,21 @@ describe("integration: json -> ir -> json-schema", () => {
           path: ["root", "elementType"],
           nodeKind: "unknown",
           source: "generator-json-schema",
+          evidence: expect.objectContaining({
+            reason: "mixed-types-collapsed",
+          }),
+        },
+      ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "wide-unknown-schema",
+          message:
+            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
+          path: ["root", "elementType"],
+          nodeKind: "unknown",
+          source: "generator-json-schema",
+          layer: "shape",
           evidence: expect.objectContaining({
             reason: "mixed-types-collapsed",
           }),
@@ -296,6 +326,47 @@ describe("integration: json -> ir -> json-schema", () => {
           path: ["root", "elementType", "1"],
           nodeKind: "object",
           source: "generator-json-schema",
+          evidence: expect.objectContaining({
+            objectAdditionalPropertiesMode: "false",
+          }),
+        },
+      ],
+      semanticNotes: [
+        {
+          kind: "policy",
+          code: "overlapping-anyof-members",
+          message:
+            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
+          path: ["root", "elementType"],
+          nodeKind: "union",
+          source: "generator-json-schema",
+          layer: "target",
+          evidence: expect.objectContaining({
+            unionComposition: "anyOf",
+          }),
+        },
+        {
+          kind: "policy",
+          code: "closed-object-schema",
+          message:
+            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
+          path: ["root", "elementType", "0"],
+          nodeKind: "object",
+          source: "generator-json-schema",
+          layer: "target",
+          evidence: expect.objectContaining({
+            objectAdditionalPropertiesMode: "false",
+          }),
+        },
+        {
+          kind: "policy",
+          code: "closed-object-schema",
+          message:
+            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
+          path: ["root", "elementType", "1"],
+          nodeKind: "object",
+          source: "generator-json-schema",
+          layer: "target",
           evidence: expect.objectContaining({
             objectAdditionalPropertiesMode: "false",
           }),

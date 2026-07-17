@@ -76,6 +76,21 @@ describe("parser-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "normalization",
+          code: "json-schema-nullable-property-normalized",
+          message:
+            "This nullable property schema was normalized into field-level nullability in the shared IR.",
+          path: ["root", "name"],
+          nodeKind: "field",
+          source: "parser-json-schema",
+          layer: "shape",
+          evidence: {
+            sourceKeyword: "type",
+          },
+        },
+      ],
     });
   });
 
@@ -156,6 +171,7 @@ describe("parser-json-schema", () => {
         },
       ],
     });
+    expect(tupleParsed.constraints).toBeUndefined();
 
     const recordParsed = jsonSchemaParser.parse(
       JSON.stringify({
@@ -184,6 +200,606 @@ describe("parser-json-schema", () => {
         scalar: "boolean",
       },
     });
+    expect(recordParsed.constraints).toBeUndefined();
+  });
+
+  it("extracts closed-object and minItems rules into constraint IR", () => {
+    const parsed = jsonSchemaParser.parse(
+      JSON.stringify({
+        title: "ClosedUserList",
+        type: "object",
+        properties: {
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            minItems: 1,
+          },
+        },
+        additionalProperties: false,
+      }),
+    );
+
+    expect(parsed).toEqual({
+      ok: true,
+      document: {
+        version: "0.1",
+        kind: "document",
+        name: {
+          source: "ClosedUserList",
+          words: ["closed", "user", "list"],
+        },
+        definitions: [],
+        root: {
+          kind: "object",
+          fields: [
+            {
+              kind: "field",
+              name: {
+                source: "tags",
+                words: ["tags"],
+              },
+              required: false,
+              nullable: false,
+              type: {
+                kind: "array",
+                elementType: {
+                  kind: "scalar",
+                  scalar: "string",
+                },
+              },
+            },
+          ],
+        },
+      },
+      constraints: {
+        kind: "constraint-document",
+        name: "ClosedUserList",
+        entries: [
+          {
+            target: {
+              kind: "node",
+              path: ["root", "tags"],
+            },
+            constraints: [
+              {
+                kind: "min-items",
+                value: 1,
+                message:
+                  'This JSON Schema "minItems" constraint was preserved in constraint IR.',
+                evidence: {
+                  sourceKeyword: "minItems",
+                },
+              },
+            ],
+          },
+          {
+            target: {
+              kind: "node",
+              path: ["root"],
+            },
+            constraints: [
+              {
+                kind: "closed-object",
+                value: false,
+                message:
+                  'This JSON Schema "additionalProperties: false" rule was preserved in constraint IR.',
+                evidence: {
+                  sourceKeyword: "additionalProperties",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      semanticNotes: [
+        {
+          kind: "normalization",
+          code: "json-schema-min-items-extracted",
+          message:
+            'This JSON Schema "minItems" rule was extracted into constraint IR.',
+          path: ["root", "tags"],
+          nodeKind: "array",
+          source: "parser-json-schema",
+          layer: "constraint",
+          evidence: {
+            sourceKeyword: "minItems",
+            value: 1,
+          },
+        },
+        {
+          kind: "normalization",
+          code: "json-schema-closed-object-extracted",
+          message:
+            'This JSON Schema "additionalProperties: false" rule was extracted into constraint IR.',
+          path: ["root"],
+          nodeKind: "object",
+          source: "parser-json-schema",
+          layer: "constraint",
+          evidence: {
+            sourceKeyword: "additionalProperties",
+            value: false,
+          },
+        },
+      ],
+    });
+  });
+
+  it("extracts pattern, numeric bounds, maxItems, and description into constraint IR", () => {
+    const parsed = jsonSchemaParser.parse(
+      JSON.stringify({
+        title: "ConstrainedUser",
+        type: "object",
+        format: "json-pointer",
+        default: {
+          code: "AA",
+        },
+        examples: [{ code: "BB" }],
+        description: "User constraints",
+        minProperties: 1,
+        maxProperties: 8,
+        properties: {
+          code: {
+            type: "string",
+            format: "uuid",
+            default: "ABCD",
+            examples: ["EFGH"],
+            readOnly: true,
+            pattern: "^[A-Z]+$",
+            minLength: 2,
+            maxLength: 8,
+            description: "Uppercase code",
+          },
+          age: {
+            type: "integer",
+            minimum: 0,
+            exclusiveMinimum: -1,
+          },
+          score: {
+            type: "number",
+            maximum: 100,
+            exclusiveMaximum: 101,
+            multipleOf: 0.5,
+            writeOnly: true,
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            minItems: 1,
+            maxItems: 3,
+            uniqueItems: true,
+            description: "User tags",
+          },
+        },
+      }),
+    );
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      throw new Error("Expected parser to succeed.");
+    }
+
+    expect(parsed.constraints?.kind).toBe("constraint-document");
+    expect(parsed.constraints?.name).toBe("ConstrainedUser");
+    expect(parsed.constraints?.entries).toHaveLength(24);
+    expect(parsed.constraints?.entries).toEqual(
+      expect.arrayContaining([
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "format",
+              value: "uuid",
+              message:
+                'This JSON Schema "format" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "format",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "default",
+              value: "ABCD",
+              message:
+                'This JSON Schema "default" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "default",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "examples",
+              value: ["EFGH"],
+              message:
+                'This JSON Schema "examples" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "examples",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "read-only",
+              value: true,
+              message:
+                'This JSON Schema "readOnly" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "readOnly",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "pattern",
+              value: "^[A-Z]+$",
+              message:
+                'This JSON Schema "pattern" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "pattern",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "min-length",
+              value: 2,
+              message:
+                'This JSON Schema "minLength" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "minLength",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "max-length",
+              value: 8,
+              message:
+                'This JSON Schema "maxLength" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "maxLength",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "code"],
+          },
+          constraints: [
+            {
+              kind: "description",
+              value: "Uppercase code",
+              message:
+                'This JSON Schema "description" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "description",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "age"],
+          },
+          constraints: [
+            {
+              kind: "minimum",
+              value: 0,
+              message:
+                'This JSON Schema "minimum" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "minimum",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "age"],
+          },
+          constraints: [
+            {
+              kind: "exclusive-minimum",
+              value: -1,
+              message:
+                'This JSON Schema "exclusiveMinimum" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "exclusiveMinimum",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "score"],
+          },
+          constraints: [
+            {
+              kind: "maximum",
+              value: 100,
+              message:
+                'This JSON Schema "maximum" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "maximum",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "score"],
+          },
+          constraints: [
+            {
+              kind: "exclusive-maximum",
+              value: 101,
+              message:
+                'This JSON Schema "exclusiveMaximum" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "exclusiveMaximum",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "score"],
+          },
+          constraints: [
+            {
+              kind: "multiple-of",
+              value: 0.5,
+              message:
+                'This JSON Schema "multipleOf" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "multipleOf",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "score"],
+          },
+          constraints: [
+            {
+              kind: "write-only",
+              value: true,
+              message:
+                'This JSON Schema "writeOnly" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "writeOnly",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "tags"],
+          },
+          constraints: [
+            {
+              kind: "min-items",
+              value: 1,
+              message:
+                'This JSON Schema "minItems" constraint was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "minItems",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "tags"],
+          },
+          constraints: [
+            {
+              kind: "max-items",
+              value: 3,
+              message:
+                'This JSON Schema "maxItems" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "maxItems",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "tags"],
+          },
+          constraints: [
+            {
+              kind: "unique-items",
+              value: true,
+              message:
+                'This JSON Schema "uniqueItems" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "uniqueItems",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root", "tags"],
+          },
+          constraints: [
+            {
+              kind: "description",
+              value: "User tags",
+              message:
+                'This JSON Schema "description" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "description",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "format",
+              value: "json-pointer",
+              message:
+                'This JSON Schema "format" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "format",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "default",
+              value: {
+                code: "AA",
+              },
+              message:
+                'This JSON Schema "default" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "default",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "examples",
+              value: [{ code: "BB" }],
+              message:
+                'This JSON Schema "examples" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "examples",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "min-properties",
+              value: 1,
+              message:
+                'This JSON Schema "minProperties" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "minProperties",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "max-properties",
+              value: 8,
+              message:
+                'This JSON Schema "maxProperties" rule was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "maxProperties",
+              },
+            },
+          ],
+        },
+        {
+          target: {
+            kind: "node",
+            path: ["root"],
+          },
+          constraints: [
+            {
+              kind: "description",
+              value: "User constraints",
+              message:
+                'This JSON Schema "description" annotation was preserved in constraint IR.',
+              evidence: {
+                sourceKeyword: "description",
+              },
+            },
+          ],
+        },
+      ]),
+    );
   });
 
   it("treats additionalProperties: true as open-object-compatible or record-unknown semantics", () => {
@@ -321,6 +937,34 @@ describe("parser-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "loss",
+          code: "json-schema-union-composition-lowered",
+          message:
+            'The JSON Schema "anyOf" composition was lowered into the shared union semantics.',
+          path: ["root"],
+          nodeKind: "union",
+          source: "parser-json-schema",
+          layer: "shape",
+          evidence: {
+            sourceKeyword: "anyOf",
+          },
+        },
+        {
+          kind: "widening",
+          code: "json-schema-true-schema-lowered",
+          message:
+            "This JSON Schema true-schema was lowered into the shared unknown schema semantics.",
+          path: ["root", "1"],
+          nodeKind: "unknown",
+          source: "parser-json-schema",
+          layer: "shape",
+          evidence: {
+            sourceKeyword: true,
+          },
+        },
+      ],
     });
   });
 
@@ -421,6 +1065,34 @@ describe("parser-json-schema", () => {
           },
         },
       ],
+      semanticNotes: [
+        {
+          kind: "widening",
+          code: "json-schema-true-schema-lowered",
+          message:
+            "This JSON Schema true-schema was lowered into the shared unknown schema semantics.",
+          path: ["root", "tags", "elementType"],
+          nodeKind: "unknown",
+          source: "parser-json-schema",
+          layer: "shape",
+          evidence: {
+            sourceKeyword: true,
+          },
+        },
+        {
+          kind: "widening",
+          code: "json-schema-true-schema-lowered",
+          message:
+            "This JSON Schema true-schema was lowered into the shared unknown schema semantics.",
+          path: ["root", "metadata"],
+          nodeKind: "unknown",
+          source: "parser-json-schema",
+          layer: "shape",
+          evidence: {
+            sourceKeyword: true,
+          },
+        },
+      ],
     });
   });
 
@@ -460,5 +1132,35 @@ describe("parser-json-schema", () => {
         detail: "JSON Schema boolean true was lowered to unknown.",
       },
     });
+    expect(metadataOnlyParsed.semanticNotes).toEqual([
+      {
+        kind: "widening",
+        code: "json-schema-metadata-only-root-lowered",
+        message:
+          "This metadata-only root schema was lowered into the shared unknown schema semantics.",
+        path: ["root"],
+        nodeKind: "unknown",
+        source: "parser-json-schema",
+        layer: "shape",
+        evidence: {
+          sourceForm: "metadata-only-root",
+        },
+      },
+    ]);
+    expect(explicitTrueParsed.semanticNotes).toEqual([
+      {
+        kind: "widening",
+        code: "json-schema-true-schema-lowered",
+        message:
+          "This JSON Schema true-schema was lowered into the shared unknown schema semantics.",
+        path: ["root"],
+        nodeKind: "unknown",
+        source: "parser-json-schema",
+        layer: "shape",
+        evidence: {
+          sourceKeyword: true,
+        },
+      },
+    ]);
   });
 });

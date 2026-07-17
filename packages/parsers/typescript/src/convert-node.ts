@@ -18,7 +18,10 @@ import {
 } from "@aio/core";
 import ts from "typescript";
 import { convertTypeScriptEnumDeclaration } from "./convert-enum.js";
-import { createTypeScriptUnsupportedDiagnostic } from "./diagnostics.js";
+import {
+  createTypeScriptUnsupportedDiagnostic,
+  typeScriptSemanticNote,
+} from "./diagnostics.js";
 import { throwTypeScriptInferenceError } from "./errors.js";
 import { getTypeScriptSourceLocation } from "./syntax.js";
 import type {
@@ -170,6 +173,26 @@ function convertTypeScriptPropertySignature(
   }
 
   const propertyName = getTypeScriptPropertyName(member.name, context);
+  if (
+    member.modifiers?.some(
+      (modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword,
+    )
+  ) {
+    context.semanticNotes.push(
+      typeScriptSemanticNote({
+        kind: "normalization",
+        code: "typescript-readonly-property-lowered",
+        message:
+          "This TypeScript readonly property was lowered into ordinary shared field semantics.",
+        path: [...context.path, propertyName],
+        nodeKind: "field",
+        layer: "shape",
+        evidence: {
+          sourceKeyword: "readonly",
+        },
+      }),
+    );
+  }
   const convertedType = convertTypeScriptFieldTypeNode(member.type, {
     ...context,
     path: [...context.path, propertyName],
@@ -616,6 +639,7 @@ function convertReachableDeclarationType(
     return convertTypeScriptEnumDeclaration(declaration, {
       sourceName: context.sourceName,
       path: definitionPath,
+      semanticNotes: context.semanticNotes,
     });
   }
 

@@ -1,4 +1,8 @@
-import type { SchemaDefinition, SchemaDiagnostic } from "@aio/core";
+import type {
+  SchemaDefinition,
+  SchemaDiagnostic,
+  SchemaSemanticNote,
+} from "@aio/core";
 import type ts from "typescript";
 
 export type TypeScriptEntryDeclaration =
@@ -18,6 +22,7 @@ export interface TypeScriptReExportReference {
 export interface TypeScriptConvertContext {
   definitions: SchemaDefinition[];
   diagnostics: SchemaDiagnostic[];
+  semanticNotes: SchemaSemanticNote[];
   declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
   declarationNames: Set<string>;
   importedTypeMap: ReadonlyMap<string, string>;

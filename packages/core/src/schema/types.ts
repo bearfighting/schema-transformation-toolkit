@@ -45,6 +45,22 @@ export interface SchemaDiagnostic {
   evidence?: unknown;
 }
 
+export type SchemaSemanticNoteKind =
+  "normalization" | "loss" | "widening" | "policy";
+export type SchemaSemanticNoteLayer =
+  "value" | "shape" | "constraint" | "target";
+
+export interface SchemaSemanticNote {
+  kind: SchemaSemanticNoteKind;
+  code: string;
+  message: string;
+  path?: string[];
+  nodeKind?: SchemaDiagnosticNodeKind;
+  source?: string;
+  layer?: SchemaSemanticNoteLayer;
+  evidence?: unknown;
+}
+
 export interface SchemaValidationSuccessResult {
   ok: true;
 }

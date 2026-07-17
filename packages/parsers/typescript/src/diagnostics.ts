@@ -1,4 +1,11 @@
-import type { SchemaDiagnostic, SchemaDiagnosticNodeKind } from "@aio/core";
+import type {
+  SchemaDiagnostic,
+  SchemaDiagnosticNodeKind,
+  SchemaSemanticNote,
+  SchemaSemanticNoteKind,
+  SchemaSemanticNoteLayer,
+} from "@aio/core";
+import { createSchemaObservation } from "@aio/core";
 import type { TypeScriptInferenceErrorCode } from "./errors.js";
 import type { TypeScriptSourceLocation } from "./types.js";
 
@@ -164,4 +171,26 @@ export function createTypeScriptUnsupportedDiagnostic(options: {
       ...(options.evidence ?? {}),
     },
   };
+}
+
+export function typeScriptSemanticNote(options: {
+  kind: SchemaSemanticNoteKind;
+  code: string;
+  message: string;
+  path?: string[];
+  nodeKind?: SchemaDiagnosticNodeKind;
+  layer?: SchemaSemanticNoteLayer;
+  evidence?: unknown;
+}): SchemaSemanticNote {
+  return createSchemaObservation({
+    severity: "info",
+    kind: options.kind,
+    code: options.code,
+    message: options.message,
+    source: "parser-typescript",
+    ...(options.path ? { path: options.path } : {}),
+    ...(options.nodeKind ? { nodeKind: options.nodeKind } : {}),
+    ...(options.layer ? { layer: options.layer } : {}),
+    ...(options.evidence ? { evidence: options.evidence } : {}),
+  }).semanticNote;
 }

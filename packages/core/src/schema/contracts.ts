@@ -1,4 +1,9 @@
-import type { SchemaDiagnostic, SchemaDocument } from "./types.js";
+import type {
+  SchemaDiagnostic,
+  SchemaDocument,
+  SchemaSemanticNote,
+} from "./types.js";
+import type { ConstraintDocument } from "../constraint/types.js";
 
 export interface ParseOptions {
   name?: string;
@@ -21,7 +26,9 @@ export interface ConfiguredParser<
 export interface ParseSuccessResult {
   ok: true;
   document: SchemaDocument;
+  constraints?: ConstraintDocument;
   diagnostics?: SchemaDiagnostic[];
+  semanticNotes?: SchemaSemanticNote[];
 }
 
 export interface ParseFailureResult<TCode extends string = string> {
@@ -61,6 +68,7 @@ export interface GenerateSuccessResult<TOutput = string> {
   ok: true;
   output: TOutput;
   diagnostics?: SchemaDiagnostic[];
+  semanticNotes?: SchemaSemanticNote[];
 }
 
 export interface GenerateFailureResult<TCode extends string = string> {

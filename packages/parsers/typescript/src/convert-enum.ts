@@ -3,9 +3,13 @@ import {
   schemaUnionNode,
   type SchemaLiteralNode,
   type SchemaNode,
+  type SchemaSemanticNote,
 } from "@aio/core";
 import ts from "typescript";
-import { createTypeScriptUnsupportedDiagnostic } from "./diagnostics.js";
+import {
+  createTypeScriptUnsupportedDiagnostic,
+  typeScriptSemanticNote,
+} from "./diagnostics.js";
 import { throwTypeScriptInferenceError } from "./errors.js";
 import { getTypeScriptSourceLocation } from "./syntax.js";
 
@@ -14,11 +18,13 @@ export function convertTypeScriptEnumDeclaration(
   options?: {
     sourceName?: string;
     path?: string[];
+    semanticNotes?: SchemaSemanticNote[];
   },
 ): SchemaNode {
   const members: SchemaLiteralNode[] = [];
   const memberValues = new Map<string, string | number | boolean>();
   let nextNumericValue: number | undefined = 0;
+  let containsMemberReferences = false;
 
   for (const member of declaration.members) {
     const value = getTypeScriptEnumMemberValue(
@@ -28,15 +34,35 @@ export function convertTypeScriptEnumDeclaration(
       memberValues,
       options,
     );
-    members.push(schemaLiteralNode(value));
-    memberValues.set(member.name.getText(), value);
+    members.push(schemaLiteralNode(value.value));
+    memberValues.set(member.name.getText(), value.value);
+    containsMemberReferences =
+      containsMemberReferences || value.usedMemberReference;
 
-    if (typeof value === "number") {
-      nextNumericValue = value + 1;
+    if (typeof value.value === "number") {
+      nextNumericValue = value.value + 1;
     } else {
       nextNumericValue = undefined;
     }
   }
+
+  options?.semanticNotes?.push(
+    typeScriptSemanticNote({
+      kind: "normalization",
+      code: "typescript-enum-lowered",
+      message:
+        "This TypeScript enum declaration was lowered into shared literal or literal-union schema semantics.",
+      ...(options.path ? { path: options.path } : {}),
+      nodeKind: "definition",
+      layer: "shape",
+      evidence: {
+        enumName: declaration.name.text,
+        memberCount: declaration.members.length,
+        loweredForm: members.length === 1 ? "literal" : "literal-union",
+        containsMemberReferences,
+      },
+    }),
+  );
 
   if (members.length === 1) {
     const [member] = members;
@@ -60,7 +86,10 @@ function getTypeScriptEnumMemberValue(
     sourceName?: string;
     path?: string[];
   },
-): string | number | boolean {
+): {
+  value: string | number | boolean;
+  usedMemberReference: boolean;
+} {
   if (!member.initializer) {
     if (fallbackNumericValue === undefined) {
       throwUnsupportedEnumInitializer(
@@ -71,23 +100,38 @@ function getTypeScriptEnumMemberValue(
       );
     }
 
-    return fallbackNumericValue;
+    return {
+      value: fallbackNumericValue,
+      usedMemberReference: false,
+    };
   }
 
   if (ts.isStringLiteral(member.initializer)) {
-    return member.initializer.text;
+    return {
+      value: member.initializer.text,
+      usedMemberReference: false,
+    };
   }
 
   if (ts.isNumericLiteral(member.initializer)) {
-    return Number(member.initializer.text);
+    return {
+      value: Number(member.initializer.text),
+      usedMemberReference: false,
+    };
   }
 
   if (member.initializer.kind === ts.SyntaxKind.TrueKeyword) {
-    return true;
+    return {
+      value: true,
+      usedMemberReference: false,
+    };
   }
 
   if (member.initializer.kind === ts.SyntaxKind.FalseKeyword) {
-    return false;
+    return {
+      value: false,
+      usedMemberReference: false,
+    };
   }
 
   if (
@@ -95,14 +139,20 @@ function getTypeScriptEnumMemberValue(
     member.initializer.operator === ts.SyntaxKind.MinusToken &&
     ts.isNumericLiteral(member.initializer.operand)
   ) {
-    return -Number(member.initializer.operand.text);
+    return {
+      value: -Number(member.initializer.operand.text),
+      usedMemberReference: false,
+    };
   }
 
   if (ts.isIdentifier(member.initializer)) {
     const referencedValue = memberValues.get(member.initializer.text);
 
     if (referencedValue !== undefined) {
-      return referencedValue;
+      return {
+        value: referencedValue,
+        usedMemberReference: true,
+      };
     }
   }
 
@@ -114,7 +164,10 @@ function getTypeScriptEnumMemberValue(
     const referencedValue = memberValues.get(member.initializer.name.text);
 
     if (referencedValue !== undefined) {
-      return referencedValue;
+      return {
+        value: referencedValue,
+        usedMemberReference: true,
+      };
     }
   }
 

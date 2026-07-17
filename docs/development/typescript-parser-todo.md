@@ -9,6 +9,19 @@ The goal is to validate the current schema IR with one additional source languag
 
 Build a TypeScript schema-subset parser that can turn one explicit named declaration into a valid `SchemaDocument`.
 
+## Result Contract
+
+This parser should follow the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- return success without diagnostics when TypeScript source maps directly into current shared shape semantics
+- return success with diagnostics when the parser intentionally normalizes syntax while remaining truthful
+- return failure when accepting the source would silently approximate unsupported TypeScript meaning too aggressively
+
+For the current parser subset, most accepted cases are either direct support or syntax normalization.
+The v0 boundary should stay strict about unsupported type-system features rather than pretending they are serializable data-shape semantics.
+
 ## Current Implemented Subset
 
 Supported today:
@@ -31,6 +44,14 @@ Supported today:
 - reachable top-level named references only
 - shared validation through `tryValidateSchemaDocument`
 
+Current supported-with-normalization behavior:
+
+- `interface` and `type` declarations both lower into the same shared shape semantics
+- readonly properties lower into ordinary field semantics when readonly adds no new shared meaning
+- readonly arrays and readonly tuples lower into ordinary array and tuple semantics
+- enum declarations lower into literal or literal-union schema definitions when members stay in the supported literal subset
+- earlier-member enum references normalize into their resolved literal outcomes when resolution stays inside the parser's narrow local enum rules
+
 Unsupported today, with explicit parser failures:
 
 - missing explicit entry names
@@ -46,6 +67,12 @@ Unsupported today, with explicit parser failures:
 - enum initializers outside literal, implicit-numeric, or earlier-member-reference forms
 - computed enum evaluation is intentionally out of scope
 - readonly syntax still respects the existing tuple-rest and malformed array-reference failure boundaries
+
+Current supported-with-semantic-loss behavior should remain intentionally narrow:
+
+- the parser preserves shared data-shape truth, not full TypeScript declaration form
+- declaration-form distinctions that do not survive into shared shape semantics should be treated as accepted normalization, not as lossless round-trip guarantees
+- full TypeScript syntax fidelity is explicitly out of scope for this parser
 
 ## Phase 0: Documentation And Scope
 
@@ -135,6 +162,7 @@ type User = {
 - [ ] add parser-facing source span or line-column diagnostics on top of the current logical `path` diagnostics
 - [x] decide and document the intended support strategy for `enum`, `readonly` properties, and readonly array or tuple syntax before implementing them
 - [ ] keep the supported success subset, explicit failure matrix, and package docs aligned as new cases land
+- [ ] apply the capability-and-loss documentation pattern explicitly in the parser package README once the next supported slice lands
 
 ### Source Span Diagnostics Breakdown
 

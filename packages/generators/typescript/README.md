@@ -38,6 +38,58 @@ The current generator supports:
 - normalized identifier naming for type names and field names
 - reserved-word and invalid-identifier handling
 
+## Result Contract
+
+This generator follows the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- it returns success without diagnostics when shared shape semantics render directly into supported TypeScript output
+- it returns success with diagnostics when future rendering remains truthful but needs widening, normalization, or target-policy caveats
+- it returns failure when generation cannot produce safe TypeScript output under the current contract
+
+Success here means truthful TypeScript rendering of the accepted shared schema semantics.
+It does not mean lossless recovery of any original parser source language.
+
+## Capability Status
+
+### Supported Directly
+
+- object root documents as `export interface` or `export type`
+- scalar, literal, union, `null`, array, tuple, and record root documents as `export type`
+- nested inline object types
+- optional fields as `?`
+- nullable fields as `| null`
+- literal nodes as exact literal types
+- union nodes as exact TypeScript unions
+- optional tuple elements as `?`
+- record nodes as `Record<string, T>`
+- `unknown` nodes as `unknown`
+- document-local references
+
+### Supported With Normalization
+
+- root object documents may render as either `export interface` or `export type` depending on configuration
+- array output may render as `T[]` or `Array<T>` depending on configuration
+- rendered names may be normalized through the configured naming strategy to remain valid TypeScript identifiers
+
+These are target-shape normalization choices rather than semantic loss in shared schema meaning.
+
+### Supported With Semantic Loss Or Widening
+
+- no major lossy success path is intentionally emphasized today beyond ordinary naming normalization and target rendering choices
+- if a future shared semantic must render more broadly in TypeScript than its source evidence suggested, that should succeed only with diagnostics
+
+This generator is currently stricter about invalid naming and unsupported nodes than the JSON Schema generator is about target widening.
+
+### Unsupported Or Intentionally Deferred
+
+- `enum` emission
+- choosing `class` emission
+- import or export modeling beyond one generated document
+- cross-document reuse semantics
+- any future shared semantics that cannot yet be expressed safely in supported TypeScript output
+
 ## Current Naming Behavior
 
 By default:
@@ -234,6 +286,11 @@ Current diagnostics behavior:
 - generator failures also include structured diagnostics with the same primary `code` and `message`
 - generator failure diagnostics now also include stable `path` and `nodeKind`, plus `evidence` for rendered/source naming failures where useful
 - success results currently stay quiet unless future generator warnings become useful
+
+Under the shared capability-and-loss contract, this means:
+
+- most current generator caveats are handled as explicit failure rather than lossy success
+- if future TypeScript target limitations still allow truthful but imperfect rendering, those cases should become success-with-diagnostics rather than silent success
 
 ## Where To Look Next
 

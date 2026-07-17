@@ -1,4 +1,5 @@
 import type {
+  ConstraintDocument,
   ConfiguredGenerator,
   GenerateOptions,
   PreparedOptions,
@@ -18,6 +19,7 @@ export interface JsonSchemaGeneratorOptions extends GenerateOptions {
   unknownStrategy?: JsonSchemaUnknownStrategy;
   objectAdditionalPropertiesMode?: JsonSchemaObjectAdditionalPropertiesMode;
   unionComposition?: JsonSchemaUnionComposition;
+  constraints?: ConstraintDocument;
 }
 
 export interface ResolvedJsonSchemaGeneratorOptions {
@@ -27,6 +29,7 @@ export interface ResolvedJsonSchemaGeneratorOptions {
   unknownStrategy: JsonSchemaUnknownStrategy;
   objectAdditionalPropertiesMode: JsonSchemaObjectAdditionalPropertiesMode;
   unionComposition: JsonSchemaUnionComposition;
+  constraints?: ConstraintDocument;
 }
 
 export const DEFAULT_JSON_SCHEMA_GENERATOR_OPTIONS: ResolvedJsonSchemaGeneratorOptions =
@@ -58,6 +61,7 @@ export function resolveJsonSchemaGeneratorOptions(
     unionComposition:
       options.unionComposition ??
       DEFAULT_JSON_SCHEMA_GENERATOR_OPTIONS.unionComposition,
+    ...(options.constraints ? { constraints: options.constraints } : {}),
   };
 }
 

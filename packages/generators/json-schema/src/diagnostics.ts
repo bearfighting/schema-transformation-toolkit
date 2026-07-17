@@ -1,17 +1,25 @@
 import {
   areEquivalentSchemaNodes,
+  pushSchemaObservation,
   type SchemaDefinition,
   type SchemaDiagnostic,
   type SchemaDocument,
   type SchemaNode,
+  type SchemaSemanticNote,
 } from "@aio/core";
 import type { ResolvedJsonSchemaGeneratorOptions } from "./options.js";
 
-export function collectJsonSchemaDiagnostics(
+export interface JsonSchemaSemanticObservations {
+  diagnostics: SchemaDiagnostic[];
+  semanticNotes: SchemaSemanticNote[];
+}
+
+export function collectJsonSchemaSemanticObservations(
   doc: SchemaDocument,
   options: ResolvedJsonSchemaGeneratorOptions,
-): SchemaDiagnostic[] {
+): JsonSchemaSemanticObservations {
   const diagnostics: SchemaDiagnostic[] = [];
+  const semanticNotes: SchemaSemanticNote[] = [];
   const definitionLookup = new Map(
     doc.definitions.map((definition) => [definition.name.source, definition]),
   );
@@ -23,6 +31,7 @@ export function collectJsonSchemaDiagnostics(
       options,
       definitionLookup,
       diagnostics,
+      semanticNotes,
     );
   }
 
@@ -32,9 +41,13 @@ export function collectJsonSchemaDiagnostics(
     options,
     definitionLookup,
     diagnostics,
+    semanticNotes,
   );
 
-  return diagnostics;
+  return {
+    diagnostics,
+    semanticNotes,
+  };
 }
 
 function collectNodeDiagnostics(
@@ -43,17 +56,20 @@ function collectNodeDiagnostics(
   options: ResolvedJsonSchemaGeneratorOptions,
   definitionLookup: ReadonlyMap<string, SchemaDefinition>,
   diagnostics: SchemaDiagnostic[],
+  semanticNotes: SchemaSemanticNote[],
 ): void {
   switch (node.kind) {
     case "unknown":
-      diagnostics.push({
+      pushSchemaObservation(diagnostics, semanticNotes, {
         severity: "warning",
+        kind: "widening",
         code: "wide-unknown-schema",
         message:
           "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
         path,
         nodeKind: "unknown",
         source: "generator-json-schema",
+        layer: "shape",
         evidence: {
           reason: node.reason,
           nullable: node.nullable,
@@ -72,6 +88,7 @@ function collectNodeDiagnostics(
         options,
         definitionLookup,
         diagnostics,
+        semanticNotes,
       );
       return;
     case "tuple":
@@ -82,6 +99,7 @@ function collectNodeDiagnostics(
           options,
           definitionLookup,
           diagnostics,
+          semanticNotes,
         );
       }
       return;
@@ -92,18 +110,21 @@ function collectNodeDiagnostics(
         options,
         definitionLookup,
         diagnostics,
+        semanticNotes,
       );
       return;
     case "object":
       if (options.objectAdditionalPropertiesMode === "false") {
-        diagnostics.push({
+        pushSchemaObservation(diagnostics, semanticNotes, {
           severity: "warning",
+          kind: "policy",
           code: "closed-object-schema",
           message:
             "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
           path,
           nodeKind: "object",
           source: "generator-json-schema",
+          layer: "target",
           evidence: {
             objectAdditionalPropertiesMode:
               options.objectAdditionalPropertiesMode,
@@ -119,6 +140,7 @@ function collectNodeDiagnostics(
           options,
           definitionLookup,
           diagnostics,
+          semanticNotes,
         );
       }
       return;
@@ -130,14 +152,16 @@ function collectNodeDiagnostics(
 
       if (overlappingPairs.length > 0) {
         if (options.unionComposition === "oneOf") {
-          diagnostics.push({
+          pushSchemaObservation(diagnostics, semanticNotes, {
             severity: "warning",
+            kind: "policy",
             code: "overlapping-oneof-members",
             message:
               "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
             path,
             nodeKind: "union",
             source: "generator-json-schema",
+            layer: "target",
             evidence: {
               unionComposition: options.unionComposition,
               overlappingPairs,
@@ -148,14 +172,16 @@ function collectNodeDiagnostics(
             },
           });
         } else {
-          diagnostics.push({
+          pushSchemaObservation(diagnostics, semanticNotes, {
             severity: "warning",
+            kind: "policy",
             code: "overlapping-anyof-members",
             message:
               "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
             path,
             nodeKind: "union",
             source: "generator-json-schema",
+            layer: "target",
             evidence: {
               unionComposition: options.unionComposition,
               overlappingPairs,
@@ -175,6 +201,7 @@ function collectNodeDiagnostics(
           options,
           definitionLookup,
           diagnostics,
+          semanticNotes,
         );
       }
       return;

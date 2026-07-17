@@ -39,6 +39,19 @@ It should not yet support:
 - JSON Schema annotation preservation
 - evaluation-style keywords whose meaning does not fit the current IR
 
+## Result Contract
+
+This parser should follow the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- return success without diagnostics when JSON Schema meaning maps directly into current shared shape semantics
+- return success with diagnostics when the parser intentionally normalizes or lowers JSON Schema meaning while remaining truthful
+- return failure when accepting the source would silently erase or misrepresent semantics too aggressively
+
+Success in this parser does not mean full JSON Schema fidelity.
+It means the resulting `Shape IR v0` document is still truthful for the accepted subset.
+
 ## Why This Is The Right Boundary
 
 This parser is primarily useful for three reasons:
@@ -76,6 +89,56 @@ That includes:
 - wide schemas rendered as `true`
 
 If the parser cannot round-trip current generator output, the parser boundary is too narrow.
+
+## Capability Status
+
+The v0 parser should describe its behavior in four classes.
+
+### Supported Directly
+
+- scalar `type` values
+- `type: "null"`
+- `const` with string, number, or boolean values
+- ordinary object `properties` and `required`
+- homogeneous arrays through `items`
+- tuple structure through `prefixItems + minItems + items: false`
+- typed records through `additionalProperties: <schema>`
+- document-local `$defs`
+- document-local `$ref`
+
+These cases should succeed without semantic-loss diagnostics unless another separate warning applies.
+
+### Supported With Normalization
+
+- nullable property forms such as `type: ["T", "null"]`
+- nullable property forms expressed through `oneOf` or `anyOf` with one non-null member
+- nested union syntax that becomes one normalized shared union
+
+These cases should succeed, but diagnostics should make the normalization explicit when the source distinction is not preserved directly.
+
+### Supported With Semantic Loss
+
+- `oneOf` versus `anyOf` source distinctions
+- boolean `true` schemas lowered into `unknown`
+- metadata-only wide roots lowered into `unknown`
+- arrays without `items` lowered into `array<unknown>`
+- `additionalProperties: true` lowered into `Record<string, unknown>`
+
+These cases should succeed only because the lowered meaning is still truthful under the current shared shape contract.
+They should remain visible through stable diagnostics.
+
+### Unsupported Or Intentionally Deferred
+
+- boolean `false` schemas
+- closed ordinary objects through `additionalProperties: false`
+- mixed fixed-field-plus-typed-additionalProperties objects
+- compact `type: [...]` arrays outside the narrow nullable scalar case
+- external or non-local `$ref`
+- unsupported drafts
+- validation keywords outside current shared shape semantics
+- annotation keywords whose meaning would currently be erased
+
+These cases should fail explicitly.
 
 ## Current IR Mapping Table
 
@@ -229,6 +292,8 @@ Therefore:
 - `true` should parse to `unknown`
 - the parser may attach parser-specific evidence explaining that the source was a boolean-wide schema
 
+This is a semantic widening, not a lossless JSON Schema round-trip guarantee.
+
 ### Nullable Structural Form
 
 Current IR expresses field nullability as field metadata rather than as a raw union wrapper in every case.
@@ -240,6 +305,23 @@ Therefore:
 - the same should apply to `anyOf: [T, null]`
 
 This normalization should be limited to clear field-level cases.
+
+## Diagnostics Expectations
+
+The parser should use diagnostics to make accepted normalization and loss visible.
+
+Expected diagnostic classes in v0:
+
+- normalization notices for nullable property lowering
+- semantic-loss warnings for `oneOf` versus `anyOf` lowering
+- widening warnings for `true` schemas lowered into `unknown`
+- explicit failure diagnostics for unsupported JSON Schema semantics
+
+Diagnostics should stay stable enough to support:
+
+- parser contract tests
+- failure-matrix tests
+- integration tests that verify accepted lowering behavior
 
 ## Required Explicit Failures
 

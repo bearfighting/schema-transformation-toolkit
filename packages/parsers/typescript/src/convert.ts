@@ -3,6 +3,7 @@ import {
   schemaDocument,
   schemaReferenceNode,
   type SchemaDiagnostic,
+  type SchemaSemanticNote,
   tryValidateSchemaDocument,
   type SchemaDocument,
 } from "@aio/core";
@@ -26,10 +27,12 @@ export function convertTypeScriptEntryDeclarationToSchemaDocument(
   ok: true;
   document: SchemaDocument;
   diagnostics: SchemaDiagnostic[];
+  semanticNotes: SchemaSemanticNote[];
 } {
   const context: TypeScriptConvertContext = {
     definitions: [],
     diagnostics: [],
+    semanticNotes: [],
     declarationMap,
     declarationNames,
     importedTypeMap,
@@ -58,6 +61,7 @@ export function convertTypeScriptEntryDeclarationToSchemaDocument(
     ok: true,
     document,
     diagnostics: context.diagnostics,
+    semanticNotes: context.semanticNotes,
   };
 }
 
@@ -95,6 +99,7 @@ function ensureDefinitionForDeclaration(
       ? convertTypeScriptEnumDeclaration(declaration, {
           sourceName: context.sourceName,
           path: ["definitions", name],
+          semanticNotes: context.semanticNotes,
         })
       : convertTypeScriptTypeNode(
           ts.factory.createTypeLiteralNode(declaration.members),

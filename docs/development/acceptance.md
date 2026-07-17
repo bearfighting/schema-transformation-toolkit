@@ -24,6 +24,7 @@ A feature is ready to land when all of the following are true:
 ### Parser
 
 - supported cases infer correctly
+- accepted normalization or semantic-loss cases are documented and tested when success remains truthful
 - unsupported cases fail explicitly
 - options are documented and validated
 - parser tests cover success and failure boundaries
@@ -31,6 +32,7 @@ A feature is ready to land when all of the following are true:
 ### Generator
 
 - supported IR shapes render correctly
+- target-side semantic loss or widening cases are documented and tested when generation still succeeds
 - generator tests cover representative output
 - output stays semantically aligned with IR rules
 

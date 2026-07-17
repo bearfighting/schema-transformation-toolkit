@@ -5,6 +5,9 @@ export type {
   SchemaBaseNode,
   SchemaDefinition,
   SchemaDiagnostic,
+  SchemaSemanticNote,
+  SchemaSemanticNoteKind,
+  SchemaSemanticNoteLayer,
   SchemaDiagnosticSeverity,
   SchemaDocument,
   SchemaFieldNode,
@@ -23,3 +26,49 @@ export type {
   SchemaUnknownNode,
   UnknownReason,
 } from "./schema/types.js";
+
+export type {
+  ShapeArrayNode,
+  ShapeBaseNode,
+  ShapeDefinition,
+  ShapeDocument,
+  ShapeFieldNode,
+  ShapeLiteralNode,
+  ShapeNode,
+  ShapeNodeKind,
+  ShapeNullNode,
+  ShapeObjectNode,
+  ShapeRecordNode,
+  ShapeReferenceNode,
+  ShapeScalarNode,
+  ShapeTupleElement,
+  ShapeTupleNode,
+  ShapeUnionNode,
+  ShapeUnknownNode,
+} from "./shape/index.js";
+
+export type {
+  ConstraintClause,
+  ConstraintDocument,
+  ConstraintSeverity,
+} from "./constraint/index.js";
+
+export type { IrModel } from "./model/index.js";
+
+export type {
+  ConversionRoute,
+  ConversionRouteCapabilities,
+  IrKind,
+  PipelineStage,
+  PipelineStageKind,
+} from "./pipeline/index.js";
+
+export type {
+  ValueArrayNode,
+  ValueDocument,
+  ValueNode,
+  ValueObjectField,
+  ValueObjectNode,
+  ValueScalar,
+  ValueScalarNode,
+} from "./value/index.js";

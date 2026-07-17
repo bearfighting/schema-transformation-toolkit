@@ -59,6 +59,74 @@ Current enum support is intentionally non-computational:
 - references to earlier enum members are supported
 - general computed enum evaluation is out of scope
 
+## Result Contract
+
+This parser follows the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- it returns success without diagnostics when TypeScript source maps directly into current shared shape semantics
+- it may return success with diagnostics when the parser intentionally normalizes syntax while remaining truthful
+- it returns failure when accepting the source would silently approximate unsupported TypeScript meaning too aggressively
+
+Success here means truthful shared-shape inference for the supported TypeScript subset.
+It does not mean full TypeScript syntax fidelity or lossless recovery of declaration-form distinctions.
+
+## Capability Status
+
+### Supported Directly
+
+- explicit named entry declarations
+- `type` aliases, `interface` declarations, and supported `enum` declarations
+- `export`-modified supported declarations that stay within the current schema subset
+- single-file reachable declarations
+- object type literals
+- scalar keywords: `string`, `number`, `boolean`
+- `null`
+- optional properties
+- field-level nullable unions
+- general unions
+- array shorthand and `Array<T>`
+- `ReadonlyArray<T>`
+- tuples without rest elements
+- scalar literal types and literal unions
+- `Record<string, T>`
+- reachable top-level named references
+
+### Supported With Normalization
+
+- `interface` and `type` declarations both lower into the same shared shape semantics
+- readonly properties lower into ordinary field semantics when readonly adds no new shared IR meaning
+- readonly arrays and readonly tuples lower into ordinary array and tuple semantics
+- supported enum declarations lower into literal or literal-union schema definitions
+- earlier-member enum references lower into their resolved literal outcomes when they stay inside the parser's narrow local enum rules
+
+These are accepted syntax-to-shape normalization paths rather than full-fidelity TypeScript preservation.
+
+### Supported With Semantic Loss
+
+- accepted semantic-loss behavior should remain intentionally narrow in this parser
+- declaration-form distinctions that do not survive into shared shape semantics are treated as normalization, not as lossless round-trip guarantees
+- the parser's job is shared data-shape inference, not preservation of all source-language structure
+
+### Unsupported Or Intentionally Deferred
+
+- missing explicit entry names or declarations
+- unsupported top-level declaration kinds such as classes
+- imported, namespace-imported, or re-export-only entry paths that require cross-file resolution
+- tuple rest elements
+- external or unresolved type references
+- utility types outside `Record`
+- non-string `Record` keys
+- interface `extends` clauses
+- conditional, mapped, function, and intersection types
+- unsupported object type members
+- unsupported property names such as computed keys
+- generic unsupported syntax kinds
+- enum initializers outside the supported literal, implicit-numeric, or earlier-member-reference subset
+
+These cases fail explicitly rather than being widened into guessed schema meaning.
+
 ## Current Unsupported Subset
 
 The parser currently fails explicitly for:
@@ -142,6 +210,12 @@ Current failure results use stable parser-facing codes, including:
 - `unsupported-typescript-type-reference`
 
 Diagnostics carry the shared `core` shape, including stable `path`, `nodeKind`, and `evidence` fields when the parser can determine a meaningful logical location.
+
+Under the shared capability-and-loss contract, this means:
+
+- most current caveats are handled as explicit failures rather than lossy success
+- accepted syntax normalization may use diagnostics when the distinction is important to surface
+- future successful-but-imperfect TypeScript lowering should prefer success-with-diagnostics over silent approximation
 
 For parser-specific source locations, the current v0 convention is:
 

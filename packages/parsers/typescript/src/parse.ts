@@ -2,6 +2,7 @@ import type {
   ParseFailureResult,
   SchemaDiagnostic,
   SchemaDocument,
+  SchemaSemanticNote,
 } from "@aio/core";
 import { getTypeScriptSourceLocation } from "./syntax.js";
 import { convertTypeScriptEntryDeclarationToSchemaDocument } from "./convert.js";
@@ -20,6 +21,7 @@ export interface TypeScriptInferenceSuccessResult {
   ok: true;
   document: SchemaDocument;
   diagnostics?: SchemaDiagnostic[];
+  semanticNotes?: SchemaSemanticNote[];
 }
 
 export type TypeScriptInferenceFailureResult = ParseFailureResult<
@@ -150,6 +152,9 @@ function tryInferTypeScriptDocumentWithResolvedOptions(
       document: converted.document,
       ...(converted.diagnostics.length > 0
         ? { diagnostics: converted.diagnostics }
+        : {}),
+      ...(converted.semanticNotes.length > 0
+        ? { semanticNotes: converted.semanticNotes }
         : {}),
     };
   } catch (error) {

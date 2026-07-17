@@ -11,7 +11,18 @@ These cases should answer:
 
 - which TypeScript constructs are in scope for parser v0
 - which constructs must map directly into current schema IR semantics
+- which constructs are accepted through normalization into shared shape semantics
 - which constructs must fail explicitly instead of being approximated
+
+## Result Contract
+
+These cases should be interpreted under the repository-wide capability and semantic-loss contract.
+
+That means:
+
+- direct shared-shape mappings should succeed without semantic-loss diagnostics
+- syntax-level normalization into the same shared shape meaning may succeed with diagnostics when that distinction is important to surface
+- unsupported TypeScript type-system constructs should fail explicitly rather than being widened into misleading schema shapes
 
 ## Entry Assumption
 
@@ -251,6 +262,81 @@ Expected schema IR shape:
 - readonly arrays and tuples map to ordinary array and tuple nodes
 - readonly syntax does not weaken existing unsupported boundaries such as tuple rest elements or malformed array-reference forms
 
+## Supported With Normalization
+
+These cases are still successful parser outcomes, but the source form should be understood as lowering into shared shape semantics rather than being preserved faithfully as TypeScript syntax.
+
+### 16. Interface Versus Type Alias Shape Equivalence
+
+Source:
+
+```ts
+interface User {
+  id: number;
+}
+```
+
+And:
+
+```ts
+type User = {
+  id: number;
+};
+```
+
+Expected schema IR shape:
+
+- both forms lower into equivalent shared object-definition semantics
+- parser success does not preserve the declaration-form distinction in shared IR
+
+### 17. Readonly Field Normalization
+
+Source:
+
+```ts
+interface User {
+  readonly id: number;
+}
+```
+
+Expected schema IR shape:
+
+- readonly lowers into the same shared field semantics as a writable field
+- parser success preserves data-shape truth, not mutability syntax
+
+### 18. Enum Declaration Lowering
+
+Source:
+
+```ts
+enum Status {
+  Open = "open",
+  Closed = "closed",
+}
+```
+
+Expected schema IR shape:
+
+- enum declarations lower into literal or literal-union semantics
+- parser success does not preserve the distinction between an enum declaration and an equivalent literal union type alias
+
+### 19. Enum Member Reference Resolution
+
+Source:
+
+```ts
+enum Level {
+  Low = 1,
+  SameLow = Low,
+  High = 3,
+}
+```
+
+Expected schema IR shape:
+
+- earlier-member references normalize into the resolved literal values
+- duplicate literal outcomes may normalize away under shared union equivalence rules
+
 ## Explicit Failure Matrix
 
 These cases should fail with structured parser diagnostics rather than being approximated loosely.
@@ -258,7 +344,7 @@ The matrix is grouped by the parser surface that should report the failure, so t
 
 ### Entry Contract Failures
 
-#### 16. Missing Explicit Entry
+#### 20. Missing Explicit Entry
 
 Source:
 
@@ -274,7 +360,7 @@ Expected result:
 - failure code should be `missing-typescript-entry`
 - diagnostic path should point to `["entry"]`
 
-#### 17. Missing Entry Declaration
+#### 21. Missing Entry Declaration
 
 Source:
 
@@ -296,7 +382,7 @@ Expected result:
 
 ### Definition-Level Unsupported Syntax
 
-#### 18. Unsupported Enum Member Initializer
+#### 22. Unsupported Enum Member Initializer
 
 Source:
 
@@ -314,7 +400,7 @@ Expected result:
 - enum initializers outside literal, implicit-numeric, or earlier-member-reference forms should fail explicitly
 - arithmetic, bitwise, concatenated, or other computed enum expressions should not be evaluated by the parser
 
-#### 19. Implicit Enum Value After Non-Numeric Member
+#### 23. Implicit Enum Value After Non-Numeric Member
 
 Source:
 

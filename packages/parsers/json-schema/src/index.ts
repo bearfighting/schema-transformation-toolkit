@@ -2,6 +2,7 @@ export {
   JsonSchemaInferenceError,
   isJsonSchemaInferenceError,
 } from "./errors.js";
+export { jsonSchemaParserCapabilities } from "./capabilities.js";
 export {
   inferJsonSchemaDocument,
   inferJsonSchemaDocumentWithOptions,

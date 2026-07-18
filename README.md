@@ -116,17 +116,12 @@ The `tryGenerate...()` functions are often a better fit when you want structured
 ### Deep Dive
 
 - [docs/development/README.md](docs/development/README.md): development-doc index and suggested reading order
-- [docs/development/scope.md](docs/development/scope.md): project boundary and support philosophy
+- [docs/development/progress.md](docs/development/progress.md): unified current-state summary and completed milestone overview
+- [docs/development/architecture-layering.md](docs/development/architecture-layering.md): IR layering and capability-aware orchestration direction
 - [docs/development/ir-contract.md](docs/development/ir-contract.md): canonical shared IR contract
-- [docs/development/workflow.md](docs/development/workflow.md): implementation and testing loop
-- [docs/development/acceptance.md](docs/development/acceptance.md): definition of done
-- [docs/development/decisions.md](docs/development/decisions.md): durable design decisions
-- [docs/development/progress.md](docs/development/progress.md): current implementation state and active focus
-- [docs/development/roadmap.md](docs/development/roadmap.md): near-term direction
-- [docs/development/json-schema-generator-v0.md](docs/development/json-schema-generator-v0.md): JSON Schema generator working plan
-- [docs/development/json-schema-parser-v0.md](docs/development/json-schema-parser-v0.md): JSON Schema parser scoped design for the current IR
-- [docs/development/ir-v0-cases.md](docs/development/ir-v0-cases.md): IR-oriented working cases
-- [docs/development/typescript-parser-v0-cases.md](docs/development/typescript-parser-v0-cases.md): TypeScript parser support and failure cases
+- [docs/development/capabilities-and-loss.md](docs/development/capabilities-and-loss.md): conversion-result truthfulness and semantic-loss contract
+- [docs/development/json-schema-shape-gap.md](docs/development/json-schema-shape-gap.md): JSON Schema semantic gap inventory against the shared IR
+- [docs/development/typescript-parser-cases.md](docs/development/typescript-parser-cases.md): TypeScript parser support and failure cases
 
 ## Development
 

@@ -1,17 +1,29 @@
 export { JsonInferenceError, isJsonInferenceError } from "./errors.js";
+export { jsonParserCapabilities } from "./capabilities.js";
 export { decodeJsonText } from "./decode.js";
 export { inferJsonType } from "./infer.js";
 export {
   inferJsonDocument,
+  inferJsonDocumentFromValueDocument,
+  inferJsonDocumentFromValueDocumentWithOptions,
   inferJsonDocumentWithOptions,
   jsonParser,
   parseJsonValue,
+  parseJsonValueDocument,
+  parseJsonValueDocumentWithOptions,
   preparedJsonParserOptions,
+  tryInferJsonDocumentFromValueDocument,
+  tryInferJsonDocumentFromValueDocumentWithOptions,
   tryInferJsonDocument,
   tryInferJsonDocumentWithOptions,
+  tryParseJsonValueDocument,
+  tryParseJsonValueDocumentWithOptions,
   type JsonInferenceFailureResult,
   type JsonInferenceResult,
   type JsonInferenceSuccessResult,
+  type JsonValueDocumentFailureResult,
+  type JsonValueDocumentResult,
+  type JsonValueDocumentSuccessResult,
 } from "./parse.js";
 export { inferSchemaNodeFromJsonValue } from "./schema/index.js";
 export {

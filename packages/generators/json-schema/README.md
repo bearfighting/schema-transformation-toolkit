@@ -247,4 +247,5 @@ These warnings include structured `evidence` where useful, such as overlapping m
 
 - see [examples/json-to-json-schema.md](../../../examples/json-to-json-schema.md) for JSON-driven examples
 - see [examples/typescript-to-json-schema.md](../../../examples/typescript-to-json-schema.md) for definitions-heavy TypeScript-driven examples
-- see [docs/development/json-schema-generator-v0.md](../../../docs/development/json-schema-generator-v0.md) for the working design plan behind the current implementation
+- see [docs/development/progress.md](../../../docs/development/progress.md) for the current implementation summary
+- see [docs/development/capabilities-and-loss.md](../../../docs/development/capabilities-and-loss.md) for the conversion-result contract behind the current implementation

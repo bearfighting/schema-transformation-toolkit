@@ -56,11 +56,17 @@ export type {
 export type { IrModel } from "./model/index.js";
 
 export type {
+  ConversionReport,
+  ConversionCapability,
+  GeneratorCapabilities,
+  ParserCapabilities,
   ConversionRoute,
   ConversionRouteCapabilities,
   IrKind,
   PipelineStage,
   PipelineStageKind,
+  SemanticLoss,
+  SemanticLossPhase,
 } from "./pipeline/index.js";
 
 export type {

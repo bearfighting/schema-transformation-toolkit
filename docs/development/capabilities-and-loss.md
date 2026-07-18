@@ -110,9 +110,9 @@ Current repository note:
 
 - parser success already supports `document`, optional `constraints`, `diagnostics`, and `semanticNotes`
 - generator success already supports `diagnostics` and `semanticNotes`
-- SDK conversion success already supports `artifacts.value`, `artifacts.shape`, and `artifacts.constraints`
+- SDK conversion success now supports `artifacts.value`, `artifacts.shape`, `artifacts.constraints`, route-level `losses`, `preservedCapabilities`, and a staged `report`
 
-The remaining gap is that these results do not yet expose explicit capability metadata as first-class fields.
+The remaining gap is that parser and generator capability declarations are not yet the primary runtime source of truth for route planning.
 
 ### Return Success Without Diagnostics When
 

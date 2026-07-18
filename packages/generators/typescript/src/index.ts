@@ -7,6 +7,7 @@ export {
   tryGenerateTypeScript,
   typeScriptGenerator,
 } from "./api.js";
+export { typeScriptGeneratorCapabilities } from "./capabilities.js";
 export {
   prepareTypeScriptGeneratorOptions,
   resolveTypeScriptGeneratorOptions,

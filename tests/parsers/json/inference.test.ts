@@ -18,15 +18,85 @@ import {
   DEFAULT_JSON_PARSE_OPTIONS,
   configureJsonParser,
   inferJsonDocument,
+  inferJsonDocumentFromValueDocument,
   inferJsonDocumentWithOptions,
   jsonParser,
+  parseJsonValueDocument,
   preparedJsonParserOptions,
   resolveJsonParseOptions,
+  tryInferJsonDocumentFromValueDocumentWithOptions,
   validateJsonParseOptions,
   tryInferJsonDocument,
 } from "../../../packages/parsers/json/src/index.js";
 
 describe("parser-json inference", () => {
+  describe("value ir workflow", () => {
+    it("parses json text into a value document and infers shape from that document", () => {
+      const value = parseJsonValueDocument('{"id":1,"name":"Ada"}', "User");
+
+      expect(value).toEqual({
+        kind: "value-document",
+        name: "User",
+        root: {
+          kind: "object",
+          fields: [
+            {
+              name: "id",
+              value: {
+                kind: "number",
+                value: 1,
+              },
+            },
+            {
+              name: "name",
+              value: {
+                kind: "string",
+                value: "Ada",
+              },
+            },
+          ],
+        },
+      });
+
+      expect(inferJsonDocumentFromValueDocument(value)).toEqual(
+        schemaDocument(
+          "User",
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+            schemaFieldNode("name", schemaScalarNode("string")),
+          ]),
+        ),
+      );
+    });
+
+    it("returns structured failures when value-document inference hits current mixed-type limits", () => {
+      const value = parseJsonValueDocument('[1,"two"]', "MixedList");
+
+      expect(
+        tryInferJsonDocumentFromValueDocumentWithOptions(value, {
+          schema: {
+            mixedTypeMode: "error",
+          },
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-mixed-types",
+        message:
+          "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-mixed-types",
+            message:
+              "The input is valid JSON, but array elements do not share a common inferable type in schema IR v0.",
+            path: [],
+            source: "parser-json",
+          },
+        ],
+      });
+    });
+  });
+
   describe("default inference", () => {
     it("infers scalar roots", () => {
       expect(inferJsonDocument('"hello"', "ScalarString")).toEqual(

@@ -5,6 +5,7 @@ describe("sdk api contract", () => {
   it("re-exports the orchestration surface", () => {
     expect(sdkModule.planConversion).toBeDefined();
     expect(sdkModule.listConversionRoutes).toBeDefined();
+    expect(sdkModule.describeConversionRouteCapabilities).toBeDefined();
     expect(sdkModule.convert).toBeDefined();
   });
 
@@ -41,6 +42,50 @@ describe("sdk api contract", () => {
     });
   });
 
+  it("plans the json-schema to json-schema route with constraint ir when both sides declare it", () => {
+    expect(sdkModule.planConversion("json-schema", "json-schema")).toEqual({
+      sourceFormat: "json-schema",
+      targetFormat: "json-schema",
+      irSequence: ["shape", "constraint"],
+      stages: [
+        { kind: "parse-source", from: "json-schema", to: "shape", ir: "shape" },
+        { kind: "generate-target", from: "shape", to: "json-schema" },
+      ],
+    });
+  });
+
+  it("describes route capabilities from parser and generator declarations", () => {
+    expect(
+      sdkModule.describeConversionRouteCapabilities(
+        "json-schema",
+        "typescript",
+      ),
+    ).toEqual({
+      supportsValueIr: false,
+      supportsShapeIr: true,
+      supportsConstraintIr: false,
+      parserCapabilities: [
+        "shape-ir",
+        "constraint-ir",
+        "string-constraints",
+        "numeric-constraints",
+        "collection-constraints",
+        "object-constraints",
+        "portable-annotations",
+      ],
+      generatorCapabilities: ["shape-ir"],
+      preservedCapabilities: ["shape-ir"],
+      potentiallyLostCapabilities: [
+        "constraint-ir",
+        "string-constraints",
+        "numeric-constraints",
+        "collection-constraints",
+        "object-constraints",
+        "portable-annotations",
+      ],
+    });
+  });
+
   it("converts json through value and shape artifacts", () => {
     const result = sdkModule.convert({
       sourceFormat: "json",
@@ -60,6 +105,10 @@ describe("sdk api contract", () => {
     expect(result.artifacts?.value?.kind).toBe("value-document");
     expect(result.artifacts?.shape?.name.source).toBe("User");
     expect(result.plan.irSequence).toEqual(["value", "shape"]);
+    expect(result.report?.preservedCapabilities).toEqual([
+      "value-ir",
+      "shape-ir",
+    ]);
   });
 
   it("preserves json-schema constraint artifacts through orchestration", () => {
@@ -102,6 +151,143 @@ describe("sdk api contract", () => {
             },
           },
         ],
+      },
+    ]);
+    expect(result.preservedCapabilities).toEqual([
+      "shape-ir",
+      "constraint-ir",
+      "object-constraints",
+    ]);
+    expect(result.report).toEqual({
+      preservedCapabilities: [
+        "shape-ir",
+        "constraint-ir",
+        "object-constraints",
+      ],
+      semanticNotes: {
+        parse: result.semanticNotes,
+        all: result.semanticNotes,
+      },
+    });
+  });
+
+  it("reports semantic loss when json-schema constraints cannot be preserved in TypeScript", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      input: JSON.stringify({
+        title: "User",
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            minLength: 2,
+          },
+        },
+        required: ["id"],
+        additionalProperties: false,
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.preservedCapabilities).toEqual(["shape-ir"]);
+    expect(result.losses).toEqual([
+      {
+        code: "target-cannot-preserve-constraint",
+        message:
+          "TypeScript output cannot preserve string constraints from root.id.",
+        severity: "warning",
+        phase: "generate",
+        lostCapability: "string-constraints",
+        sourcePath: ["root", "id"],
+        targetFormat: "typescript",
+        evidence: {
+          constraintKind: "min-length",
+          targetKind: "node",
+        },
+      },
+      {
+        code: "target-cannot-preserve-constraint",
+        message:
+          "TypeScript output cannot preserve object constraints from root.",
+        severity: "warning",
+        phase: "generate",
+        lostCapability: "object-constraints",
+        sourcePath: ["root"],
+        targetFormat: "typescript",
+        evidence: {
+          constraintKind: "closed-object",
+          targetKind: "node",
+        },
+      },
+    ]);
+    expect(result.report).toEqual({
+      losses: result.losses,
+      preservedCapabilities: ["shape-ir"],
+      semanticNotes: {
+        parse: result.semanticNotes,
+        all: result.semanticNotes,
+      },
+    });
+  });
+
+  it("reports portable-annotation loss only when the selected route declares that capability as lossy", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      input: JSON.stringify({
+        title: "AnnotatedUser",
+        type: "object",
+        description: "A user model",
+        properties: {
+          id: {
+            type: "string",
+            description: "User identifier",
+          },
+        },
+        required: ["id"],
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.losses).toEqual([
+      {
+        code: "target-cannot-preserve-constraint",
+        message:
+          "TypeScript output cannot preserve portable annotations from root.id.",
+        severity: "warning",
+        phase: "generate",
+        lostCapability: "portable-annotations",
+        sourcePath: ["root", "id"],
+        targetFormat: "typescript",
+        evidence: {
+          constraintKind: "description",
+          targetKind: "node",
+        },
+      },
+      {
+        code: "target-cannot-preserve-constraint",
+        message:
+          "TypeScript output cannot preserve portable annotations from root.",
+        severity: "warning",
+        phase: "generate",
+        lostCapability: "portable-annotations",
+        sourcePath: ["root"],
+        targetFormat: "typescript",
+        evidence: {
+          constraintKind: "description",
+          targetKind: "node",
+        },
       },
     ]);
   });

@@ -23,6 +23,7 @@ import {
 } from "./report.js";
 import { parseSource } from "./source.js";
 export type {
+  ConvertAdvancedOptions,
   ConversionArtifacts,
   ConvertFailureResult,
   ConvertOptions,

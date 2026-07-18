@@ -92,11 +92,93 @@ if (parsed.ok) {
 The convenience `generate...()` functions still exist and throw on generation failure.
 The `tryGenerate...()` functions are often a better fit when you want structured diagnostics and explicit failure handling.
 
+## Recommended Stage 1 API
+
+For most users, the recommended entry point is now the Stage 1 pipeline API from `@aio/sdk`.
+
+Use `@aio/sdk` when you want:
+
+- one supported source format in
+- one supported target format out
+- route planning, diagnostics, losses, and preserved-capability reporting
+
+```ts
+import { convert } from "@aio/sdk";
+
+const result = convert({
+  sourceFormat: "json",
+  targetFormat: "typescript",
+  input: '{"id":1,"name":"Ada"}',
+  name: "User",
+});
+
+if (!result.ok) {
+  console.error(result.phase, result.code, result.message);
+  console.error(result.diagnostics);
+} else {
+  console.log(result.output);
+  console.log(result.plan);
+  console.log(result.report);
+}
+```
+
+The stable Stage 1 SDK runtime surface is intentionally small:
+
+- `convert`
+- `planConversion`
+- `listConversionRoutes`
+- `describeConversionRouteCapabilities`
+
+The stable Stage 1 SDK option surface is also intentionally small:
+
+- `sourceFormat`
+- `targetFormat`
+- `input`
+- `name`
+- `includeArtifacts`
+- `advanced`
+
+`advanced` exists for parser-specific or generator-specific overrides, but it is not the default path.
+
+```ts
+import { convert } from "@aio/sdk";
+
+const result = convert({
+  sourceFormat: "json",
+  targetFormat: "json-schema",
+  input: '[{"id":1},{"id":2}]',
+  name: "UserList",
+  advanced: {
+    parser: {
+      json: {
+        inference: {
+          tupleInferenceMode: "heterogeneous-only",
+        },
+      },
+    },
+    generator: {
+      jsonSchema: {
+        documentDialect: "2020-12",
+      },
+    },
+  },
+});
+```
+
+If you need direct parser control, direct generator control, or low-level IR contracts, prefer the lower-level packages instead:
+
+- `@aio/parser-*`
+- `@aio/generator-*`
+- `@aio/core`
+
+The SDK is meant to be the product-facing pipeline layer, not a re-export umbrella for the whole workspace.
+
 ## Documentation
 
 ### Start Here
 
 - [README.md](README.md): project overview, package map, and current validated flows
+- [docs/development/public-api-stage1.md](docs/development/public-api-stage1.md): current Stage 1 SDK boundary and public API policy
 - [packages/core/README.md](packages/core/README.md): shared IR model, invariants, and cross-package semantic boundary
 - [examples/README.md](examples/README.md): quick tour of current end-to-end examples
 
@@ -127,7 +209,9 @@ The `tryGenerate...()` functions are often a better fit when you want structured
 
 ```bash
 pnpm install
+pnpm format:check
 pnpm lint
+pnpm check:public-api
 pnpm typecheck
 pnpm test
 pnpm build

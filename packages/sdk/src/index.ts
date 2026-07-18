@@ -1,7 +1,15 @@
-export * from "@aio/core";
-export * from "./convert.js";
-export * from "@aio/parser-json";
-export * from "@aio/parser-json-schema";
-export * from "@aio/parser-typescript";
-export * from "@aio/generator-json-schema";
-export * from "@aio/generator-typescript";
+export {
+  convert,
+  describeConversionRouteCapabilities,
+  listConversionRoutes,
+  planConversion,
+} from "./convert.js";
+export type {
+  ConversionArtifacts,
+  ConvertFailureResult,
+  ConvertOptions,
+  ConvertResult,
+  ConvertSuccessResult,
+  ConversionSourceFormat,
+  ConversionTargetFormat,
+} from "./convert.js";

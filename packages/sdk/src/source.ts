@@ -44,7 +44,7 @@ export function parseSource(
 
   if (sourceFormat === "json-schema") {
     const parseResult = tryInferJsonSchemaDocumentWithOptions(input, {
-      ...options.parserOptions?.jsonSchema,
+      ...options.advanced?.parser?.jsonSchema,
       name,
     });
 
@@ -73,7 +73,7 @@ export function parseSource(
   }
 
   const parseResult = tryInferTypeScriptDocumentWithOptions(input, {
-    ...options.parserOptions?.typeScript,
+    ...options.advanced?.parser?.typeScript,
     name,
   });
 
@@ -107,13 +107,13 @@ function parseJsonSource(
 ): ParseSourceResult {
   try {
     const value = parseJsonValueDocumentWithOptions(input, {
-      ...options.parserOptions?.json,
+      ...options.advanced?.parser?.json,
       name,
     });
     const shapeResult = tryInferJsonDocumentFromValueDocumentWithOptions(
       value,
       {
-        ...options.parserOptions?.json,
+        ...options.advanced?.parser?.json,
         name,
       },
     );
@@ -140,7 +140,7 @@ function parseJsonSource(
     };
   } catch {
     const fallback = tryInferJsonDocumentWithOptions(input, {
-      ...options.parserOptions?.json,
+      ...options.advanced?.parser?.json,
       name,
     });
 
@@ -158,7 +158,7 @@ function parseJsonSource(
     return {
       ok: true,
       value: parseJsonValueDocumentWithOptions(input, {
-        ...options.parserOptions?.json,
+        ...options.advanced?.parser?.json,
         name,
       }),
       shape: fallback.document,

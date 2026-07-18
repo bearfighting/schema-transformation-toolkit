@@ -44,6 +44,7 @@ For refactors that change public exports, package entry structure, or cross-pack
 pnpm test
 pnpm typecheck
 pnpm lint
+pnpm check:public-api
 ```
 
 Run additional checks such as `pnpm build` when the change touches packaging or build-specific concerns.

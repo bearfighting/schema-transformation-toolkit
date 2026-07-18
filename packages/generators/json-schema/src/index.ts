@@ -7,6 +7,7 @@ export {
   preparedJsonSchemaGeneratorOptions,
   tryGenerateJsonSchema,
 } from "./api.js";
+export { jsonSchemaGeneratorCapabilities } from "./capabilities.js";
 export {
   prepareJsonSchemaGeneratorOptions,
   resolveJsonSchemaGeneratorOptions,

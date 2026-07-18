@@ -1,4 +1,4 @@
-# TypeScript Parser V0 Cases
+# TypeScript Parser Cases
 
 This file defines the first supported TypeScript parser subset as concrete success and failure cases.
 
@@ -9,7 +9,7 @@ The goal is to validate the shared schema IR against a second source language wi
 
 These cases should answer:
 
-- which TypeScript constructs are in scope for parser v0
+- which TypeScript constructs are in scope for the current parser subset
 - which constructs must map directly into current schema IR semantics
 - which constructs are accepted through normalization into shared shape semantics
 - which constructs must fail explicitly instead of being approximated

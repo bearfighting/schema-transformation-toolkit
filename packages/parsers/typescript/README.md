@@ -18,8 +18,8 @@ If you want end-to-end examples rather than support bullets first, start with:
 
 The first supported subset is documented in:
 
-- [docs/development/typescript-parser-v0-cases.md](../../../docs/development/typescript-parser-v0-cases.md)
-- [docs/development/typescript-parser-todo.md](../../../docs/development/typescript-parser-todo.md)
+- [docs/development/typescript-parser-cases.md](../../../docs/development/typescript-parser-cases.md)
+- [docs/development/typescript-parser-checklist.md](../../../docs/development/typescript-parser-checklist.md)
 
 ## Current Status
 
@@ -316,5 +316,5 @@ The repository also now includes `typescript -> ir -> json-schema` integration c
 ## Where To Look Next
 
 - see [examples/typescript-to-json-schema.md](../../../examples/typescript-to-json-schema.md) for parser behavior that flows into reusable definitions and `$ref`
-- see [docs/development/typescript-parser-v0-cases.md](../../../docs/development/typescript-parser-v0-cases.md) for the explicit supported and unsupported case inventory
-- see [docs/development/progress.md](../../../docs/development/progress.md) for the current parser expansion focus
+- see [docs/development/typescript-parser-cases.md](../../../docs/development/typescript-parser-cases.md) for the explicit supported and unsupported case inventory
+- see [docs/development/progress.md](../../../docs/development/progress.md) for the current implementation summary and remaining near-term work

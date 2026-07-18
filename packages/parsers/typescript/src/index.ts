@@ -2,6 +2,7 @@ export {
   TypeScriptInferenceError,
   isTypeScriptInferenceError,
 } from "./errors.js";
+export { typeScriptParserCapabilities } from "./capabilities.js";
 export {
   inferTypeScriptDocument,
   inferTypeScriptDocumentWithOptions,

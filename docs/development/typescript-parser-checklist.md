@@ -1,4 +1,4 @@
-# TypeScript Parser Todo
+# TypeScript Parser Checklist
 
 This file is the implementation checklist for the first TypeScript parser.
 
@@ -76,7 +76,7 @@ Current supported-with-semantic-loss behavior should remain intentionally narrow
 
 ## Phase 0: Documentation And Scope
 
-- [x] keep [typescript-parser-v0-cases.md](typescript-parser-v0-cases.md) aligned with actual parser support
+- [x] keep [typescript-parser-cases.md](typescript-parser-cases.md) aligned with actual parser support
 - [x] confirm the exact first supported subset before implementation starts
 - [x] keep unsupported features explicit in docs and tests
 
@@ -100,7 +100,7 @@ Suggested root exports:
 
 ## Phase 2: Entry Strategy
 
-- [x] require one explicit entry declaration name for parser v0
+- [x] require one explicit entry declaration name for the current parser subset
 - [x] support `type Foo = ...` as an entry
 - [x] support `interface Foo { ... }` as an entry
 - [x] support `enum Foo { ... }` as an entry when members can map to literals
@@ -133,7 +133,7 @@ Suggested root exports:
 
 ## Phase 5: Tests
 
-- [x] add parser unit tests that follow [typescript-parser-v0-cases.md](typescript-parser-v0-cases.md)
+- [x] add parser unit tests that follow [typescript-parser-cases.md](typescript-parser-cases.md)
 - [x] add explicit unsupported-case tests
 - [x] add integration tests for `typescript -> schema ir -> typescript`
 - [x] add a root export contract test for the new parser package

@@ -77,4 +77,4 @@ const parsed = jsonSchemaParser.parse(
 - source spans are not currently preserved
 - successful parses may still include diagnostics for accepted semantic lowering such as `oneOf`/`anyOf` union lowering and nullable-property normalization
 
-For the current scoped design and rationale, see [docs/development/json-schema-parser-v0.md](../../../docs/development/json-schema-parser-v0.md).
+For the current repository-wide design boundary, see [docs/development/ir-boundaries.md](../../../docs/development/ir-boundaries.md) and [docs/development/capabilities-and-loss.md](../../../docs/development/capabilities-and-loss.md).

@@ -17,12 +17,12 @@ export function generateTarget(
   if (targetFormat === "typescript") {
     return tryGenerateTypeScript(
       document,
-      options.generatorOptions?.typeScript ?? {},
+      options.advanced?.generator?.typeScript ?? {},
     );
   }
 
   return tryGenerateJsonSchema(document, {
-    ...(options.generatorOptions?.jsonSchema ?? {}),
+    ...(options.advanced?.generator?.jsonSchema ?? {}),
     ...(constraints ? { constraints } : {}),
   });
 }

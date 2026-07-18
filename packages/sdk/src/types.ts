@@ -21,21 +21,25 @@ import type { TypeScriptParseOptions } from "@aio/parser-typescript";
 export type ConversionSourceFormat = "json" | "json-schema" | "typescript";
 export type ConversionTargetFormat = "json-schema" | "typescript";
 
+export interface ConvertAdvancedOptions {
+  parser?: {
+    json?: JsonParseOptions;
+    jsonSchema?: JsonSchemaParseOptions;
+    typeScript?: TypeScriptParseOptions;
+  };
+  generator?: {
+    jsonSchema?: JsonSchemaGeneratorOptions;
+    typeScript?: TypeScriptGeneratorOptions;
+  };
+}
+
 export interface ConvertOptions {
   sourceFormat: ConversionSourceFormat;
   targetFormat: ConversionTargetFormat;
   input: string;
   name?: string;
   includeArtifacts?: boolean;
-  parserOptions?: {
-    json?: JsonParseOptions;
-    jsonSchema?: JsonSchemaParseOptions;
-    typeScript?: TypeScriptParseOptions;
-  };
-  generatorOptions?: {
-    jsonSchema?: JsonSchemaGeneratorOptions;
-    typeScript?: TypeScriptGeneratorOptions;
-  };
+  advanced?: ConvertAdvancedOptions;
 }
 
 export interface ConversionArtifacts {

@@ -4,7 +4,7 @@ import type {
   PreparedOptions,
   SchemaParser,
 } from "@aio/core";
-import type { TypeScriptInferenceResult } from "./parse.js";
+import type { TypeScriptInferenceResult } from "./api.js";
 
 export type TypeScriptParseStrictness = "strict";
 

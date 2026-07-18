@@ -20,6 +20,7 @@ describe("parser-typescript api contract", () => {
       "tryInferTypeScriptDocument",
       "tryInferTypeScriptDocumentWithOptions",
       "typeScriptParser",
+      "typeScriptParserCapabilities",
       "validateTypeScriptParseOptions",
     ]);
   });

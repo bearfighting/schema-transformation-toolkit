@@ -24,7 +24,7 @@ export {
   type JsonValueDocumentFailureResult,
   type JsonValueDocumentResult,
   type JsonValueDocumentSuccessResult,
-} from "./parse.js";
+} from "./api.js";
 export { inferSchemaNodeFromJsonValue } from "./schema/index.js";
 export {
   DEFAULT_JSON_DECODE_OPTIONS,

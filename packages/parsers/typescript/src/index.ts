@@ -13,7 +13,7 @@ export {
   type TypeScriptInferenceFailureResult,
   type TypeScriptInferenceResult,
   type TypeScriptInferenceSuccessResult,
-} from "./parse.js";
+} from "./api.js";
 export {
   preprocessTypeScriptSource,
   type TypeScriptPreprocessFailureResult,

@@ -38,4 +38,12 @@ pnpm test
 pnpm typecheck
 ```
 
-Run additional checks such as `pnpm lint` or `pnpm build` when the change touches those concerns.
+For refactors that change public exports, package entry structure, or cross-package orchestration, the expected broader pass is:
+
+```bash
+pnpm test
+pnpm typecheck
+pnpm lint
+```
+
+Run additional checks such as `pnpm build` when the change touches packaging or build-specific concerns.

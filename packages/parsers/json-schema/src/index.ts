@@ -13,7 +13,7 @@ export {
   type JsonSchemaInferenceFailureResult,
   type JsonSchemaInferenceResult,
   type JsonSchemaInferenceSuccessResult,
-} from "./parse.js";
+} from "./api.js";
 export {
   DEFAULT_JSON_SCHEMA_PARSE_OPTIONS,
   assertSupportedJsonSchemaParseOptions,

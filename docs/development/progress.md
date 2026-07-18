@@ -38,6 +38,14 @@ The project's current center of gravity is to keep the shared IR contracts stabl
 - parser and generator capability declarations now exist in code
 - route planning and route capability summaries now derive from parser and generator registries instead of a purely hand-maintained route table
 - semantic-loss planning now reuses planner capability information
+- the SDK orchestration internals are now split into focused modules instead of one large `convert.ts`
+- SDK internals now have dedicated boundary tests for route planning, source parsing, semantic-loss planning, and report assembly
+
+### Package Structure
+
+- parser packages now follow the same entry-point pattern as generator packages: `index.ts` as the public export surface and `api.ts` as the runtime entry layer
+- legacy parser `parse.ts` files remain as compatibility re-export layers rather than new semantic entry points
+- package structure is now more explicit about the difference between public exports, runtime entry behavior, option handling, and internal helpers
 
 ## Current Supported Surface
 
@@ -81,6 +89,7 @@ The project's current center of gravity is to keep the shared IR contracts stabl
 - decide whether the next parser work should favor more supported syntax or richer diagnostics coverage
 - keep JSON Schema target behavior aligned with actual shared semantics rather than ad hoc target-local rules
 - keep future IR expansion driven by repeated pressure across multiple sources or targets, not by one format alone
+- keep new internal module boundaries stable so future feature work does not collapse back into large entry files
 
 ## Deferred
 
@@ -95,7 +104,7 @@ The project's current center of gravity is to keep the shared IR contracts stabl
 - record and object inference boundaries must stay conservative and explicit
 - references and reuse may become increasingly important as generated output grows
 - parser and generator options can become hard to reason about if defaults and capability boundaries are not kept clear
-- core internal helpers could still drift again if new semantics are added without being placed in the right internal module
+- core and SDK internal helpers could still drift again if new semantics are added without being placed in the right internal module
 - capability declarations and runtime route behavior must stay aligned
 
 ## Current IR-Expansion Guardrail
@@ -116,3 +125,13 @@ This is meant to keep the project honest about where its next abstraction pressu
 - read [ir-boundaries.md](ir-boundaries.md) for the semantic split between Value IR, Shape IR, and Constraint IR
 - read [capabilities-and-loss.md](capabilities-and-loss.md) for the conversion-result truthfulness rules
 - read [typescript-parser-checklist.md](typescript-parser-checklist.md) and [typescript-parser-preprocess.md](typescript-parser-preprocess.md) for the active parser-specific guidance
+
+## Last Broad Verification
+
+The latest broad verification pass completed on July 18, 2026 and included:
+
+- `pnpm vitest run`
+- `pnpm typecheck`
+- `pnpm eslint tests packages/sdk/src packages/parsers/json/src packages/parsers/json-schema/src packages/parsers/typescript/src packages/generators/json-schema/src packages/generators/typescript/src`
+
+That pass finished green with `27` test files and `291` tests passing.

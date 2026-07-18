@@ -4,7 +4,7 @@ import type {
   PreparedOptions,
   SchemaParser,
 } from "@aio/core";
-import type { JsonSchemaInferenceResult } from "./parse.js";
+import type { JsonSchemaInferenceResult } from "./api.js";
 
 export type JsonSchemaParseStrictness = "strict";
 

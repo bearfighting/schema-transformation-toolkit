@@ -13,6 +13,7 @@ describe("parser-json-schema api contract", () => {
       "inferJsonSchemaDocumentWithOptions",
       "isJsonSchemaInferenceError",
       "jsonSchemaParser",
+      "jsonSchemaParserCapabilities",
       "prepareJsonSchemaParseOptions",
       "preparedJsonSchemaParserOptions",
       "resolveJsonSchemaParseOptions",

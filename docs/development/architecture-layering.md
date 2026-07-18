@@ -218,6 +218,42 @@ Constraint entries should point to shape-level structure rather than re-encode i
 The preferred long-term target is a stable identifier or node reference model.
 If that does not exist yet, a path-based attachment model can be acceptable as an intermediate step.
 
+## Current Package Boundary Pattern
+
+The repository should keep converging on one consistent package-entry pattern across parsers, generators, and the SDK.
+
+The current preferred structure is:
+
+- `index.ts`: public package export surface only
+- `api.ts`: package-level runtime entry points and configured default instances
+- `options.ts`: option resolution, validation, and configured factory helpers
+- focused internal modules: implementation details such as `convert.ts`, `emit.ts`, `value.ts`, `report.ts`, `losses.ts`, or similar
+
+This pattern matters because it keeps three different concerns separate:
+
+- public package shape
+- runtime orchestration or entry behavior
+- internal implementation details
+
+The goal is not file-count uniformity for its own sake.
+The goal is to make it obvious where to extend behavior, where to preserve compatibility, and where internal helpers can evolve without silently changing package contracts.
+
+## Current SDK Boundary Pattern
+
+The SDK should remain a thin orchestration layer over parser and generator packages rather than becoming a new semantic home for format-specific logic.
+
+The current preferred internal split is:
+
+- `types.ts`: public SDK result and option contracts
+- `registry.ts`: capability registries, route planning, and route summaries
+- `source.ts`: source parsing and artifact production
+- `generate.ts`: target generation dispatch
+- `losses.ts`: semantic-loss planning
+- `report.ts`: report assembly and preserved-capability collection
+- `convert.ts`: end-to-end orchestration only
+
+Future work should preserve this rule: if logic can live in a narrower module than `convert.ts`, it should.
+
 The key rule is:
 
 - constraints should target shape nodes

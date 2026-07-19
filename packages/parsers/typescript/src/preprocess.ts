@@ -1,6 +1,9 @@
 import type { SchemaDiagnostic } from "@aio/core";
 import ts from "typescript";
 import {
+  collectBlockingTopLevelStatements,
+  collectExportAllReferences,
+  collectExportedTopLevelDeclarations,
   collectImportedTypeReferences,
   collectReExportedTypeReferences,
   collectTopLevelDeclarations,
@@ -12,7 +15,9 @@ import {
   missingEntryDeclarationDiagnostic,
   missingEntryNameDiagnostic,
   unsupportedEntryDeclarationKindDiagnostic,
+  unsupportedExportAllEntryDiagnostic,
   unsupportedReExportedEntryDiagnostic,
+  unsupportedTopLevelModuleStatementDiagnostic,
 } from "./diagnostics.js";
 import { createUnsupportedDeclarationShapeDiagnostic } from "./declaration-shape.js";
 import {
@@ -41,6 +46,8 @@ export interface TypeScriptPreprocessFailureResult {
     | "unsupported-typescript-syntax"
     | "unsupported-typescript-entry-declaration-kind"
     | "unsupported-typescript-interface-heritage"
+    | "unsupported-typescript-export-all-entry"
+    | "unsupported-typescript-top-level-module-statement"
     | "unsupported-typescript-reexported-entry";
   message: string;
   diagnostics: SchemaDiagnostic[];
@@ -54,6 +61,7 @@ export function preprocessTypeScriptSource(
   options: ResolvedTypeScriptParseOptions,
 ): TypeScriptPreprocessResult {
   const sourceFile = createTypeScriptSourceFile(input);
+  const sourceFileLocation = getTypeScriptSourceLocation(sourceFile);
   const firstParseDiagnostic = (
     sourceFile as ts.SourceFile & {
       parseDiagnostics?: readonly ts.DiagnosticWithLocation[];
@@ -77,41 +85,61 @@ export function preprocessTypeScriptSource(
         "The TypeScript parser could not parse the source because it contains syntax errors.",
       diagnostics: [
         invalidTypeScriptSyntaxDiagnostic({
+          documentName: options.name,
           detail: ts.flattenDiagnosticMessageText(
             firstParseDiagnostic.messageText,
             "\n",
           ),
+          ...(options.entry ? { requestedEntry: options.entry } : {}),
           sourceLocation: location,
         }),
       ],
     };
   }
 
-  if (!options.entry) {
+  const declarationMap = collectTopLevelDeclarations(sourceFile);
+  const declarationNames = new Set(declarationMap.keys());
+  const exportedDeclarationMap =
+    collectExportedTopLevelDeclarations(sourceFile);
+  const availableDeclarations = Array.from(declarationMap.keys()).sort();
+  const availableExportedDeclarations = Array.from(
+    exportedDeclarationMap.keys(),
+  ).sort();
+  const importedTypeMap = collectImportedTypeReferences(sourceFile);
+  const reExportedTypeMap = collectReExportedTypeReferences(sourceFile);
+  const exportAllReferences = collectExportAllReferences(sourceFile);
+  const blockingTopLevelStatements =
+    collectBlockingTopLevelStatements(sourceFile);
+  const requestedEntry =
+    options.entry ??
+    inferImplicitEntryName(declarationMap, exportedDeclarationMap);
+
+  if (!requestedEntry) {
     return {
       ok: false,
       code: "missing-typescript-entry",
       message:
         "TypeScript parser v0 requires an explicit entry declaration name.",
       diagnostics: [
-        missingEntryNameDiagnostic(getTypeScriptSourceLocation(sourceFile)),
+        missingEntryNameDiagnostic({
+          documentName: options.name,
+          availableDeclarations,
+          availableExportedDeclarations,
+          sourceLocation: sourceFileLocation,
+        }),
       ],
     };
   }
 
-  const declarationMap = collectTopLevelDeclarations(sourceFile);
-  const declarationNames = new Set(declarationMap.keys());
-  const importedTypeMap = collectImportedTypeReferences(sourceFile);
-  const reExportedTypeMap = collectReExportedTypeReferences(sourceFile);
   const entryDeclaration = findTypeScriptEntryDeclaration(
     sourceFile,
-    options.entry,
+    requestedEntry,
   );
 
   if (!entryDeclaration) {
     const namedStatement = findNamedTopLevelStatement(
       sourceFile,
-      options.entry,
+      requestedEntry,
     );
 
     if (namedStatement) {
@@ -120,32 +148,86 @@ export function preprocessTypeScriptSource(
       return {
         ok: false,
         code: "unsupported-typescript-entry-declaration-kind",
-        message: `The TypeScript parser found a declaration named "${options.entry}", but top-level ${declarationKind} entries are outside the supported schema subset.`,
+        message: `The TypeScript parser found a declaration named "${requestedEntry}", but top-level ${declarationKind} entries are outside the supported schema subset.`,
         diagnostics: [
           unsupportedEntryDeclarationKindDiagnostic({
-            entry: options.entry,
+            documentName: options.name,
+            entry: requestedEntry,
+            requestedEntry,
             declarationKind,
             declarationText: namedStatement.getText(),
+            availableDeclarations,
+            availableExportedDeclarations,
             sourceLocation: getTypeScriptSourceLocation(namedStatement),
           }),
         ],
       };
     }
 
-    const reExportedEntry = reExportedTypeMap.get(options.entry);
+    const reExportedEntry = reExportedTypeMap.get(requestedEntry);
 
     if (reExportedEntry) {
       return {
         ok: false,
         code: "unsupported-typescript-reexported-entry",
-        message: `The TypeScript parser found entry "${options.entry}" only as a re-export from "${reExportedEntry.moduleSpecifier}", which is outside the current single-file schema subset.`,
+        message: `The TypeScript parser found entry "${requestedEntry}" only as a re-export from "${reExportedEntry.moduleSpecifier}", which is outside the current single-file schema subset.`,
         diagnostics: [
           unsupportedReExportedEntryDiagnostic({
-            entry: options.entry,
+            documentName: options.name,
+            entry: requestedEntry,
+            requestedEntry,
             importedName: reExportedEntry.importedName,
             moduleSpecifier: reExportedEntry.moduleSpecifier,
             declarationText: reExportedEntry.declarationText,
+            availableDeclarations,
+            availableExportedDeclarations,
             sourceLocation: reExportedEntry.sourceLocation,
+          }),
+        ],
+      };
+    }
+
+    if (options.entry && exportAllReferences.length > 0) {
+      const firstExportAllReference = exportAllReferences[0]!;
+
+      return {
+        ok: false,
+        code: "unsupported-typescript-export-all-entry",
+        message: `The TypeScript parser could not resolve whether entry "${requestedEntry}" is forwarded through export-all statements in the current single-file schema subset.`,
+        diagnostics: [
+          unsupportedExportAllEntryDiagnostic({
+            documentName: options.name,
+            entry: requestedEntry,
+            requestedEntry,
+            moduleSpecifiers: exportAllReferences.map(
+              (reference) => reference.moduleSpecifier,
+            ),
+            declarationText: firstExportAllReference.declarationText,
+            availableDeclarations,
+            availableExportedDeclarations,
+            sourceLocation: firstExportAllReference.sourceLocation,
+          }),
+        ],
+      };
+    }
+
+    if (options.entry && blockingTopLevelStatements.length > 0) {
+      const firstBlockingStatement = blockingTopLevelStatements[0]!;
+
+      return {
+        ok: false,
+        code: "unsupported-typescript-top-level-module-statement",
+        message: `The TypeScript parser found top-level ${firstBlockingStatement.statementKind} syntax while resolving entry "${requestedEntry}", and that module-level form is outside the current single-file schema subset.`,
+        diagnostics: [
+          unsupportedTopLevelModuleStatementDiagnostic({
+            documentName: options.name,
+            entry: requestedEntry,
+            requestedEntry,
+            statementKind: firstBlockingStatement.statementKind,
+            declarationText: firstBlockingStatement.declarationText,
+            availableDeclarations,
+            availableExportedDeclarations,
+            sourceLocation: firstBlockingStatement.sourceLocation,
           }),
         ],
       };
@@ -154,19 +236,16 @@ export function preprocessTypeScriptSource(
     return {
       ok: false,
       code: "missing-typescript-entry-declaration",
-      message: `The TypeScript parser could not find a supported declaration named "${options.entry}".`,
+      message: `The TypeScript parser could not find a supported declaration named "${requestedEntry}".`,
       diagnostics: [
-        {
-          ...missingEntryDeclarationDiagnostic(
-            options.entry,
-            getTypeScriptSourceLocation(sourceFile),
-          ),
-          evidence: {
-            entry: options.entry,
-            availableDeclarations: Array.from(declarationNames).sort(),
-            sourceLocation: getTypeScriptSourceLocation(sourceFile),
-          },
-        },
+        missingEntryDeclarationDiagnostic({
+          documentName: options.name,
+          entry: requestedEntry,
+          requestedEntry,
+          availableDeclarations,
+          availableExportedDeclarations,
+          sourceLocation: sourceFileLocation,
+        }),
       ],
     };
   }
@@ -208,4 +287,19 @@ export function preprocessTypeScriptSource(
     declarationNames,
     importedTypeMap,
   };
+}
+
+function inferImplicitEntryName(
+  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
+  exportedDeclarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
+): string | undefined {
+  if (declarationMap.size !== 1) {
+    if (exportedDeclarationMap.size !== 1) {
+      return undefined;
+    }
+
+    return exportedDeclarationMap.keys().next().value;
+  }
+
+  return declarationMap.keys().next().value;
 }

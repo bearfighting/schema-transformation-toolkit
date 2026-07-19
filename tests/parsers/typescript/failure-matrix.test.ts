@@ -22,7 +22,9 @@ describe("parser-typescript failure matrix", () => {
             path: ["document"],
             source: "parser-typescript",
             evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
               detail: expect.any(String),
+              requestedEntry: "User",
               sourceLocation: expect.any(Object),
             }),
           }),
@@ -33,7 +35,14 @@ describe("parser-typescript failure matrix", () => {
 
   describe("entry contract failures", () => {
     it("requires an explicit entry declaration name in v0", () => {
-      expect(typeScriptParser.parse("type User = { id: number }")).toEqual({
+      expect(
+        typeScriptParser.parse(
+          [
+            "type User = { id: number }",
+            "type Account = { name: string }",
+          ].join("\n"),
+        ),
+      ).toEqual({
         ok: false,
         code: "missing-typescript-entry",
         message:
@@ -47,10 +56,13 @@ describe("parser-typescript failure matrix", () => {
             path: ["entry"],
             source: "parser-typescript",
             evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
-                end: { offset: 26, line: 1, column: 27 },
-                length: 26,
+                end: { offset: 58, line: 2, column: 32 },
+                length: 58,
               },
             },
           },
@@ -77,8 +89,11 @@ describe("parser-typescript failure matrix", () => {
             path: ["entry", "Account"],
             source: "parser-typescript",
             evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
               entry: "Account",
+              requestedEntry: "Account",
               availableDeclarations: ["User"],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 26, line: 1, column: 27 },
@@ -581,9 +596,13 @@ describe("parser-typescript failure matrix", () => {
             nodeKind: "entry",
             source: "parser-typescript",
             evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
               declarationKind: "ClassDeclaration",
               declarationText: "class User implements Serializable {}",
               entry: "User",
+              requestedEntry: "User",
+              availableDeclarations: [],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 37, line: 1, column: 38 },
@@ -615,16 +634,135 @@ describe("parser-typescript failure matrix", () => {
             nodeKind: "entry",
             source: "parser-typescript",
             evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
               declarationText: 'export { User } from "./models";',
               entry: "User",
               importedName: "User",
               moduleSpecifier: "./models",
+              requestedEntry: "User",
+              availableDeclarations: [],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 32, line: 1, column: 33 },
                 length: 32,
               },
             }),
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly when the requested entry is only available through a namespace re-export", () => {
+      expect(
+        typeScriptParser.parse('export * as Models from "./models";', {
+          entry: "Models",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-reexported-entry",
+        message:
+          'The TypeScript parser found entry "Models" only as a re-export from "./models", which is outside the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-reexported-entry",
+            message:
+              'The TypeScript parser found entry "Models" only as a re-export from "./models", which is outside the current single-file schema subset.',
+            path: ["entry", "Models"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
+              declarationText: 'export * as Models from "./models";',
+              entry: "Models",
+              importedName: "*",
+              moduleSpecifier: "./models",
+              requestedEntry: "Models",
+              availableDeclarations: [],
+              availableExportedDeclarations: [],
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 35, line: 1, column: 36 },
+                length: 35,
+              },
+            }),
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly when export-all forwarding could determine the requested entry", () => {
+      expect(
+        typeScriptParser.parse('export * from "./models";', {
+          entry: "User",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-export-all-entry",
+        message:
+          'The TypeScript parser could not resolve whether entry "User" is forwarded through export-all statements in the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-export-all-entry",
+            message:
+              'The TypeScript parser could not resolve whether entry "User" is forwarded through export-all statements in the current single-file schema subset.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              entry: "User",
+              requestedEntry: "User",
+              availableDeclarations: [],
+              availableExportedDeclarations: [],
+              moduleSpecifiers: ["./models"],
+              declarationText: 'export * from "./models";',
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 25, line: 1, column: 26 },
+                length: 25,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it("fails explicitly for blocking top-level module statements that would determine module meaning before entry resolution", () => {
+      expect(
+        typeScriptParser.parse("export default {};", {
+          entry: "User",
+        }),
+      ).toEqual({
+        ok: false,
+        code: "unsupported-typescript-top-level-module-statement",
+        message:
+          'The TypeScript parser found top-level ExportAssignment syntax while resolving entry "User", and that module-level form is outside the current single-file schema subset.',
+        diagnostics: [
+          {
+            severity: "error",
+            code: "unsupported-typescript-top-level-module-statement",
+            message:
+              'The TypeScript parser found top-level ExportAssignment syntax while resolving entry "User", and that module-level form is outside the current single-file schema subset.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              entry: "User",
+              requestedEntry: "User",
+              availableDeclarations: [],
+              availableExportedDeclarations: [],
+              statementKind: "ExportAssignment",
+              declarationText: "export default {};",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 18, line: 1, column: 19 },
+                length: 18,
+              },
+            },
           },
         ],
       });

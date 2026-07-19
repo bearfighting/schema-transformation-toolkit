@@ -19,6 +19,18 @@ export interface TypeScriptReExportReference {
   sourceLocation: TypeScriptSourceLocation;
 }
 
+export interface TypeScriptExportAllReference {
+  moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+
+export interface TypeScriptBlockingTopLevelStatement {
+  statementKind: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+
 export interface TypeScriptConvertContext {
   definitions: SchemaDefinition[];
   diagnostics: SchemaDiagnostic[];

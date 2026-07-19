@@ -22,9 +22,115 @@ import {
 
 describe("parser-typescript success paths", () => {
   describe("entry selection", () => {
-    it("requires an explicit entry declaration name in v0", () => {
+    it("infers the entry when exactly one supported top-level declaration exists", () => {
       expect(
         tryInferTypeScriptDocumentWithOptions("type User = { id: number }"),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+      });
+    });
+
+    it("ignores side-effect imports when inferring the only supported top-level declaration", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          ['import "./polyfills";', "type User = { id: number }"].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+      });
+    });
+
+    it("ignores empty export markers when inferring the only supported top-level declaration", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          ["export {};", "interface User { id: number }"].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+      });
+    });
+
+    it("infers the only exported supported declaration when local helper declarations are also present", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type InternalUser = { id: number };",
+            "export type UserList = InternalUser[];",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("UserList"),
+          {
+            definitions: [
+              schemaDefinition(
+                "InternalUser",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+              schemaDefinition(
+                "UserList",
+                schemaArrayNode(schemaReferenceNode("InternalUser")),
+              ),
+            ],
+          },
+        ),
+      });
+    });
+
+    it("requires an explicit entry declaration name in v0", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type User = { id: number }",
+            "type Account = { name: string }",
+          ].join("\n"),
+        ),
       ).toEqual({
         ok: false,
         code: "missing-typescript-entry",
@@ -39,10 +145,13 @@ describe("parser-typescript success paths", () => {
             path: ["entry"],
             source: "parser-typescript",
             evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
-                end: { offset: 26, line: 1, column: 27 },
-                length: 26,
+                end: { offset: 58, line: 2, column: 32 },
+                length: 58,
               },
             },
           },
@@ -69,14 +178,53 @@ describe("parser-typescript success paths", () => {
             path: ["entry", "Account"],
             source: "parser-typescript",
             evidence: expect.objectContaining({
+              documentName: "TypeScriptDocument",
               entry: "Account",
+              requestedEntry: "Account",
               availableDeclarations: ["User"],
+              availableExportedDeclarations: [],
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 26, line: 1, column: 27 },
                 length: 26,
               },
             }),
+          },
+        ],
+      });
+    });
+
+    it("still requires an explicit entry when multiple supported declarations are exported", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "export type User = { id: number };",
+            "export type Account = { name: string };",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: ["Account", "User"],
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 74, line: 2, column: 40 },
+                length: 74,
+              },
+            },
           },
         ],
       });

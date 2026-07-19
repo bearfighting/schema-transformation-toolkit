@@ -1,6 +1,8 @@
 import ts from "typescript";
 import type {
+  TypeScriptBlockingTopLevelStatement,
   TypeScriptEntryDeclaration,
+  TypeScriptExportAllReference,
   TypeScriptNamedTopLevelStatement,
   TypeScriptReExportReference,
 } from "./types.js";
@@ -44,6 +46,30 @@ export function collectTopLevelDeclarations(
     ) {
       declarations.set(statement.name.text, statement);
     }
+  }
+
+  return declarations;
+}
+
+export function collectExportedTopLevelDeclarations(
+  sourceFile: ts.SourceFile,
+): Map<string, TypeScriptEntryDeclaration> {
+  const declarations = new Map<string, TypeScriptEntryDeclaration>();
+
+  for (const statement of sourceFile.statements) {
+    if (!(
+      ts.isTypeAliasDeclaration(statement) ||
+      ts.isInterfaceDeclaration(statement) ||
+      ts.isEnumDeclaration(statement)
+    )) {
+      continue;
+    }
+
+    if (!hasExportModifier(statement)) {
+      continue;
+    }
+
+    declarations.set(statement.name.text, statement);
   }
 
   return declarations;
@@ -95,8 +121,7 @@ export function collectReExportedTypeReferences(
     if (
       !ts.isExportDeclaration(statement) ||
       !statement.moduleSpecifier ||
-      !statement.exportClause ||
-      !ts.isNamedExports(statement.exportClause)
+      !statement.exportClause
     ) {
       continue;
     }
@@ -104,6 +129,21 @@ export function collectReExportedTypeReferences(
     const moduleSpecifier = ts.isStringLiteral(statement.moduleSpecifier)
       ? statement.moduleSpecifier.text
       : statement.moduleSpecifier.getText();
+
+    if (ts.isNamespaceExport(statement.exportClause)) {
+      reExports.set(statement.exportClause.name.text, {
+        exportedName: statement.exportClause.name.text,
+        importedName: "*",
+        moduleSpecifier,
+        declarationText: statement.getText(),
+        sourceLocation: getTypeScriptSourceLocation(statement),
+      });
+      continue;
+    }
+
+    if (!ts.isNamedExports(statement.exportClause)) {
+      continue;
+    }
 
     for (const element of statement.exportClause.elements) {
       const exportedName = element.name.text;
@@ -120,6 +160,59 @@ export function collectReExportedTypeReferences(
   }
 
   return reExports;
+}
+
+export function collectExportAllReferences(
+  sourceFile: ts.SourceFile,
+): TypeScriptExportAllReference[] {
+  const exportAllReferences: TypeScriptExportAllReference[] = [];
+
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isExportDeclaration(statement) ||
+      !statement.moduleSpecifier ||
+      statement.exportClause
+    ) {
+      continue;
+    }
+
+    const moduleSpecifier = ts.isStringLiteral(statement.moduleSpecifier)
+      ? statement.moduleSpecifier.text
+      : statement.moduleSpecifier.getText();
+
+    exportAllReferences.push({
+      moduleSpecifier,
+      declarationText: statement.getText(),
+      sourceLocation: getTypeScriptSourceLocation(statement),
+    });
+  }
+
+  return exportAllReferences;
+}
+
+export function collectBlockingTopLevelStatements(
+  sourceFile: ts.SourceFile,
+): TypeScriptBlockingTopLevelStatement[] {
+  const blockingStatements: TypeScriptBlockingTopLevelStatement[] = [];
+
+  for (const statement of sourceFile.statements) {
+    const isAmbientModuleDeclaration =
+      ts.isModuleDeclaration(statement) &&
+      !ts.isIdentifier(statement.name) &&
+      statement.body !== undefined;
+
+    if (!ts.isExportAssignment(statement) && !isAmbientModuleDeclaration) {
+      continue;
+    }
+
+    blockingStatements.push({
+      statementKind: ts.SyntaxKind[statement.kind],
+      declarationText: statement.getText(),
+      sourceLocation: getTypeScriptSourceLocation(statement),
+    });
+  }
+
+  return blockingStatements;
 }
 
 export function findNamedTopLevelStatement(
@@ -147,4 +240,14 @@ export function findNamedTopLevelStatement(
   }
 
   return undefined;
+}
+
+function hasExportModifier(statement: ts.Node): boolean {
+  return (
+    ts.canHaveModifiers(statement) &&
+    (ts
+      .getModifiers(statement)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ??
+      false)
+  );
 }

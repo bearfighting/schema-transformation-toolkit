@@ -9,8 +9,38 @@ import { createSchemaObservation } from "@aio/core";
 import type { TypeScriptInferenceErrorCode } from "./errors.js";
 import type { TypeScriptSourceLocation } from "./types.js";
 
+interface TypeScriptPreprocessDiagnosticContext {
+  documentName: string;
+  requestedEntry?: string;
+  availableDeclarations?: string[];
+  availableExportedDeclarations?: string[];
+  sourceLocation?: TypeScriptSourceLocation;
+}
+
+function createPreprocessDiagnosticEvidence(
+  context: TypeScriptPreprocessDiagnosticContext,
+  evidence: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    documentName: context.documentName,
+    ...(context.requestedEntry
+      ? { requestedEntry: context.requestedEntry }
+      : {}),
+    ...(context.availableDeclarations
+      ? { availableDeclarations: context.availableDeclarations }
+      : {}),
+    ...(context.availableExportedDeclarations
+      ? { availableExportedDeclarations: context.availableExportedDeclarations }
+      : {}),
+    ...(context.sourceLocation
+      ? { sourceLocation: context.sourceLocation }
+      : {}),
+    ...evidence,
+  };
+}
+
 export function missingEntryNameDiagnostic(
-  sourceLocation?: TypeScriptSourceLocation,
+  context: TypeScriptPreprocessDiagnosticContext,
 ): SchemaDiagnostic {
   return {
     severity: "error",
@@ -19,37 +49,35 @@ export function missingEntryNameDiagnostic(
       "TypeScript parser v0 requires an explicit entry declaration name.",
     path: ["entry"],
     source: "parser-typescript",
-    ...(sourceLocation
-      ? {
-          evidence: {
-            sourceLocation,
-          },
-        }
-      : {}),
+    evidence: createPreprocessDiagnosticEvidence(context),
   };
 }
 
 export function missingEntryDeclarationDiagnostic(
-  entry: string,
-  sourceLocation?: TypeScriptSourceLocation,
+  options: TypeScriptPreprocessDiagnosticContext & {
+    entry: string;
+  },
 ): SchemaDiagnostic {
   return {
     severity: "error",
     code: "missing-typescript-entry-declaration",
-    message: `The TypeScript parser could not find a supported declaration named "${entry}".`,
-    path: ["entry", entry],
+    message: `The TypeScript parser could not find a supported declaration named "${options.entry}".`,
+    path: ["entry", options.entry],
     source: "parser-typescript",
-    evidence: {
-      entry,
-      ...(sourceLocation ? { sourceLocation } : {}),
-    },
+    evidence: createPreprocessDiagnosticEvidence(options, {
+      entry: options.entry,
+    }),
   };
 }
 
 export function unsupportedEntryDeclarationKindDiagnostic(options: {
+  documentName: string;
   entry: string;
+  requestedEntry?: string;
   declarationKind: string;
   declarationText: string;
+  availableDeclarations?: string[];
+  availableExportedDeclarations?: string[];
   sourceLocation?: TypeScriptSourceLocation;
 }): SchemaDiagnostic {
   return {
@@ -59,22 +87,23 @@ export function unsupportedEntryDeclarationKindDiagnostic(options: {
     path: ["entry", options.entry],
     nodeKind: "entry",
     source: "parser-typescript",
-    evidence: {
+    evidence: createPreprocessDiagnosticEvidence(options, {
       entry: options.entry,
       declarationKind: options.declarationKind,
       declarationText: options.declarationText,
-      ...(options.sourceLocation
-        ? { sourceLocation: options.sourceLocation }
-        : {}),
-    },
+    }),
   };
 }
 
 export function unsupportedReExportedEntryDiagnostic(options: {
+  documentName: string;
   entry: string;
+  requestedEntry?: string;
   importedName: string;
   moduleSpecifier: string;
   declarationText: string;
+  availableDeclarations?: string[];
+  availableExportedDeclarations?: string[];
   sourceLocation?: TypeScriptSourceLocation;
 }): SchemaDiagnostic {
   return {
@@ -84,15 +113,62 @@ export function unsupportedReExportedEntryDiagnostic(options: {
     path: ["entry", options.entry],
     nodeKind: "entry",
     source: "parser-typescript",
-    evidence: {
+    evidence: createPreprocessDiagnosticEvidence(options, {
       entry: options.entry,
       importedName: options.importedName,
       moduleSpecifier: options.moduleSpecifier,
       declarationText: options.declarationText,
-      ...(options.sourceLocation
-        ? { sourceLocation: options.sourceLocation }
-        : {}),
-    },
+    }),
+  };
+}
+
+export function unsupportedExportAllEntryDiagnostic(options: {
+  documentName: string;
+  entry: string;
+  requestedEntry?: string;
+  moduleSpecifiers: string[];
+  declarationText: string;
+  availableDeclarations?: string[];
+  availableExportedDeclarations?: string[];
+  sourceLocation?: TypeScriptSourceLocation;
+}): SchemaDiagnostic {
+  return {
+    severity: "error",
+    code: "unsupported-typescript-export-all-entry",
+    message: `The TypeScript parser could not resolve whether entry "${options.entry}" is forwarded through export-all statements in the current single-file schema subset.`,
+    path: ["entry", options.entry],
+    nodeKind: "entry",
+    source: "parser-typescript",
+    evidence: createPreprocessDiagnosticEvidence(options, {
+      entry: options.entry,
+      moduleSpecifiers: options.moduleSpecifiers,
+      declarationText: options.declarationText,
+    }),
+  };
+}
+
+export function unsupportedTopLevelModuleStatementDiagnostic(options: {
+  documentName: string;
+  entry: string;
+  requestedEntry?: string;
+  statementKind: string;
+  declarationText: string;
+  availableDeclarations?: string[];
+  availableExportedDeclarations?: string[];
+  sourceLocation?: TypeScriptSourceLocation;
+}): SchemaDiagnostic {
+  return {
+    severity: "error",
+    code: "unsupported-typescript-top-level-module-statement",
+    message: `The TypeScript parser found top-level ${options.statementKind} syntax while resolving entry "${options.entry}", and that module-level form is outside the current single-file schema subset.`,
+    path: ["entry", options.entry],
+    nodeKind: "entry",
+    source: "parser-typescript",
+    evidence: createPreprocessDiagnosticEvidence(options, {
+      entry: options.entry,
+      statementKind: options.statementKind,
+      declarationText: options.declarationText,
+    }),
   };
 }
 
@@ -128,7 +204,9 @@ export function unsupportedTypeScriptParserV0Diagnostic(options: {
 }
 
 export function invalidTypeScriptSyntaxDiagnostic(options: {
+  documentName: string;
   detail: string;
+  requestedEntry?: string;
   sourceLocation?: TypeScriptSourceLocation;
 }): SchemaDiagnostic {
   return {
@@ -138,12 +216,9 @@ export function invalidTypeScriptSyntaxDiagnostic(options: {
       "The TypeScript parser could not parse the source because it contains syntax errors.",
     path: ["document"],
     source: "parser-typescript",
-    evidence: {
+    evidence: createPreprocessDiagnosticEvidence(options, {
       detail: options.detail,
-      ...(options.sourceLocation
-        ? { sourceLocation: options.sourceLocation }
-        : {}),
-    },
+    }),
   };
 }
 

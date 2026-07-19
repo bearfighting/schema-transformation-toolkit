@@ -73,6 +73,31 @@ That means current implementation energy should favor:
 
 TypeScript-parser-specific task tracking should stay in [typescript-parser-checklist.md](typescript-parser-checklist.md), not here.
 
+## Latest Work Snapshot
+
+Latest parser-focused progress completed on July 19, 2026:
+
+- expanded conservative automatic root discovery for single-file TypeScript inputs without crossing into multi-file resolution
+- added clearer preprocess-boundary diagnostics and ambiguity evidence for implicit entry selection
+- introduced a small internal decision taxonomy for implicit entry selection and ambiguity reporting
+- exposed parser policy decisions through higher-level SDK report semantics, including entry-selection summaries
+- aligned parser docs, cases, checklist notes, public API snapshots, and tests with the current behavior
+
+The latest commits for this slice are:
+
+- `bf19425` `feat(parser-typescript): deepen implicit entry analysis`
+- `b5f3784` `feat(sdk): surface entry selection in reports`
+
+## Next Planned Push
+
+When work resumes, the most valuable next step is to keep extending automatic root discovery only where the rule stays conservative and explainable.
+
+That currently means:
+
+- tighten exported-root versus local-root convergence in additional single-file edge cases
+- keep entry-selection and ambiguity reasons stable as an internal contract, with documentation and type-comment polish rather than behavior churn
+- continue improving higher-level SDK reporting for implicit-entry and preprocess decisions without widening into CLI work or multi-file resolution
+
 ## Deferred
 
 Intentionally deferred for now:

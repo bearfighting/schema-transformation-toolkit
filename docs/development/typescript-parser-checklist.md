@@ -35,7 +35,7 @@ This file should stay focused on TypeScript-parser-specific execution details.
 
 ### Must
 
-- [ ] add parser-facing source span or line-column diagnostics on top of the current logical `path` diagnostics
+- [x] add parser-facing source span or line-column diagnostics on top of the current logical `path` diagnostics
 - [x] decide and document the intended support strategy for `enum`, `readonly` properties, and readonly array or tuple syntax before implementing them
 - [ ] keep the supported success subset, explicit failure matrix, and package docs aligned as new cases land
 - [ ] apply the capability-and-loss documentation pattern explicitly in the parser package README once the next supported slice lands
@@ -77,9 +77,9 @@ Chosen direction for v0:
 ### Should
 
 - [x] expand representative unsupported-node diagnostics so they preserve both logical `path` information and useful source evidence
-- [ ] continue broadening that richer evidence coverage to future unsupported parser surfaces such as declaration-level pre-processing or multi-file boundaries
+- [x] continue broadening that richer evidence coverage to future unsupported parser surfaces such as declaration-level pre-processing or multi-file boundaries
 - [ ] decide which currently unsupported features are "not yet supported" versus intentionally outside the project boundary
-- [ ] improve explicit diagnostics for unsupported top-level module statements and entry-resolution-adjacent preprocess cases
+- [x] improve explicit diagnostics for unsupported top-level module statements and entry-resolution-adjacent preprocess cases
 - [ ] keep parser capability and semantic-loss documentation aligned with actual runtime behavior as new cases land
 
 ### Can Wait
@@ -89,15 +89,15 @@ Chosen direction for v0:
 - [ ] automatic root declaration discovery from a full file
 - [ ] import-aware parsing across multiple files
 - [x] add explicit parser diagnostics for direct imported type references, namespace-imported type references, and re-export-only entries in the current single-file subset
-- [ ] decide whether broader export-forwarding forms such as `export * from` should get equally explicit diagnostics or remain entry lookup misses for now
-- [ ] decide whether unsupported top-level module statements should be ignored, pre-processed away, or reported explicitly when they affect entry resolution
+- [x] decide whether broader export-forwarding forms such as `export * from` should get equally explicit diagnostics or remain entry lookup misses for now
+- [x] decide whether unsupported top-level module statements should be ignored, pre-processed away, or reported explicitly when they affect entry resolution
 - [ ] checker-driven semantic resolution
 - [ ] source span metadata in the shared IR itself rather than only parser diagnostics
 
 Concrete next candidates from this bucket, once the current Must and Should items are in better shape:
 
 - automatic root declaration discovery for simple single-file inputs
-- clearer handling of export-forwarding forms that still stay within the current single-file boundary
+- expand preprocess evidence and source-span coverage again when multi-file entry resolution work starts
 - carefully chosen import-aware work only if the preprocess boundary stays explicit and additive
 
 ## Longer-Term Backlog

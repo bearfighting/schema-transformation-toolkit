@@ -98,6 +98,7 @@ The current implementation already has several failures that should be understoo
 These include:
 
 - `unsupported-typescript-entry-declaration-kind`
+- `unsupported-typescript-top-level-module-statement`
 - `unsupported-typescript-interface-heritage`
 - `unsupported-typescript-imported-type-reference`
 - `unsupported-typescript-namespace-import-reference`
@@ -115,7 +116,9 @@ For the current project phase, the intended policy is:
 
 - allow local supported declarations
 - allow `export` modifiers on supported local declarations
+- ignore side-effect imports and empty export markers when they do not affect the reachable local declaration set
 - reject entry resolution that depends on re-exports
+- reject blocking top-level module statements such as `export default`, `export =`, or ambient `declare module` blocks when they determine module meaning before schema conversion
 - reject type references that depend on imported bindings
 - reject namespace-qualified imported references
 - reject declaration shapes that require semantic merging or inheritance before conversion
@@ -130,7 +133,7 @@ Some syntax may later be handled entirely inside preprocess without expanding th
 - removing irrelevant `export` modifiers from otherwise local declarations
 - ignoring imports that are unused by the selected reachable declaration set
 - classifying top-level statements into relevant, ignorable, and blocking groups
-- normalizing entry selection over a larger prepared declaration set
+- normalizing entry selection over a larger prepared declaration set, including conservative exported-entry discovery
 
 These are good preprocess candidates because they do not require new schema meaning.
 

@@ -32,14 +32,22 @@ That means:
 
 ## Entry Assumption
 
-The first parser version should parse one explicit entry declaration at a time.
+The current parser should parse one selected entry declaration at a time.
+
+Entry selection may happen in one of two ways:
+
+- explicitly through `options.entry`
+- implicitly when the file contains exactly one supported top-level declaration
+- implicitly when the file contains exactly one exported supported top-level declaration
 
 Examples:
 
 - `type User = { ... }`
 - `interface User { ... }`
 
-The first version should not guess a root declaration from a whole file automatically.
+The parser should not guess a root declaration automatically when multiple supported top-level declarations are present.
+
+Top-level statements that do not change reachable schema meaning may still be ignored.
 
 ## Supported Success Cases
 
@@ -76,7 +84,43 @@ Expected schema IR shape:
 - interface is treated as a named reusable definition
 - root references `User`
 
-### 3. Optional Property
+### 3. Ignorable Top-Level Module Statements
+
+Source:
+
+```ts
+import "./polyfills";
+export {};
+interface User {
+  id: number;
+}
+```
+
+Expected schema IR shape:
+
+- side-effect imports and empty export markers do not block parsing on their own
+- the only supported local declaration may still be selected as the entry
+- these statements are treated as preprocess-level noise rather than schema meaning
+
+### 4. Exported Entry Discovery With Local Helpers
+
+Source:
+
+```ts
+type InternalUser = {
+  id: number;
+};
+
+export type UserList = InternalUser[];
+```
+
+Expected schema IR shape:
+
+- the only exported supported declaration may be selected as the entry
+- non-exported local helper declarations may still be kept as reachable definitions
+- entry discovery should stay conservative and should not guess when multiple exported supported declarations exist
+
+### 5. Optional Property
 
 Source:
 
@@ -91,7 +135,7 @@ Expected schema IR shape:
 - `name` maps to `required: false`
 - optional presence remains distinct from `null`
 
-### 4. Nullable Property Via Union
+### 6. Nullable Property Via Union
 
 Source:
 
@@ -106,7 +150,7 @@ Expected schema IR shape:
 - `name` maps to a non-optional field
 - field nullability is preserved distinctly from optionality
 
-### 5. Array Type
+### 7. Array Type
 
 Source:
 
@@ -119,7 +163,7 @@ Expected schema IR shape:
 - array maps to `SchemaArrayNode`
 - element type may be a reference
 
-### 6. Generic Array Type
+### 8. Generic Array Type
 
 Source:
 
@@ -131,7 +175,7 @@ Expected schema IR shape:
 
 - same semantic result as `User[]`
 
-### 7. Tuple Type
+### 9. Tuple Type
 
 Source:
 
@@ -144,7 +188,7 @@ Expected schema IR shape:
 - tuple maps to `SchemaTupleNode`
 - tuple positions stay ordered and required by default
 
-### 8. Union Type
+### 10. Union Type
 
 Source:
 
@@ -156,7 +200,7 @@ Expected schema IR shape:
 
 - union maps to `SchemaUnionNode`
 
-### 9. Literal Union
+### 11. Literal Union
 
 Source:
 
@@ -169,7 +213,7 @@ Expected schema IR shape:
 - each literal maps to a literal node
 - the result remains a union, not a widened string
 
-### 10. Null Root
+### 12. Null Root
 
 Source:
 
@@ -181,7 +225,7 @@ Expected schema IR shape:
 
 - root definition type is `SchemaNullNode`
 
-### 11. Record Utility
+### 13. Record Utility
 
 Source:
 
@@ -194,7 +238,7 @@ Expected schema IR shape:
 - maps to `SchemaRecordNode`
 - record key remains the scalar type `string`
 
-### 12. Named Reference Reuse
+### 14. Named Reference Reuse
 
 Source:
 
@@ -211,7 +255,7 @@ Expected schema IR shape:
 - `User` becomes a reusable definition
 - `UserList` references `User`
 
-### 13. Enum Declaration
+### 15. Enum Declaration
 
 Source:
 
@@ -228,7 +272,7 @@ Expected schema IR shape:
 - root references the enum definition when it is the selected entry
 - reachable enum references behave like other named reusable definitions
 
-### 14. Enum Member References
+### 16. Enum Member References
 
 Source:
 
@@ -249,7 +293,7 @@ Expected schema IR shape:
 - supported reference forms are currently the bare earlier member name and `EnumName.Member`
 - general computed enum evaluation is intentionally out of scope
 
-### 15. Readonly Syntax
+### 17. Readonly Syntax
 
 Source:
 
@@ -272,7 +316,7 @@ Expected schema IR shape:
 
 These cases are still successful parser outcomes, but the source form should be understood as lowering into shared shape semantics rather than being preserved faithfully as TypeScript syntax.
 
-### 16. Interface Versus Type Alias Shape Equivalence
+### 18. Interface Versus Type Alias Shape Equivalence
 
 Source:
 
@@ -295,7 +339,7 @@ Expected schema IR shape:
 - both forms lower into equivalent shared object-definition semantics
 - parser success does not preserve the declaration-form distinction in shared IR
 
-### 17. Readonly Field Normalization
+### 19. Readonly Field Normalization
 
 Source:
 
@@ -310,7 +354,7 @@ Expected schema IR shape:
 - readonly lowers into the same shared field semantics as a writable field
 - parser success preserves data-shape truth, not mutability syntax
 
-### 18. Enum Declaration Lowering
+### 20. Enum Declaration Lowering
 
 Source:
 
@@ -326,7 +370,7 @@ Expected schema IR shape:
 - enum declarations lower into literal or literal-union semantics
 - parser success does not preserve the distinction between an enum declaration and an equivalent literal union type alias
 
-### 19. Enum Member Reference Resolution
+### 21. Enum Member Reference Resolution
 
 Source:
 
@@ -356,7 +400,7 @@ The matrix is grouped by the parser surface that should report the failure, so t
 
 ### Entry Contract Failures
 
-#### 20. Missing Explicit Entry
+#### 22. Missing Explicit Entry
 
 Source:
 
@@ -371,8 +415,9 @@ Expected result:
 - parser failure
 - failure code should be `missing-typescript-entry`
 - diagnostic path should point to `["entry"]`
+- multiple exported supported declarations should remain ambiguous rather than being guessed automatically
 
-#### 21. Missing Entry Declaration
+#### 23. Missing Entry Declaration
 
 Source:
 
@@ -394,7 +439,7 @@ Expected result:
 
 ### Definition-Level Unsupported Syntax
 
-#### 22. Unsupported Enum Member Initializer
+#### 24. Unsupported Enum Member Initializer
 
 Source:
 
@@ -412,7 +457,7 @@ Expected result:
 - enum initializers outside literal, implicit-numeric, or earlier-member-reference forms should fail explicitly
 - arithmetic, bitwise, concatenated, or other computed enum expressions should not be evaluated by the parser
 
-#### 23. Implicit Enum Value After Non-Numeric Member
+#### 25. Implicit Enum Value After Non-Numeric Member
 
 Source:
 
@@ -429,7 +474,7 @@ Expected result:
 - failure code should be `unsupported-typescript-enum-member-initializer`
 - implicit enum values should only work at the start of an enum or after numeric-valued members
 
-#### 20. Interface Extends Clause
+#### 26. Interface Extends Clause
 
 Source:
 
@@ -450,7 +495,7 @@ Expected result:
 - the parser should not silently drop inherited fields
 - diagnostic evidence should preserve the explicit `extends` clause text
 
-#### 21. Conditional Type
+#### 27. Conditional Type
 
 Source:
 
@@ -464,7 +509,7 @@ Expected result:
 - failure code should be stable and specific to conditional types
 - failure should explain that conditional types are outside the supported schema subset
 
-#### 22. Mapped Type
+#### 28. Mapped Type
 
 Source:
 
@@ -480,7 +525,7 @@ Expected result:
 - failure code should be stable and specific to mapped types
 - mapped types are outside the supported schema subset
 
-#### 23. Function Type
+#### 29. Function Type
 
 Source:
 
@@ -494,7 +539,7 @@ Expected result:
 - failure code should be stable and specific to function types
 - function types are outside the supported schema subset
 
-#### 24. Intersection Type
+#### 30. Intersection Type
 
 Source:
 
@@ -509,7 +554,7 @@ Expected result:
 - parser failure for v0 unless a later explicit decision expands the IR
 - failure code should be stable and specific to intersection types
 
-#### 25. Generic Unsupported Syntax Kind
+#### 31. Generic Unsupported Syntax Kind
 
 Source:
 
@@ -525,7 +570,7 @@ Expected result:
 
 ### Type Reference Failures
 
-#### 26. Unsupported Named Entry Declaration Kind
+#### 32. Unsupported Named Entry Declaration Kind
 
 Source:
 
@@ -544,7 +589,7 @@ Expected result:
 - the failure should explain that a declaration with the requested name exists, but the declaration kind is outside the supported entry subset
 - diagnostic evidence should preserve the declaration kind and declaration text
 
-#### 27. Re-Exported Entry
+#### 33. Re-Exported Entry
 
 Source:
 
@@ -563,7 +608,68 @@ Expected result:
 - the failure should explain that the requested entry exists only as a re-export
 - diagnostic evidence should preserve the module specifier and export-forwarding text
 
-#### 28. Malformed ReadonlyArray Type Reference
+Variant that should behave the same way:
+
+```ts
+export * as Models from "./models";
+```
+
+Requested entry:
+
+- `Models`
+
+Expected result:
+
+- parser failure
+- failure code should remain `unsupported-typescript-reexported-entry`
+- diagnostic evidence should preserve the forwarded module specifier and namespace-export text
+
+#### 34. Export-All Forwarded Entry
+
+Source:
+
+```ts
+export * from "./models";
+```
+
+Requested entry:
+
+- `User`
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-export-all-entry`
+- the failure should explain that current single-file parsing cannot resolve whether the requested entry is forwarded through export-all statements
+- diagnostic evidence should preserve the forwarded module specifier and export-forwarding text
+
+#### 35. Blocking Top-Level Module Statement
+
+Source:
+
+```ts
+export default {};
+```
+
+Requested entry:
+
+- `User`
+
+Expected result:
+
+- parser failure
+- failure code should be `unsupported-typescript-top-level-module-statement`
+- the failure should explain that module-level forms such as export assignments or ambient module blocks are outside the current single-file schema subset when entry resolution depends on them
+- diagnostic evidence should preserve the statement kind and original source text
+
+Variants that should follow the same preprocess boundary:
+
+```ts
+export = createSchema;
+declare module "pkg" {}
+```
+
+#### 36. Malformed ReadonlyArray Type Reference
 
 Source:
 
@@ -577,7 +683,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-type-reference`
 - readonly array syntax should preserve the same array-shape contract as `Array<T>`
 
-#### 29. Non-String Record Key
+#### 37. Non-String Record Key
 
 Source:
 
@@ -591,7 +697,7 @@ Expected result:
 - failure code should be stable and specific to non-string record keys
 - current schema IR record keys are intentionally constrained to string
 
-#### 30. Type-Level Utility Outside Record
+#### 38. Type-Level Utility Outside Record
 
 Source:
 
@@ -604,7 +710,7 @@ Expected result:
 - parser failure
 - utility-type computation is outside the supported subset
 
-#### 31. Imported Type Reference
+#### 39. Imported Type Reference
 
 Source:
 
@@ -621,7 +727,7 @@ Expected result:
 - the failure should explain that the parser would need cross-file resolution
 - diagnostic evidence should preserve both the imported name and module specifier
 
-#### 32. Namespace-Imported Type Reference
+#### 40. Namespace-Imported Type Reference
 
 Source:
 
@@ -638,7 +744,7 @@ Expected result:
 - the failure should explain that namespace-imported references need cross-file resolution
 - diagnostic evidence should preserve the namespace alias and full qualified reference
 
-#### 33. Malformed Built-In Type Reference
+#### 41. Malformed Built-In Type Reference
 
 Source:
 
@@ -652,7 +758,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-type-reference`
 - diagnostics should preserve the malformed built-in text in evidence
 
-#### 34. Unsupported External Type Reference
+#### 42. Unsupported External Type Reference
 
 Source:
 
@@ -667,7 +773,7 @@ Expected result:
 
 ### Tuple Failures
 
-#### 35. Readonly Tuple Rest Element
+#### 43. Readonly Tuple Rest Element
 
 Source:
 
@@ -681,7 +787,7 @@ Expected result:
 - failure code should remain `unsupported-typescript-tuple-rest-element`
 - readonly tuple syntax should not weaken the current tuple-rest boundary
 
-#### 36. Tuple Rest Element
+#### 44. Tuple Rest Element
 
 Source:
 
@@ -696,7 +802,7 @@ Expected result:
 
 ### Type Member And Field Failures
 
-#### 37. Unsupported Object Type Member
+#### 45. Unsupported Object Type Member
 
 Source:
 
@@ -712,7 +818,7 @@ Expected result:
 - failure code should be `unsupported-typescript-type-member`
 - diagnostic node kind should identify a type member failure
 
-#### 38. Computed Property Name
+#### 46. Computed Property Name
 
 Source:
 
@@ -727,7 +833,7 @@ Expected result:
 - parser failure
 - failure code should be stable and specific to unsupported property-name forms
 
-#### 39. Missing Property Type Annotation
+#### 47. Missing Property Type Annotation
 
 Source:
 
@@ -742,7 +848,7 @@ Expected result:
 - parser failure
 - failure code should be stable and specific to missing property type annotations
 
-#### 40. Nested Unsupported Field Syntax
+#### 48. Nested Unsupported Field Syntax
 
 Source:
 

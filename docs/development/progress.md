@@ -126,12 +126,17 @@ This is meant to keep the project honest about where its next abstraction pressu
 - read [capabilities-and-loss.md](capabilities-and-loss.md) for the conversion-result truthfulness rules
 - read [typescript-parser-checklist.md](typescript-parser-checklist.md) and [typescript-parser-preprocess.md](typescript-parser-preprocess.md) for the active parser-specific guidance
 
-## Last Broad Verification
+## Latest Verification Notes
 
-The latest broad verification pass completed on July 18, 2026 and included:
+The latest local verification pass completed on July 19, 2026 and included:
+
+- `pnpm test`
+- `pnpm typecheck`
+
+That pass finished green with `27` test files and `289` tests passing.
+
+The latest broader verification pass completed on July 18, 2026 and included:
 
 - `pnpm vitest run`
 - `pnpm typecheck`
 - `pnpm eslint tests packages/sdk/src packages/parsers/json/src packages/parsers/json-schema/src packages/parsers/typescript/src packages/generators/json-schema/src packages/generators/typescript/src`
-
-That pass finished green with `27` test files and `291` tests passing.

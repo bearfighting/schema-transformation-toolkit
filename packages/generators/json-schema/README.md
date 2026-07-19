@@ -195,8 +195,7 @@ The generator does not yet support:
 - external `$ref`
 - multi-file output
 - draft switching
-- schema annotations such as `description` and `examples`
-- configurable `oneOf` vs `anyOf`
+- schema annotations beyond the currently supported portable annotation subset
 
 Unsupported cases should fail explicitly rather than being approximated loosely.
 

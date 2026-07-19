@@ -1,4 +1,6 @@
 import type {
+  ConversionEntrySelection,
+  ConversionPolicyDecision,
   ConstraintDocument,
   ConversionCapability,
   ConversionReport,
@@ -25,12 +27,19 @@ export function buildConversionReport(
 ): ConversionReport | undefined {
   const allDiagnostics = [...parseDiagnostics, ...generateDiagnostics];
   const allSemanticNotes = [...parseSemanticNotes, ...generateSemanticNotes];
+  const policyDecisions = extractPolicyDecisions(
+    parseSemanticNotes,
+    generateSemanticNotes,
+  );
+  const entrySelection = extractEntrySelection(policyDecisions);
 
   if (
     allDiagnostics.length === 0 &&
     losses.length === 0 &&
     preservedCapabilities.length === 0 &&
-    allSemanticNotes.length === 0
+    allSemanticNotes.length === 0 &&
+    policyDecisions.length === 0 &&
+    !entrySelection
   ) {
     return undefined;
   }
@@ -62,6 +71,8 @@ export function buildConversionReport(
           },
         }
       : {}),
+    ...(policyDecisions.length > 0 ? { policyDecisions } : {}),
+    ...(entrySelection ? { entrySelection } : {}),
   };
 }
 
@@ -72,6 +83,84 @@ export function combineDiagnostics(
   const combined = [...diagnostics, ...(extraDiagnostics ?? [])];
 
   return combined.length > 0 ? combined : undefined;
+}
+
+export function extractEntrySelection(
+  policyDecisions: ConversionPolicyDecision[],
+): ConversionEntrySelection | undefined {
+  const entrySelectionDecision = policyDecisions.find(
+    (decision) =>
+      decision.phase === "parse" &&
+      decision.code === "typescript-implicit-entry-selected",
+  );
+
+  if (!entrySelectionDecision) {
+    return undefined;
+  }
+
+  const evidence =
+    entrySelectionDecision.evidence &&
+    typeof entrySelectionDecision.evidence === "object" &&
+    !Array.isArray(entrySelectionDecision.evidence)
+      ? entrySelectionDecision.evidence
+      : undefined;
+  const entry =
+    evidence && "entry" in evidence && typeof evidence.entry === "string"
+      ? evidence.entry
+      : entrySelectionDecision.path?.[1];
+  const strategyCode =
+    evidence &&
+    "selectionReason" in evidence &&
+    typeof evidence.selectionReason === "string"
+      ? evidence.selectionReason
+      : entrySelectionDecision.code;
+
+  if (!entry) {
+    return undefined;
+  }
+
+  return {
+    mode: "implicit",
+    entry,
+    strategyCode,
+    ...(entrySelectionDecision.source
+      ? { source: entrySelectionDecision.source }
+      : {}),
+    ...(entrySelectionDecision.path
+      ? { path: entrySelectionDecision.path }
+      : {}),
+    ...(entrySelectionDecision.evidence
+      ? { evidence: entrySelectionDecision.evidence }
+      : {}),
+  };
+}
+
+export function extractPolicyDecisions(
+  parseSemanticNotes: SchemaSemanticNote[],
+  generateSemanticNotes: SchemaSemanticNote[] = [],
+): ConversionPolicyDecision[] {
+  return [
+    ...parseSemanticNotes
+      .filter((note) => note.kind === "policy")
+      .map((note) => ({
+        phase: "parse" as const,
+        code: note.code,
+        message: note.message,
+        ...(note.source ? { source: note.source } : {}),
+        ...(note.path ? { path: note.path } : {}),
+        ...(note.evidence ? { evidence: note.evidence } : {}),
+      })),
+    ...generateSemanticNotes
+      .filter((note) => note.kind === "policy")
+      .map((note) => ({
+        phase: "generate" as const,
+        code: note.code,
+        message: note.message,
+        ...(note.source ? { source: note.source } : {}),
+        ...(note.path ? { path: note.path } : {}),
+        ...(note.evidence ? { evidence: note.evidence } : {}),
+      })),
+  ];
 }
 
 export function collectPreservedCapabilities(

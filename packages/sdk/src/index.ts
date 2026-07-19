@@ -4,6 +4,11 @@ export {
   listConversionRoutes,
   planConversion,
 } from "./convert.js";
+export { inspectTypeScriptImplicitEntry } from "./inspect.js";
+export type {
+  TypeScriptImplicitEntryAmbiguityReason,
+  TypeScriptImplicitEntryAnalysis,
+} from "./inspect.js";
 export type {
   ConversionArtifacts,
   ConvertFailureResult,

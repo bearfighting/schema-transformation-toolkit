@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SchemaDiagnostic } from "@aio/core";
+import type { SchemaDiagnostic, SchemaSemanticNote } from "@aio/core";
 import {
   buildConversionReport,
   collectPreservedCapabilities,
@@ -56,6 +56,35 @@ describe("sdk reporting helpers", () => {
   });
 
   it("builds an aggregated report only when there is something to report", () => {
+    const parseSemanticNotes: SchemaSemanticNote[] = [
+      {
+        kind: "policy",
+        code: "typescript-implicit-entry-selected",
+        message:
+          'The TypeScript parser selected entry "UserList" implicitly using the single local root rule.',
+        path: ["entry", "UserList"],
+        nodeKind: "entry",
+        source: "parser-typescript",
+        layer: "shape",
+        evidence: {
+          entry: "UserList",
+          selectionReason: "single-root",
+        },
+      },
+    ];
+    const generateSemanticNotes: SchemaSemanticNote[] = [
+      {
+        kind: "policy",
+        code: "generator-target-policy",
+        message: "The generator applied a target shaping policy.",
+        path: ["root"],
+        source: "sdk-test-generator",
+        layer: "target",
+        evidence: {
+          targetPolicy: "compact-output",
+        },
+      },
+    ];
     const report = buildConversionReport(
       [
         {
@@ -68,8 +97,8 @@ describe("sdk reporting helpers", () => {
       [],
       [],
       ["shape-ir"],
-      [],
-      [],
+      parseSemanticNotes,
+      generateSemanticNotes,
     );
 
     expect(report).toEqual({
@@ -91,7 +120,47 @@ describe("sdk reporting helpers", () => {
           },
         ],
       },
+      entrySelection: {
+        mode: "implicit",
+        entry: "UserList",
+        strategyCode: "single-root",
+        source: "parser-typescript",
+        path: ["entry", "UserList"],
+        evidence: {
+          entry: "UserList",
+          selectionReason: "single-root",
+        },
+      },
+      policyDecisions: [
+        {
+          phase: "parse",
+          code: "typescript-implicit-entry-selected",
+          message:
+            'The TypeScript parser selected entry "UserList" implicitly using the single local root rule.',
+          source: "parser-typescript",
+          path: ["entry", "UserList"],
+          evidence: {
+            entry: "UserList",
+            selectionReason: "single-root",
+          },
+        },
+        {
+          phase: "generate",
+          code: "generator-target-policy",
+          message: "The generator applied a target shaping policy.",
+          source: "sdk-test-generator",
+          path: ["root"],
+          evidence: {
+            targetPolicy: "compact-output",
+          },
+        },
+      ],
       preservedCapabilities: ["shape-ir"],
+      semanticNotes: {
+        parse: parseSemanticNotes,
+        generate: generateSemanticNotes,
+        all: [...parseSemanticNotes, ...generateSemanticNotes],
+      },
     });
 
     expect(buildConversionReport([], [], [], [], [], [])).toBeUndefined();

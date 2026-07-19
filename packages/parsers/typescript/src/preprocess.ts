@@ -21,6 +21,11 @@ import {
 } from "./diagnostics.js";
 import { createUnsupportedDeclarationShapeDiagnostic } from "./declaration-shape.js";
 import {
+  analyzeImplicitEntry,
+  derivePreferredEntryNameFromDocumentName,
+  type TypeScriptImplicitEntryAnalysis,
+} from "./implicit-entry.js";
+import {
   createTypeScriptSourceFile,
   getTypeScriptSourceLocation,
   getTypeScriptSourceLocationFromSpan,
@@ -36,6 +41,7 @@ export interface TypeScriptPreprocessSuccessResult {
   declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
   declarationNames: Set<string>;
   importedTypeMap: ReadonlyMap<string, string>;
+  implicitEntryAnalysis: TypeScriptImplicitEntryAnalysis;
 }
 
 export interface TypeScriptPreprocessFailureResult {
@@ -105,14 +111,23 @@ export function preprocessTypeScriptSource(
   const availableExportedDeclarations = Array.from(
     exportedDeclarationMap.keys(),
   ).sort();
+  const implicitEntryAnalysis = analyzeImplicitEntry({
+    declarationMap,
+    exportedDeclarationMap,
+    ...(derivePreferredEntryNameFromDocumentName(options.name)
+      ? {
+          preferredEntryName: derivePreferredEntryNameFromDocumentName(
+            options.name,
+          ),
+        }
+      : {}),
+  });
   const importedTypeMap = collectImportedTypeReferences(sourceFile);
   const reExportedTypeMap = collectReExportedTypeReferences(sourceFile);
   const exportAllReferences = collectExportAllReferences(sourceFile);
   const blockingTopLevelStatements =
     collectBlockingTopLevelStatements(sourceFile);
-  const requestedEntry =
-    options.entry ??
-    inferImplicitEntryName(declarationMap, exportedDeclarationMap);
+  const requestedEntry = options.entry ?? implicitEntryAnalysis.entryName;
 
   if (!requestedEntry) {
     return {
@@ -125,6 +140,14 @@ export function preprocessTypeScriptSource(
           documentName: options.name,
           availableDeclarations,
           availableExportedDeclarations,
+          rootCandidates: implicitEntryAnalysis.rootCandidates,
+          exportedRootCandidates: implicitEntryAnalysis.exportedRootCandidates,
+          ...(implicitEntryAnalysis.ambiguityReason
+            ? {
+                implicitEntryAmbiguityReason:
+                  implicitEntryAnalysis.ambiguityReason,
+              }
+            : {}),
           sourceLocation: sourceFileLocation,
         }),
       ],
@@ -286,20 +309,6 @@ export function preprocessTypeScriptSource(
     declarationMap,
     declarationNames,
     importedTypeMap,
+    implicitEntryAnalysis,
   };
-}
-
-function inferImplicitEntryName(
-  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
-  exportedDeclarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
-): string | undefined {
-  if (declarationMap.size !== 1) {
-    if (exportedDeclarationMap.size !== 1) {
-      return undefined;
-    }
-
-    return exportedDeclarationMap.keys().next().value;
-  }
-
-  return declarationMap.keys().next().value;
 }

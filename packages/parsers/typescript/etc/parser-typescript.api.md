@@ -134,6 +134,13 @@ export {
 } from "./errors.js";
 export { typeScriptParserCapabilities } from "./capabilities.js";
 export {
+  analyzeImplicitEntry,
+  analyzeImplicitEntryFromSource,
+  collectRootDeclarationNames,
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
+} from "./implicit-entry.js";
+export {
   inferTypeScriptDocument,
   inferTypeScriptDocumentWithOptions,
   preparedTypeScriptParserOptions,
@@ -164,6 +171,43 @@ export {
   type TypeScriptParseOptions,
   type TypeScriptParseStrictness,
 } from "./options.js";
+```
+
+## packages/parsers/typescript/src/implicit-entry.d.ts
+
+```ts
+import type { TypeScriptEntryDeclaration } from "./types.js";
+export type TypeScriptImplicitEntryAmbiguityReason =
+  | "multiple-exported-root-candidates"
+  | "multiple-local-root-candidates"
+  | "cyclic-root-candidates";
+export type TypeScriptImplicitEntrySelectionReason =
+  | "single-declaration"
+  | "single-exported-declaration"
+  | "single-exported-root"
+  | "single-root"
+  | "document-name-match";
+export interface TypeScriptImplicitEntryAnalysis {
+  entryName?: string | undefined;
+  rootCandidates: string[];
+  exportedRootCandidates: string[];
+  selectionReason?: TypeScriptImplicitEntrySelectionReason;
+  ambiguityReason?: TypeScriptImplicitEntryAmbiguityReason;
+}
+export declare function analyzeImplicitEntry(options: {
+  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
+  exportedDeclarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
+}): TypeScriptImplicitEntryAnalysis;
+export declare function analyzeImplicitEntryFromSource(
+  input: string,
+  preferredEntryName?: string,
+): TypeScriptImplicitEntryAnalysis;
+export declare function collectRootDeclarationNames(
+  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
+): string[];
+export declare function derivePreferredEntryNameFromDocumentName(
+  documentName: string,
+): string | undefined;
 ```
 
 ## packages/parsers/typescript/src/options.d.ts
@@ -248,6 +292,8 @@ export interface TypeScriptPreprocessFailureResult {
     | "unsupported-typescript-syntax"
     | "unsupported-typescript-entry-declaration-kind"
     | "unsupported-typescript-interface-heritage"
+    | "unsupported-typescript-export-all-entry"
+    | "unsupported-typescript-top-level-module-statement"
     | "unsupported-typescript-reexported-entry";
   message: string;
   diagnostics: SchemaDiagnostic[];
@@ -296,6 +342,16 @@ export interface TypeScriptReExportReference {
   exportedName: string;
   importedName: string;
   moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+export interface TypeScriptExportAllReference {
+  moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+export interface TypeScriptBlockingTopLevelStatement {
+  statementKind: string;
   declarationText: string;
   sourceLocation: TypeScriptSourceLocation;
 }

@@ -41,6 +41,22 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the single supported declaration rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "single-declaration",
+            },
+          },
+        ],
       });
     });
 
@@ -65,6 +81,22 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the single supported declaration rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "single-declaration",
+            },
+          },
+        ],
       });
     });
 
@@ -89,6 +121,22 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the single supported declaration rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "single-declaration",
+            },
+          },
+        ],
       });
     });
 
@@ -120,6 +168,289 @@ describe("parser-typescript success paths", () => {
             ],
           },
         ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "UserList" implicitly using the single exported supported declaration rule.',
+            path: ["entry", "UserList"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "UserList",
+              selectionReason: "single-exported-declaration",
+            },
+          },
+        ],
+      });
+    });
+
+    it("infers the unique declaration root when helper declarations feed one final local entry", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type Identifier = number;",
+            "type User = { id: Identifier };",
+            "type UserList = User[];",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("UserList"),
+          {
+            definitions: [
+              schemaDefinition("Identifier", schemaScalarNode("number")),
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaReferenceNode("Identifier")),
+                ]),
+              ),
+              schemaDefinition(
+                "UserList",
+                schemaArrayNode(schemaReferenceNode("User")),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "UserList" implicitly using the single local root rule.',
+            path: ["entry", "UserList"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "UserList",
+              selectionReason: "single-root",
+            },
+          },
+        ],
+      });
+    });
+
+    it("infers the unique exported declaration root when exported helpers feed one final exported entry", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type InternalToken = string;",
+            "export type User = { token: InternalToken };",
+            "export type UserList = User[];",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("UserList"),
+          {
+            definitions: [
+              schemaDefinition("InternalToken", schemaScalarNode("string")),
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode(
+                    "token",
+                    schemaReferenceNode("InternalToken"),
+                  ),
+                ]),
+              ),
+              schemaDefinition(
+                "UserList",
+                schemaArrayNode(schemaReferenceNode("User")),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "UserList" implicitly using the single exported root rule.',
+            path: ["entry", "UserList"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "UserList",
+              selectionReason: "single-exported-root",
+            },
+          },
+        ],
+      });
+    });
+
+    it("still requires an explicit entry when multiple exported declaration roots remain", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type InternalToken = string;",
+            "export type User = { token: InternalToken };",
+            "export type Account = { id: number };",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "InternalToken", "User"],
+              availableExportedDeclarations: ["Account", "User"],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: ["Account", "User"],
+              implicitEntryAmbiguityReason:
+                "multiple-exported-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 111, line: 3, column: 38 },
+                length: 111,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it("uses the document name as a conservative tie-breaker when it matches an ambiguous root candidate", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type User = { id: number };",
+            "type Account = { name: string };",
+          ].join("\n"),
+          {
+            name: "UserDocument",
+          },
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "UserDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the document name match rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "document-name-match",
+            },
+          },
+        ],
+      });
+    });
+
+    it("still requires an explicit entry when multiple independent declaration roots remain", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type Identifier = number;",
+            "type User = { id: Identifier };",
+            "type Account = { name: string };",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "Identifier", "User"],
+              availableExportedDeclarations: [],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "multiple-local-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 90, line: 3, column: 33 },
+                length: 90,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it("reports a cyclic-root ambiguity when declarations only reference each other", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "type A = B;",
+            "type B = A;",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["A", "B"],
+              availableExportedDeclarations: [],
+              rootCandidates: [],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "cyclic-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 23, line: 2, column: 12 },
+                length: 23,
+              },
+            },
+          },
+        ],
       });
     });
 
@@ -148,6 +479,9 @@ describe("parser-typescript success paths", () => {
               documentName: "TypeScriptDocument",
               availableDeclarations: ["Account", "User"],
               availableExportedDeclarations: [],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "multiple-local-root-candidates",
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 58, line: 2, column: 32 },
@@ -219,6 +553,10 @@ describe("parser-typescript success paths", () => {
               documentName: "TypeScriptDocument",
               availableDeclarations: ["Account", "User"],
               availableExportedDeclarations: ["Account", "User"],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: ["Account", "User"],
+              implicitEntryAmbiguityReason:
+                "multiple-exported-root-candidates",
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 74, line: 2, column: 40 },

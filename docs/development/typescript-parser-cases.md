@@ -34,18 +34,24 @@ That means:
 
 The current parser should parse one selected entry declaration at a time.
 
-Entry selection may happen in one of two ways:
+Entry selection may happen in these ways:
 
 - explicitly through `options.entry`
 - implicitly when the file contains exactly one supported top-level declaration
 - implicitly when the file contains exactly one exported supported top-level declaration
+- implicitly when exported supported declarations still collapse to exactly one root declaration
+- implicitly when the local supported declaration graph has exactly one root declaration
+- implicitly when a custom `...Document` name matches exactly one otherwise ambiguous root candidate
 
 Examples:
 
 - `type User = { ... }`
 - `interface User { ... }`
 
-The parser should not guess a root declaration automatically when multiple supported top-level declarations are present.
+The parser should stay conservative when root discovery is ambiguous.
+It should not guess a root declaration automatically when multiple supported top-level declarations remain independent or when the local declaration graph has no unique root.
+When that ambiguity happens, `missing-typescript-entry` diagnostics should preserve `rootCandidates`, `exportedRootCandidates`, and `implicitEntryAmbiguityReason` in evidence so callers can inspect what the parser considered, including cycle-only cases where no declaration root exists.
+When the parser does select an entry implicitly, successful results should emit a `typescript-implicit-entry-selected` semantic note with the corresponding selection rule in evidence.
 
 Top-level statements that do not change reachable schema meaning may still be ignored.
 
@@ -120,7 +126,39 @@ Expected schema IR shape:
 - non-exported local helper declarations may still be kept as reachable definitions
 - entry discovery should stay conservative and should not guess when multiple exported supported declarations exist
 
-### 5. Optional Property
+### 5. Unique Local Declaration Root Discovery
+
+Source:
+
+```ts
+type Identifier = number;
+type User = { id: Identifier };
+type UserList = User[];
+```
+
+Expected schema IR shape:
+
+- the parser may select `UserList` as the implicit entry
+- helper declarations may remain local and non-exported
+- automatic entry discovery stays valid because exactly one supported declaration is not referenced by any other supported local declaration
+
+### 6. Unique Exported Declaration Root Discovery
+
+Source:
+
+```ts
+type InternalToken = string;
+export type User = { token: InternalToken };
+export type UserList = User[];
+```
+
+Expected schema IR shape:
+
+- the parser may select `UserList` as the implicit entry
+- exported helper declarations may still participate in the same local declaration chain
+- unrelated local non-exported helpers do not prevent entry discovery when the exported declaration graph still has exactly one root
+
+### 7. Optional Property
 
 Source:
 

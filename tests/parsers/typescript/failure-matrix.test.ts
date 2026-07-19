@@ -59,6 +59,9 @@ describe("parser-typescript failure matrix", () => {
               documentName: "TypeScriptDocument",
               availableDeclarations: ["Account", "User"],
               availableExportedDeclarations: [],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "multiple-local-root-candidates",
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 58, line: 2, column: 32 },

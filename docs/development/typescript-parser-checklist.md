@@ -86,7 +86,7 @@ Chosen direction for v0:
 
 - [x] make preprocess an explicit code-level step rather than only an architectural/documentation boundary
 - [x] move interface-heritage blocking checks for the reachable local declaration graph into preprocess
-- [ ] automatic root declaration discovery from a full file
+- [x] automatic root declaration discovery for simple single-file inputs
 - [ ] import-aware parsing across multiple files
 - [x] add explicit parser diagnostics for direct imported type references, namespace-imported type references, and re-export-only entries in the current single-file subset
 - [x] decide whether broader export-forwarding forms such as `export * from` should get equally explicit diagnostics or remain entry lookup misses for now
@@ -96,7 +96,7 @@ Chosen direction for v0:
 
 Concrete next candidates from this bucket, once the current Must and Should items are in better shape:
 
-- automatic root declaration discovery for simple single-file inputs
+- extend root discovery only when the single-file declaration graph still yields a unique, explainable candidate
 - expand preprocess evidence and source-span coverage again when multi-file entry resolution work starts
 - carefully chosen import-aware work only if the preprocess boundary stays explicit and additive
 

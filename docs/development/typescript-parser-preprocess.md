@@ -126,6 +126,30 @@ For the current project phase, the intended policy is:
 This policy is intentionally conservative.
 It optimizes for stable and explainable behavior, not maximum TypeScript coverage.
 
+## Implicit Entry Taxonomy
+
+The preprocess layer now uses one small internal taxonomy for implicit entry decisions.
+This is meant to keep root-discovery expansion explainable as rules evolve.
+
+Selection reasons answer "why was an entry chosen?":
+
+- `single-declaration`: exactly one supported declaration exists
+- `single-exported-declaration`: multiple declarations exist, but only one exported supported declaration exists
+- `single-exported-root`: exported declarations collapse to one root in the exported dependency graph
+- `single-root`: exported declarations do not disambiguate, but the local dependency graph collapses to one root
+- `document-name-match`: ambiguity remains until a custom `...Document` name matches exactly one root candidate
+
+Ambiguity reasons answer "why was no implicit entry chosen?":
+
+- `multiple-exported-root-candidates`: exported declarations still expose more than one plausible public root
+- `multiple-local-root-candidates`: exported declarations do not disambiguate, and the local declaration graph still exposes multiple plausible roots
+- `cyclic-root-candidates`: no declaration root exists because declarations only resolve through cycles or complete consumption
+
+Design rule:
+
+- selection reasons should be ordered from strongest source evidence to weakest acceptable conservative tie-break
+- ambiguity reasons should describe structural causes, not parser implementation accidents
+
 ## What Preprocess May Eventually Normalize
 
 Some syntax may later be handled entirely inside preprocess without expanding the schema IR:

@@ -28,6 +28,9 @@ The package currently supports:
 - explicit named entry declarations
 - automatic entry inference when exactly one supported top-level declaration exists
 - automatic entry inference when exactly one supported top-level declaration is exported
+- automatic entry inference when exported supported declarations form exactly one root in the exported declaration graph
+- automatic entry inference when the local supported declaration graph has exactly one root declaration
+- conservative document-name tie-breaking when a custom `...Document` name matches exactly one ambiguous root candidate
 - ignoring side-effect imports and empty export markers when they do not affect reachable schema declarations
 - `type` aliases, `interface` declarations, and `enum` declarations
 - `export`-modified supported declarations when the underlying declaration shape stays within the current schema subset
@@ -200,8 +203,9 @@ const parsed = typeScriptParser.parse("interface User { id: number }", {
 });
 ```
 
-The parser accepts an explicit `entry` and can infer one automatically when the file contains exactly one supported top-level declaration.
+The parser accepts an explicit `entry` and can infer one automatically when the file contains exactly one supported top-level declaration, exactly one exported supported top-level declaration, exactly one exported supported root declaration, exactly one supported declaration that is not referenced by any other supported local declaration, or a custom `...Document` name that matches exactly one ambiguous root candidate.
 Successful results return a `SchemaDocument` whose root is usually a reference to the selected named definition.
+When the entry is selected implicitly, success also includes a parser `semanticNote` with code `typescript-implicit-entry-selected` so callers can see which inference rule was used.
 
 ## Current Failure Model
 
@@ -225,6 +229,7 @@ Current failure results use stable parser-facing codes, including:
 - `unsupported-typescript-type-reference`
 
 Diagnostics carry the shared `core` shape, including stable `path`, `nodeKind`, and `evidence` fields when the parser can determine a meaningful logical location.
+For implicit-entry ambiguity, `missing-typescript-entry` evidence may now include `rootCandidates`, `exportedRootCandidates`, and `implicitEntryAmbiguityReason` so callers can see why root discovery stayed conservative, including cycle-only cases where no root candidate exists.
 
 Under the shared capability-and-loss contract, this means:
 

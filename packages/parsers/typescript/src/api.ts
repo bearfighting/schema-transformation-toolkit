@@ -6,7 +6,10 @@ import type {
 } from "@aio/core";
 import { getTypeScriptSourceLocation } from "./syntax.js";
 import { convertTypeScriptEntryDeclarationToSchemaDocument } from "./convert.js";
-import { unsupportedTypeScriptParserV0Diagnostic } from "./diagnostics.js";
+import {
+  implicitEntrySelectedSemanticNote,
+  unsupportedTypeScriptParserV0Diagnostic,
+} from "./diagnostics.js";
 import { isTypeScriptInferenceError } from "./errors.js";
 import {
   assertSupportedTypeScriptParseOptions,
@@ -148,6 +151,20 @@ function tryInferTypeScriptDocumentWithResolvedOptions(
       preprocessed.declarationNames,
       preprocessed.importedTypeMap,
     );
+    const semanticNotes = [...converted.semanticNotes];
+
+    if (
+      options.entry === undefined &&
+      preprocessed.implicitEntryAnalysis.entryName &&
+      preprocessed.implicitEntryAnalysis.selectionReason
+    ) {
+      semanticNotes.unshift(
+        implicitEntrySelectedSemanticNote({
+          entry: preprocessed.implicitEntryAnalysis.entryName,
+          selectionReason: preprocessed.implicitEntryAnalysis.selectionReason,
+        }),
+      );
+    }
 
     return {
       ok: true,
@@ -155,9 +172,7 @@ function tryInferTypeScriptDocumentWithResolvedOptions(
       ...(converted.diagnostics.length > 0
         ? { diagnostics: converted.diagnostics }
         : {}),
-      ...(converted.semanticNotes.length > 0
-        ? { semanticNotes: converted.semanticNotes }
-        : {}),
+      ...(semanticNotes.length > 0 ? { semanticNotes } : {}),
     };
   } catch (error) {
     if (isTypeScriptInferenceError(error)) {

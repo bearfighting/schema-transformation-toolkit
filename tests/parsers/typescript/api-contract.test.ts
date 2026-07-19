@@ -6,7 +6,10 @@ describe("parser-typescript api contract", () => {
     expect(Object.keys(typeScriptParserModule).sort()).toEqual([
       "DEFAULT_TYPESCRIPT_PARSE_OPTIONS",
       "TypeScriptInferenceError",
+      "analyzeImplicitEntry",
+      "analyzeImplicitEntryFromSource",
       "assertSupportedTypeScriptParseOptions",
+      "collectRootDeclarationNames",
       "configureTypeScriptParser",
       "createTypeScriptParser",
       "createTypeScriptSourceFile",

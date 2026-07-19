@@ -7,6 +7,7 @@ import type {
 } from "@aio/core";
 import { createSchemaObservation } from "@aio/core";
 import type { TypeScriptInferenceErrorCode } from "./errors.js";
+import type { TypeScriptImplicitEntrySelectionReason } from "./implicit-entry.js";
 import type { TypeScriptSourceLocation } from "./types.js";
 
 interface TypeScriptPreprocessDiagnosticContext {
@@ -14,6 +15,12 @@ interface TypeScriptPreprocessDiagnosticContext {
   requestedEntry?: string;
   availableDeclarations?: string[];
   availableExportedDeclarations?: string[];
+  rootCandidates?: string[];
+  exportedRootCandidates?: string[];
+  implicitEntryAmbiguityReason?:
+    | "multiple-exported-root-candidates"
+    | "multiple-local-root-candidates"
+    | "cyclic-root-candidates";
   sourceLocation?: TypeScriptSourceLocation;
 }
 
@@ -31,6 +38,18 @@ function createPreprocessDiagnosticEvidence(
       : {}),
     ...(context.availableExportedDeclarations
       ? { availableExportedDeclarations: context.availableExportedDeclarations }
+      : {}),
+    ...(context.rootCandidates
+      ? { rootCandidates: context.rootCandidates }
+      : {}),
+    ...(context.exportedRootCandidates
+      ? { exportedRootCandidates: context.exportedRootCandidates }
+      : {}),
+    ...(context.implicitEntryAmbiguityReason
+      ? {
+          implicitEntryAmbiguityReason:
+            context.implicitEntryAmbiguityReason,
+        }
       : {}),
     ...(context.sourceLocation
       ? { sourceLocation: context.sourceLocation }
@@ -268,4 +287,31 @@ export function typeScriptSemanticNote(options: {
     ...(options.layer ? { layer: options.layer } : {}),
     ...(options.evidence ? { evidence: options.evidence } : {}),
   }).semanticNote;
+}
+
+export function implicitEntrySelectedSemanticNote(options: {
+  entry: string;
+  selectionReason: TypeScriptImplicitEntrySelectionReason;
+}): SchemaSemanticNote {
+  const strategyLabels: Record<TypeScriptImplicitEntrySelectionReason, string> =
+    {
+      "single-declaration": "single supported declaration",
+      "single-exported-declaration": "single exported supported declaration",
+      "single-exported-root": "single exported root",
+      "single-root": "single local root",
+      "document-name-match": "document name match",
+    };
+
+  return typeScriptSemanticNote({
+    kind: "policy",
+    code: "typescript-implicit-entry-selected",
+    message: `The TypeScript parser selected entry "${options.entry}" implicitly using the ${strategyLabels[options.selectionReason]} rule.`,
+    path: ["entry", options.entry],
+    nodeKind: "entry",
+    layer: "shape",
+    evidence: {
+      entry: options.entry,
+      selectionReason: options.selectionReason,
+    },
+  });
 }

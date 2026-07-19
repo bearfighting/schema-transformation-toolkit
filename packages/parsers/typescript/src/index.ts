@@ -4,6 +4,13 @@ export {
 } from "./errors.js";
 export { typeScriptParserCapabilities } from "./capabilities.js";
 export {
+  analyzeImplicitEntry,
+  analyzeImplicitEntryFromSource,
+  collectRootDeclarationNames,
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
+} from "./implicit-entry.js";
+export {
   inferTypeScriptDocument,
   inferTypeScriptDocumentWithOptions,
   preparedTypeScriptParserOptions,

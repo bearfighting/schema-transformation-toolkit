@@ -8,7 +8,7 @@ This project is built around a simple boundary:
 
 - parsers convert source input into IR
 - generators convert IR into target output
-- the IR is the only required handoff between the two
+- the IR layers are the only required handoff between the two
 
 That separation is intended to make parsers and generators independently replaceable and easier to extend over time.
 
@@ -37,17 +37,17 @@ The current implementation is intentionally conservative.
 
 The currently validated flows are:
 
-- `json -> schema ir -> typescript`
-- `json -> schema ir -> json-schema`
-- `json-schema -> schema ir -> typescript`
-- `json-schema -> schema ir -> json-schema`
-- `typescript -> schema ir -> typescript`
-- `typescript -> schema ir -> json-schema`
+- `json -> value -> shape -> typescript`
+- `json -> value -> shape -> json-schema`
+- `json-schema -> shape -> typescript`
+- `json-schema -> shape + constraint -> json-schema`
+- `typescript -> shape -> typescript`
+- `typescript -> shape -> json-schema`
 
 That does not mean every JSON sample or every TypeScript type is supported.
 It means the current explicit subset is wired end to end and covered by tests.
 
-For JSON Schema specifically, the `json-schema -> schema ir -> json-schema` path should be read as:
+For JSON Schema specifically, the `json-schema -> shape + constraint -> json-schema` path should be read as:
 
 - semantic round-tripping for the current IR-aligned subset
 - explicit non-goals for unsupported validation-heavy and document-system semantics
@@ -189,10 +189,10 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 - [packages/parsers/typescript/README.md](packages/parsers/typescript/README.md): supported TypeScript schema-subset parsing
 - [packages/generators/json-schema/README.md](packages/generators/json-schema/README.md): JSON Schema Draft 2020-12 generation
 - [packages/generators/typescript/README.md](packages/generators/typescript/README.md): TypeScript generation
-- [examples/json-to-typescript.md](examples/json-to-typescript.md): representative `json -> schema ir -> typescript` examples
-- [examples/json-to-json-schema.md](examples/json-to-json-schema.md): representative `json -> schema ir -> json-schema` examples
-- [examples/json-schema-to-typescript.md](examples/json-schema-to-typescript.md): representative `json-schema -> schema ir -> typescript` examples
-- [examples/json-schema-to-json-schema.md](examples/json-schema-to-json-schema.md): representative `json-schema -> schema ir -> json-schema` examples
+- [examples/json-to-typescript.md](examples/json-to-typescript.md): representative `json -> value -> shape -> typescript` examples
+- [examples/json-to-json-schema.md](examples/json-to-json-schema.md): representative `json -> value -> shape -> json-schema` examples
+- [examples/json-schema-to-typescript.md](examples/json-schema-to-typescript.md): representative `json-schema -> shape -> typescript` examples
+- [examples/json-schema-to-json-schema.md](examples/json-schema-to-json-schema.md): representative `json-schema -> shape + constraint -> json-schema` examples
 - [examples/typescript-to-json-schema.md](examples/typescript-to-json-schema.md): representative `typescript -> schema ir -> json-schema` examples
 
 ### Deep Dive

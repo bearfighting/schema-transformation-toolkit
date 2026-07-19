@@ -20,7 +20,17 @@ If you want end-to-end examples first, start with:
 
 ## Current Scope
 
-The current `schema` IR intentionally stays small:
+The current core surface is a small multi-IR contract layer rather than a single schema-only module.
+
+Today `@aio/core` exposes:
+
+- `Value IR` for parsed value documents and value-level inference handoff
+- `Shape IR` for shared serializable data-shape semantics
+- `Constraint IR` for portable validation and annotation semantics
+- combined `IrModel` and pipeline contracts for route planning and reporting
+- shared diagnostics, semantic-note, capability, and semantic-loss contracts
+
+The current `Shape IR` intentionally stays small:
 
 - `SchemaScalarNode`
 - `SchemaLiteralNode`
@@ -36,16 +46,16 @@ The current `schema` IR intentionally stays small:
 - `SchemaDefinition`
 - `SchemaDocument`
 
-That v0 shape is enough for the currently supported end-to-end paths:
+That current surface is enough for the supported end-to-end paths:
 
-- `json -> schema ir -> typescript`
-- `json -> schema ir -> json-schema`
-- `typescript -> schema ir -> typescript`
-- `typescript -> schema ir -> json-schema`
+- `json -> value -> shape -> typescript`
+- `json -> value -> shape -> json-schema`
+- `json-schema -> shape -> typescript`
+- `json-schema -> shape + constraint -> json-schema`
+- `typescript -> shape -> typescript`
+- `typescript -> shape -> json-schema`
 
-It is not yet broad enough to represent all meaningful JSON samples or all meaningful source-language type constructs as stable shared schema semantics.
-
-The shared contract layer now also includes a lightweight structured diagnostics model so parsers and generators can report richer explanations without replacing the current success/failure result shapes.
+It is intentionally not broad enough to represent every meaningful JSON sample, every JSON Schema feature, or every source-language type construct as stable shared semantics.
 
 ## Minimal Usage
 
@@ -79,14 +89,16 @@ The public factories intentionally keep construction ergonomic while still valid
 
 ## Current End-To-End Role
 
-Today `@aio/core` is the only required handoff between:
+Today `@aio/core` is the only required semantic handoff between:
 
 - `@aio/parser-json`
+- `@aio/parser-json-schema`
 - `@aio/parser-typescript`
-- `@aio/generator-typescript`
 - `@aio/generator-json-schema`
+- `@aio/generator-typescript`
+- `@aio/sdk`
 
-That means changes here should be treated as shared semantic changes, not package-local implementation details.
+That means changes here should be treated as shared semantic changes, route-contract changes, or reporting-contract changes, not package-local implementation details.
 
 ## Schema IR v1 Roadmap
 

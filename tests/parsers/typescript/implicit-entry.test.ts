@@ -13,7 +13,9 @@ import { createTypeScriptSourceFile } from "../../../packages/parsers/typescript
 
 function collectDeclarationMaps(input: string): {
   declarationMap: ReturnType<typeof collectTopLevelDeclarations>;
-  exportedDeclarationMap: ReturnType<typeof collectExportedTopLevelDeclarations>;
+  exportedDeclarationMap: ReturnType<
+    typeof collectExportedTopLevelDeclarations
+  >;
 } {
   const sourceFile = createTypeScriptSourceFile(input);
 
@@ -102,10 +104,9 @@ describe("parser-typescript implicit entry analysis", () => {
 
   it("uses a preferred document-name-derived entry when it matches an ambiguous root candidate", () => {
     const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
-      [
-        "type User = { id: number };",
-        "type Account = { name: string };",
-      ].join("\n"),
+      ["type User = { id: number };", "type Account = { name: string };"].join(
+        "\n",
+      ),
     );
 
     expect(
@@ -124,10 +125,7 @@ describe("parser-typescript implicit entry analysis", () => {
 
   it("reports cyclic-root-candidates when declarations only reference each other cyclically", () => {
     const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
-      [
-        "type A = B;",
-        "type B = A;",
-      ].join("\n"),
+      ["type A = B;", "type B = A;"].join("\n"),
     );
 
     expect(collectRootDeclarationNames(declarationMap)).toEqual([]);

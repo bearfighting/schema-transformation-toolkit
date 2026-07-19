@@ -64,9 +64,9 @@ export type {
 ## packages/sdk/src/inspect.d.ts
 
 ```ts
-import type {
-  TypeScriptImplicitEntryAmbiguityReason,
-  TypeScriptImplicitEntryAnalysis,
+import {
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
 } from "@aio/parser-typescript";
 export type {
   TypeScriptImplicitEntryAmbiguityReason,

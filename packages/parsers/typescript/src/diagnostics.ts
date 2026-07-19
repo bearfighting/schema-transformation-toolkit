@@ -47,8 +47,7 @@ function createPreprocessDiagnosticEvidence(
       : {}),
     ...(context.implicitEntryAmbiguityReason
       ? {
-          implicitEntryAmbiguityReason:
-            context.implicitEntryAmbiguityReason,
+          implicitEntryAmbiguityReason: context.implicitEntryAmbiguityReason,
         }
       : {}),
     ...(context.sourceLocation

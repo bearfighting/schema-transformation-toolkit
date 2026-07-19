@@ -316,8 +316,7 @@ describe("parser-typescript success paths", () => {
               availableExportedDeclarations: ["Account", "User"],
               rootCandidates: ["Account", "User"],
               exportedRootCandidates: ["Account", "User"],
-              implicitEntryAmbiguityReason:
-                "multiple-exported-root-candidates",
+              implicitEntryAmbiguityReason: "multiple-exported-root-candidates",
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 111, line: 3, column: 38 },
@@ -342,20 +341,16 @@ describe("parser-typescript success paths", () => {
         ),
       ).toEqual({
         ok: true,
-        document: schemaDocument(
-          "UserDocument",
-          schemaReferenceNode("User"),
-          {
-            definitions: [
-              schemaDefinition(
-                "User",
-                schemaObjectNode([
-                  schemaFieldNode("id", schemaScalarNode("number")),
-                ]),
-              ),
-            ],
-          },
-        ),
+        document: schemaDocument("UserDocument", schemaReferenceNode("User"), {
+          definitions: [
+            schemaDefinition(
+              "User",
+              schemaObjectNode([
+                schemaFieldNode("id", schemaScalarNode("number")),
+              ]),
+            ),
+          ],
+        }),
         semanticNotes: [
           {
             kind: "policy",
@@ -418,10 +413,7 @@ describe("parser-typescript success paths", () => {
     it("reports a cyclic-root ambiguity when declarations only reference each other", () => {
       expect(
         tryInferTypeScriptDocumentWithOptions(
-          [
-            "type A = B;",
-            "type B = A;",
-          ].join("\n"),
+          ["type A = B;", "type B = A;"].join("\n"),
         ),
       ).toEqual({
         ok: false,
@@ -555,8 +547,7 @@ describe("parser-typescript success paths", () => {
               availableExportedDeclarations: ["Account", "User"],
               rootCandidates: ["Account", "User"],
               exportedRootCandidates: ["Account", "User"],
-              implicitEntryAmbiguityReason:
-                "multiple-exported-root-candidates",
+              implicitEntryAmbiguityReason: "multiple-exported-root-candidates",
               sourceLocation: {
                 start: { offset: 0, line: 1, column: 1 },
                 end: { offset: 74, line: 2, column: 40 },

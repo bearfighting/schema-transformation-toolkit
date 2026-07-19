@@ -26,6 +26,12 @@ The first supported subset is documented in:
 The package currently supports:
 
 - explicit named entry declarations
+- automatic entry inference when exactly one supported top-level declaration exists
+- automatic entry inference when exactly one supported top-level declaration is exported
+- automatic entry inference when exported supported declarations form exactly one root in the exported declaration graph
+- automatic entry inference when the local supported declaration graph has exactly one root declaration
+- conservative document-name tie-breaking when a custom `...Document` name matches exactly one ambiguous root candidate
+- ignoring side-effect imports and empty export markers when they do not affect reachable schema declarations
 - `type` aliases, `interface` declarations, and `enum` declarations
 - `export`-modified supported declarations when the underlying declaration shape stays within the current schema subset
 - single-file parsing where all reachable schema declarations are defined in the same source text
@@ -77,6 +83,9 @@ It does not mean full TypeScript syntax fidelity or lossless recovery of declara
 ### Supported Directly
 
 - explicit named entry declarations
+- automatic entry inference when exactly one supported top-level declaration exists
+- automatic entry inference when exactly one supported top-level declaration is exported
+- ignoring side-effect imports and empty export markers when they do not affect reachable schema declarations
 - `type` aliases, `interface` declarations, and supported `enum` declarations
 - `export`-modified supported declarations that stay within the current schema subset
 - single-file reachable declarations
@@ -111,9 +120,13 @@ These are accepted syntax-to-shape normalization paths rather than full-fidelity
 
 ### Unsupported Or Intentionally Deferred
 
-- missing explicit entry names or declarations
+- missing explicit entry names when multiple supported declarations or multiple exported declarations make entry selection ambiguous
+- missing entry declarations
 - unsupported top-level declaration kinds such as classes
 - imported, namespace-imported, or re-export-only entry paths that require cross-file resolution
+- namespace re-export forwarding such as `export * as Models from "./models"`
+- export-all forwarding such as `export * from "./models"` when it could determine the requested entry
+- top-level module statements such as `export default value`, `export = value`, or ambient `declare module "x"` blocks
 - tuple rest elements
 - external or unresolved type references
 - utility types outside `Record`
@@ -131,12 +144,15 @@ These cases fail explicitly rather than being widened into guessed schema meanin
 
 The parser currently fails explicitly for:
 
-- missing explicit entry names
+- missing explicit entry names when multiple supported declarations or multiple exported declarations make entry selection ambiguous
 - missing entry declarations
 - named entries that resolve to unsupported top-level declaration kinds such as classes
 - imported type references that would require cross-file resolution
 - namespace-imported type references such as `Models.User`
 - re-export-only entries such as `export { User } from "./models"`
+- namespace re-export forwarding such as `export * as Models from "./models"`
+- export-all forwarding such as `export * from "./models"` when it could determine the requested entry
+- top-level module statements such as `export default value`, `export = value`, or ambient `declare module "x"` blocks when they affect entry resolution
 - tuple rest elements
 - external or unresolved type references
 - utility types outside `Record`
@@ -187,8 +203,9 @@ const parsed = typeScriptParser.parse("interface User { id: number }", {
 });
 ```
 
-The parser currently requires an explicit `entry`.
+The parser accepts an explicit `entry` and can infer one automatically when the file contains exactly one supported top-level declaration, exactly one exported supported top-level declaration, exactly one exported supported root declaration, exactly one supported declaration that is not referenced by any other supported local declaration, or a custom `...Document` name that matches exactly one ambiguous root candidate.
 Successful results return a `SchemaDocument` whose root is usually a reference to the selected named definition.
+When the entry is selected implicitly, success also includes a parser `semanticNote` with code `typescript-implicit-entry-selected` so callers can see which inference rule was used.
 
 ## Current Failure Model
 
@@ -199,17 +216,20 @@ Current failure results use stable parser-facing codes, including:
 - `missing-typescript-property-type`
 - `unsupported-typescript-conditional-type`
 - `unsupported-typescript-enum-member-initializer`
+- `unsupported-typescript-export-all-entry`
 - `unsupported-typescript-function-type`
 - `unsupported-typescript-intersection-type`
 - `unsupported-typescript-mapped-type`
 - `unsupported-typescript-property-name`
 - `unsupported-typescript-record-key`
 - `unsupported-typescript-syntax`
+- `unsupported-typescript-top-level-module-statement`
 - `unsupported-typescript-tuple-rest-element`
 - `unsupported-typescript-type-member`
 - `unsupported-typescript-type-reference`
 
 Diagnostics carry the shared `core` shape, including stable `path`, `nodeKind`, and `evidence` fields when the parser can determine a meaningful logical location.
+For implicit-entry ambiguity, `missing-typescript-entry` evidence may now include `rootCandidates`, `exportedRootCandidates`, and `implicitEntryAmbiguityReason` so callers can see why root discovery stayed conservative, including cycle-only cases where no root candidate exists.
 
 Under the shared capability-and-loss contract, this means:
 

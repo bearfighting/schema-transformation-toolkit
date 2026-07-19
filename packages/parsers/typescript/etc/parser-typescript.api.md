@@ -27,6 +27,7 @@ export type TypeScriptInferenceFailureResult = ParseFailureResult<
   | "missing-typescript-property-type"
   | "unsupported-typescript-enum-member-initializer"
   | "unsupported-typescript-entry-declaration-kind"
+  | "unsupported-typescript-export-all-entry"
   | "unsupported-typescript-conditional-type"
   | "unsupported-typescript-function-type"
   | "unsupported-typescript-imported-type-reference"
@@ -39,6 +40,7 @@ export type TypeScriptInferenceFailureResult = ParseFailureResult<
   | "unsupported-typescript-reexported-entry"
   | "unsupported-typescript-record-key"
   | "unsupported-typescript-syntax"
+  | "unsupported-typescript-top-level-module-statement"
   | "unsupported-typescript-tuple-rest-element"
   | "unsupported-typescript-type-member"
   | "unsupported-typescript-type-reference"
@@ -123,6 +125,103 @@ export declare function throwTypeScriptInferenceError(
 ): never;
 ```
 
+## packages/parsers/typescript/src/implicit-entry.d.ts
+
+```ts
+import type { TypeScriptEntryDeclaration } from "./types.js";
+/**
+ * Ambiguity reasons are intentionally narrow and mutually exclusive.
+ *
+ * They answer "why could preprocess not choose an implicit entry?" after all
+ * supported single-file root-discovery rules have been attempted.
+ *
+ * Taxonomy:
+ * - `multiple-exported-root-candidates`: exported declarations still expose
+ *   more than one plausible public root.
+ * - `multiple-local-root-candidates`: exported declarations do not disambiguate,
+ *   and the local declaration graph still has multiple plausible roots.
+ * - `cyclic-root-candidates`: no declaration root exists because every
+ *   declaration participates in a cycle or is consumed by one.
+ */
+export type TypeScriptImplicitEntryAmbiguityReason =
+  | "multiple-exported-root-candidates"
+  | "multiple-local-root-candidates"
+  | "cyclic-root-candidates";
+/**
+ * Selection reasons are ordered from strongest source-based evidence to the
+ * weakest still-acceptable conservative tie-breaker.
+ *
+ * Taxonomy:
+ * - `single-declaration`: the file has exactly one supported declaration.
+ * - `single-exported-declaration`: the file has multiple declarations but only
+ *   one exported supported declaration.
+ * - `single-exported-root`: exported declarations exist, and their exported
+ *   dependency graph collapses to one root.
+ * - `single-root`: exported declarations do not help, but the local dependency
+ *   graph still collapses to one root.
+ * - `document-name-match`: root discovery remains ambiguous until a custom
+ *   `...Document` name matches exactly one root candidate.
+ */
+export type TypeScriptImplicitEntrySelectionReason =
+  | "single-declaration"
+  | "single-exported-declaration"
+  | "single-exported-root"
+  | "single-root"
+  | "document-name-match";
+/**
+ * Shared internal contract for implicit-entry analysis.
+ *
+ * Invariants:
+ * - success-like analyses set `entryName` and `selectionReason`
+ * - ambiguous analyses set `ambiguityReason`
+ * - `rootCandidates` always describe local graph roots
+ * - `exportedRootCandidates` always describe exported graph roots
+ */
+export interface TypeScriptImplicitEntryAnalysis {
+  entryName?: string | undefined;
+  rootCandidates: string[];
+  exportedRootCandidates: string[];
+  selectionReason?: TypeScriptImplicitEntrySelectionReason;
+  ambiguityReason?: TypeScriptImplicitEntryAmbiguityReason;
+}
+/**
+ * Analyze implicit entry candidates from already-collected declaration maps.
+ *
+ * Rule order is part of the contract:
+ * 1. exact single declaration
+ * 2. exact single exported declaration
+ * 3. exact single exported root
+ * 4. exact single local root
+ * 5. conservative document-name tie-break
+ * 6. explicit ambiguity classification
+ */
+export declare function analyzeImplicitEntry(options: {
+  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
+  exportedDeclarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
+  preferredEntryName?: string | undefined;
+}): TypeScriptImplicitEntryAnalysis;
+export declare function analyzeImplicitEntryFromSource(
+  input: string,
+  preferredEntryName?: string,
+): TypeScriptImplicitEntryAnalysis;
+/**
+ * Derive a conservative preferred entry name from a custom document name.
+ *
+ * The default `TypeScriptDocument` is intentionally ignored so default parser
+ * behavior never changes because of the package's fallback document name.
+ */
+export declare function derivePreferredEntryNameFromDocumentName(
+  documentName: string,
+): string | undefined;
+/**
+ * Collect declaration names that are not referenced by any other supported
+ * declaration in the same map.
+ */
+export declare function collectRootDeclarationNames(
+  declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
+): string[];
+```
+
 ## packages/parsers/typescript/src/index.d.ts
 
 ```ts
@@ -131,6 +230,13 @@ export {
   isTypeScriptInferenceError,
 } from "./errors.js";
 export { typeScriptParserCapabilities } from "./capabilities.js";
+export {
+  analyzeImplicitEntry,
+  analyzeImplicitEntryFromSource,
+  collectRootDeclarationNames,
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
+} from "./implicit-entry.js";
 export {
   inferTypeScriptDocument,
   inferTypeScriptDocumentWithOptions,
@@ -228,6 +334,7 @@ export declare function configureTypeScriptParser(
 ```ts
 import type { SchemaDiagnostic } from "@aio/core";
 import ts from "typescript";
+import { type TypeScriptImplicitEntryAnalysis } from "./implicit-entry.js";
 import type { ResolvedTypeScriptParseOptions } from "./options.js";
 import type { TypeScriptEntryDeclaration } from "./types.js";
 export interface TypeScriptPreprocessSuccessResult {
@@ -237,6 +344,7 @@ export interface TypeScriptPreprocessSuccessResult {
   declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>;
   declarationNames: Set<string>;
   importedTypeMap: ReadonlyMap<string, string>;
+  implicitEntryAnalysis: TypeScriptImplicitEntryAnalysis;
 }
 export interface TypeScriptPreprocessFailureResult {
   ok: false;
@@ -246,6 +354,8 @@ export interface TypeScriptPreprocessFailureResult {
     | "unsupported-typescript-syntax"
     | "unsupported-typescript-entry-declaration-kind"
     | "unsupported-typescript-interface-heritage"
+    | "unsupported-typescript-export-all-entry"
+    | "unsupported-typescript-top-level-module-statement"
     | "unsupported-typescript-reexported-entry";
   message: string;
   diagnostics: SchemaDiagnostic[];
@@ -294,6 +404,16 @@ export interface TypeScriptReExportReference {
   exportedName: string;
   importedName: string;
   moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+export interface TypeScriptExportAllReference {
+  moduleSpecifier: string;
+  declarationText: string;
+  sourceLocation: TypeScriptSourceLocation;
+}
+export interface TypeScriptBlockingTopLevelStatement {
+  statementKind: string;
   declarationText: string;
   sourceLocation: TypeScriptSourceLocation;
 }

@@ -56,6 +56,8 @@ export type {
 export type { IrModel } from "./model/index.js";
 
 export type {
+  ConversionEntrySelection,
+  ConversionPolicyDecision,
   ConversionReport,
   ConversionCapability,
   GeneratorCapabilities,

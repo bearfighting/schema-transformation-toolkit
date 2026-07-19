@@ -206,6 +206,22 @@ export interface ConversionReportStage<TFact> {
   generate?: TFact[];
   all: TFact[];
 }
+export interface ConversionEntrySelection {
+  mode: "implicit";
+  entry: string;
+  strategyCode: string;
+  source?: string;
+  path?: string[];
+  evidence?: unknown;
+}
+export interface ConversionPolicyDecision {
+  phase: "parse" | "generate";
+  code: string;
+  message: string;
+  source?: string;
+  path?: string[];
+  evidence?: unknown;
+}
 export interface ParserCapabilities {
   format: string;
   producesIr: IrKind[];
@@ -221,6 +237,8 @@ export interface ConversionReport {
   losses?: SemanticLoss[];
   preservedCapabilities?: ConversionCapability[];
   semanticNotes?: ConversionReportStage<SchemaSemanticNote>;
+  policyDecisions?: ConversionPolicyDecision[];
+  entrySelection?: ConversionEntrySelection;
 }
 export type PipelineStageKind =
   | "parse-source"
@@ -255,6 +273,8 @@ export interface ConversionRouteCapabilities {
 
 ```ts
 export type {
+  ConversionEntrySelection,
+  ConversionPolicyDecision,
   ConversionReport,
   ConversionCapability,
   GeneratorCapabilities,

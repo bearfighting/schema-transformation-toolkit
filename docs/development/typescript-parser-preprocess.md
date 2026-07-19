@@ -98,6 +98,7 @@ The current implementation already has several failures that should be understoo
 These include:
 
 - `unsupported-typescript-entry-declaration-kind`
+- `unsupported-typescript-top-level-module-statement`
 - `unsupported-typescript-interface-heritage`
 - `unsupported-typescript-imported-type-reference`
 - `unsupported-typescript-namespace-import-reference`
@@ -115,13 +116,39 @@ For the current project phase, the intended policy is:
 
 - allow local supported declarations
 - allow `export` modifiers on supported local declarations
+- ignore side-effect imports and empty export markers when they do not affect the reachable local declaration set
 - reject entry resolution that depends on re-exports
+- reject blocking top-level module statements such as `export default`, `export =`, or ambient `declare module` blocks when they determine module meaning before schema conversion
 - reject type references that depend on imported bindings
 - reject namespace-qualified imported references
 - reject declaration shapes that require semantic merging or inheritance before conversion
 
 This policy is intentionally conservative.
 It optimizes for stable and explainable behavior, not maximum TypeScript coverage.
+
+## Implicit Entry Taxonomy
+
+The preprocess layer now uses one small internal taxonomy for implicit entry decisions.
+This is meant to keep root-discovery expansion explainable as rules evolve.
+
+Selection reasons answer "why was an entry chosen?":
+
+- `single-declaration`: exactly one supported declaration exists
+- `single-exported-declaration`: multiple declarations exist, but only one exported supported declaration exists
+- `single-exported-root`: exported declarations collapse to one root in the exported dependency graph
+- `single-root`: exported declarations do not disambiguate, but the local dependency graph collapses to one root
+- `document-name-match`: ambiguity remains until a custom `...Document` name matches exactly one root candidate
+
+Ambiguity reasons answer "why was no implicit entry chosen?":
+
+- `multiple-exported-root-candidates`: exported declarations still expose more than one plausible public root
+- `multiple-local-root-candidates`: exported declarations do not disambiguate, and the local declaration graph still exposes multiple plausible roots
+- `cyclic-root-candidates`: no declaration root exists because declarations only resolve through cycles or complete consumption
+
+Design rule:
+
+- selection reasons should be ordered from strongest source evidence to weakest acceptable conservative tie-break
+- ambiguity reasons should describe structural causes, not parser implementation accidents
 
 ## What Preprocess May Eventually Normalize
 
@@ -130,7 +157,7 @@ Some syntax may later be handled entirely inside preprocess without expanding th
 - removing irrelevant `export` modifiers from otherwise local declarations
 - ignoring imports that are unused by the selected reachable declaration set
 - classifying top-level statements into relevant, ignorable, and blocking groups
-- normalizing entry selection over a larger prepared declaration set
+- normalizing entry selection over a larger prepared declaration set, including conservative exported-entry discovery
 
 These are good preprocess candidates because they do not require new schema meaning.
 

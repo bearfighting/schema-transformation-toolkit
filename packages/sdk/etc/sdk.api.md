@@ -45,6 +45,11 @@ export {
   listConversionRoutes,
   planConversion,
 } from "./convert.js";
+export { inspectTypeScriptImplicitEntry } from "./inspect.js";
+export type {
+  TypeScriptImplicitEntryAmbiguityReason,
+  TypeScriptImplicitEntryAnalysis,
+} from "./inspect.js";
 export type {
   ConversionArtifacts,
   ConvertFailureResult,
@@ -54,6 +59,22 @@ export type {
   ConversionSourceFormat,
   ConversionTargetFormat,
 } from "./convert.js";
+```
+
+## packages/sdk/src/inspect.d.ts
+
+```ts
+import {
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
+} from "@aio/parser-typescript";
+export type {
+  TypeScriptImplicitEntryAmbiguityReason,
+  TypeScriptImplicitEntryAnalysis,
+};
+export declare function inspectTypeScriptImplicitEntry(
+  input: string,
+): TypeScriptImplicitEntryAnalysis;
 ```
 
 ## packages/sdk/src/registry.d.ts

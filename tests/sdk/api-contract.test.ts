@@ -6,6 +6,7 @@ describe("sdk api contract", () => {
     expect(Object.keys(sdkModule).sort()).toEqual([
       "convert",
       "describeConversionRouteCapabilities",
+      "inspectTypeScriptImplicitEntry",
       "listConversionRoutes",
       "planConversion",
     ]);
@@ -96,6 +97,51 @@ describe("sdk api contract", () => {
     expect(result.report?.preservedCapabilities).toEqual([
       "value-ir",
       "shape-ir",
+    ]);
+  });
+
+  it("surfaces implicit TypeScript entry selection in the higher-level report", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "typescript",
+      targetFormat: "typescript",
+      input: [
+        "type InternalToken = string;",
+        "export type User = { token: InternalToken };",
+        "export type UserList = User[];",
+      ].join("\n"),
+      name: "ImplicitEntryDocument",
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.report?.entrySelection).toEqual({
+      mode: "implicit",
+      entry: "UserList",
+      strategyCode: "single-exported-root",
+      source: "parser-typescript",
+      path: ["entry", "UserList"],
+      evidence: {
+        entry: "UserList",
+        selectionReason: "single-exported-root",
+      },
+    });
+    expect(result.report?.policyDecisions).toEqual([
+      {
+        phase: "parse",
+        code: "typescript-implicit-entry-selected",
+        message:
+          'The TypeScript parser selected entry "UserList" implicitly using the single exported root rule.',
+        source: "parser-typescript",
+        path: ["entry", "UserList"],
+        evidence: {
+          entry: "UserList",
+          selectionReason: "single-exported-root",
+        },
+      },
     ]);
   });
 

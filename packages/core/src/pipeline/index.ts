@@ -1,4 +1,6 @@
 export type {
+  ConversionEntrySelection,
+  ConversionPolicyDecision,
   ConversionReport,
   ConversionCapability,
   GeneratorCapabilities,

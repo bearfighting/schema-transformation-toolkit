@@ -36,7 +36,7 @@ export function collectReachableDeclarationNames(
   return reachable;
 }
 
-function collectLocalReferencedDeclarationNames(
+export function collectLocalReferencedDeclarationNames(
   declaration: TypeScriptEntryDeclaration,
   declarationMap: ReadonlyMap<string, TypeScriptEntryDeclaration>,
 ): Set<string> {

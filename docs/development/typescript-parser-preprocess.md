@@ -8,6 +8,12 @@ This note defines the intended boundary between:
 
 The goal is to keep current unsupported module syntax explicit without baking today's single-file limitations into the long-term parser architecture.
 
+This file is a boundary note, not a status page or execution checklist.
+
+- repository-level prioritization lives in [progress.md](progress.md)
+- TypeScript-parser task tracking lives in [typescript-parser-checklist.md](typescript-parser-checklist.md)
+- concrete support and failure examples live in [typescript-parser-cases.md](typescript-parser-cases.md)
+
 ## Why This Boundary Exists
 
 The current TypeScript parser is intentionally single-file and schema-oriented.
@@ -151,3 +157,9 @@ The next refactor in this area should aim to:
 
 The code does not need a large rewrite immediately.
 The important part is to preserve the architectural direction now, so future multi-file support remains additive rather than disruptive.
+
+## Maintenance Rule
+
+- keep this file focused on layer boundaries and architectural intent
+- put task ordering and near-term implementation tracking in the checklist
+- put concrete supported and unsupported examples in the cases document

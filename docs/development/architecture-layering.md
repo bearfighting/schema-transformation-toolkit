@@ -11,6 +11,9 @@ It exists to answer four questions before the project grows further:
 - which semantics belong in shared shape modeling versus value or validation modeling
 - how parser, transformer, and generator capabilities should be registered and routed in code
 
+Use [ir-boundaries.md](ir-boundaries.md) for the semantic meaning of `Value IR`, `Shape IR`, and `Constraint IR`.
+This document should stay focused on architecture shape, routing, and registry design.
+
 ## Source And Target Families
 
 The project should treat supported inputs and outputs as belonging to one of three families.
@@ -53,170 +56,21 @@ Examples:
 These should be treated differently from full language front-ends.
 The project is concerned only with their serializable data-shape subset.
 
-## Recommended IR Layers
+## Layering Rule
 
-The project should evolve toward three IR layers rather than forcing every capability into one shared model.
+The architecture assumes three IR layers:
 
-### Value IR
+- `Value IR` for serialized values
+- `Shape IR` for reusable serializable structure
+- `Constraint IR` for validation and portable annotation semantics layered on top of shape
 
-Purpose:
+The architectural rule is:
 
-- represent actual serialized values and their format-facing structure
-
-Good fit for:
-
-- JSON
-- YAML
-- TOML
-
-Responsibilities:
-
-- scalar values
-- arrays
-- objects or maps
-- null and format-native primitive distinctions
-
-Non-goals:
-
-- reusable schema definitions
-- validation constraints
-- language-type semantics
-
-### Shape IR
-
-Purpose:
-
-- represent stable serializable structure independent of one concrete schema ecosystem
-
-This is the current project core.
-
-Good fit for:
-
-- TypeScript serializable type subsets
-- JSON Schema shape subsets
-- Protocol Buffers message-shape subsets
-- schema inference from sample values
-
-Responsibilities:
-
-- object
-- record or map
-- array
-- tuple
-- optional presence
-- nullable value semantics
-- literal values
-- unions
-- references and reusable definitions
-
-Non-goals:
-
-- format-level parsing trivia
-- full validation semantics
-- arbitrary language or library runtime behavior
-
-### Constraint IR
-
-Purpose:
-
-- represent validation, annotation, or schema-system semantics that build on top of shape
-
-Good fit for:
-
-- JSON Schema constraints
-- validator-library constraints and metadata
-- schema annotations that materially affect validation or generation behavior
-
-Likely responsibilities:
-
-- string constraints
-- numeric constraints
-- collection constraints
-- object-closure semantics
-- defaults, descriptions, examples, or other portable annotations
-- perhaps an eventual impossible-schema concept if it proves shared
-
-Non-goals:
-
-- arbitrary runtime transformations
-- user code callbacks
-- library-specific execution hooks that cannot be shared meaningfully
-
-## Constraint IR Relationship To Shape IR
-
-`Constraint IR` should be layered on top of `Shape IR`, but it should not be merged into the same node model.
-
-That means:
-
+- `Value IR` stands on its own
+- `Shape IR` stands on its own
 - `Constraint IR` depends on `Shape IR`
-- `Constraint IR` should reuse `Shape IR` as the source of structural truth
-- `Constraint IR` should remain structurally separate so validation and annotation semantics do not bloat `Shape IR`
 
-This avoids two opposite problems:
-
-- a fully separate model that redundantly re-describes shape
-- a merged model where every validator-specific concern starts inflating the shared shape layer
-
-## Recommended Modeling Rule
-
-The preferred model is:
-
-- one shape document that describes structure
-- one constraint document or constraint layer that points into that shape document
-
-Conceptually:
-
-```ts
-interface ShapeDocument {
-  root: ShapeNode;
-  definitions: ShapeDefinition[];
-}
-
-interface ConstraintDocument {
-  shape: ShapeDocument;
-  constraints: ConstraintEntry[];
-}
-```
-
-The exact runtime shape can change later.
-The important rule is that shape stays authoritative for structure, while constraints are attached separately.
-
-## Avoiding Semantic And Code Duplication
-
-The main anti-duplication rule should be:
-
-- `Shape IR` answers: "what is this serialized structure?"
-- `Constraint IR` answers: "what extra rules or annotations also apply to it?"
-
-If removing a piece of information still leaves a meaningful, though broader, structural type, it is usually a `Constraint IR` concern.
-
-Examples that usually belong in `Constraint IR`:
-
-- `minimum`
-- `maximum`
-- `pattern`
-- `format`
-- `description`
-- `default`
-- object closure or similar validation-oriented constraints
-
-If removing a piece of information changes the core serializable structure itself, it is usually a `Shape IR` concern.
-
-Examples that usually belong in `Shape IR`:
-
-- optional presence
-- nullable value semantics
-- tuple structure
-- object versus record
-- unions
-- references and reusable definitions
-
-## Recommended Attachment Strategy
-
-Constraint entries should point to shape-level structure rather than re-encode it.
-
-The preferred long-term target is a stable identifier or node reference model.
-If that does not exist yet, a path-based attachment model can be acceptable as an intermediate step.
+The semantic details and decision rules for those layers live in [ir-boundaries.md](ir-boundaries.md).
 
 ## Current Package Boundary Pattern
 
@@ -272,14 +126,6 @@ Likewise for generation:
 - language-type generators can often consume only `Shape IR`
 - richer schema and validator generators may need `Shape IR + Constraint IR`
 - value-format generators should stay in the `Value IR` lane unless a separate inference or lowering step is involved
-
-## Layering Rule
-
-The intended dependency direction should be:
-
-- `Constraint IR` builds on `Shape IR`
-- `Shape IR` stands on its own
-- `Value IR` stands on its own
 
 Allowed conceptual flows:
 
@@ -354,182 +200,80 @@ Today it provides:
 - `planConversion`
 - `listConversionRoutes`
 - `convert`
-- static `ConversionRoute` metadata with `irSequence` and `stages`
+- registry-backed `ConversionRoute` metadata with `irSequence` and `stages`
+- parser and generator capability declarations in code
+- route capability summaries derived from those declarations
 
-Current route metadata is still hand-authored and format-pair-specific.
+The current planner is no longer only a hand-maintained static route table.
+It already derives route and capability information from parser and generator registries.
 
-That is useful as a first implementation, but it is now behind the actual parser and generator contracts because:
+The next step is to keep pushing that direction:
 
-- JSON Schema parsing can produce `Shape IR + Constraint IR`
-- JSON Schema generation can consume `Constraint IR`
-- route metadata still labels JSON Schema routes only as `shape` routes
-
-So the next step is not inventing orchestration from scratch.
-It is evolving the existing SDK planner from static route selection into runtime capability matching.
+- preserve the registry as the source of truth
+- add richer matching only when repeated use cases require it
+- avoid rebuilding a second planning system in docs or tests
 
 ## Registry Responsibilities
 
-At minimum, the registry should support four responsibilities.
+The registry should stay intentionally small and do four jobs well:
 
-### 1. Capability Declaration
+- declare what each parser, generator, and future transformer consumes or produces
+- prevent invalid chains such as wiring a `Shape IR` generator directly to a `Value IR` parser output
+- resolve a truthful route from source format to target format
+- provide one integration surface for SDK, CLI, and future service layers
 
-Each parser, transformer, and generator should declare:
+The important modeling rule is not the exact type shape.
+It is:
 
-- its stable identifier
-- its input surface
-- its output surface
-- the IR layer it consumes or produces
-
-### 2. Legality Checking
-
-The registry should make it hard to wire invalid chains together.
-
-Examples:
-
-- a generator that requires `Shape IR` should not be treated as a `Value IR` generator
-- a constraint-aware generator should be distinguishable from a shape-only generator
-
-### 3. Routing
-
-Given a source and target, the registry should support path resolution such as:
-
-- `json-schema -> typescript`
-- `json -> json-schema`
-- `yaml -> typescript`
-
-That path may involve:
-
-- parser
-- zero or more IR transformers
-- generator
-
-### 4. Application Interface
-
-The registry should provide a stable integration point for:
-
-- CLI commands
-- SDK entry points
-- future service APIs
-- future UI or workflow orchestration
-
-## Recommended Capability Kinds
-
-The registry should distinguish at least three capability kinds.
-
-### Parser
-
-- converts a source format into an IR layer
-
-### Generator
-
-- converts an IR layer into a target format
-
-### Transformer
-
-- converts one IR layer into another IR layer
-
-This matters because a multi-layer architecture cannot be expressed clearly with parser and generator kinds alone.
-
-## Recommended Minimal Type Shape
-
-The next registry version should stay intentionally small, but it should be richer than the current static route table.
-
-```ts
-type IrKind = "value" | "shape" | "constraint";
-
-interface ParserCapability {
-  kind: "parser";
-  id: string;
-  sourceFormat: string;
-  produces: IrKind[];
-  optionalProduces?: IrKind[];
-  semanticCapabilities?: string[];
-}
-
-interface GeneratorCapability {
-  kind: "generator";
-  id: string;
-  targetFormat: string;
-  requires: IrKind[];
-  optionalConsumes?: IrKind[];
-  semanticCapabilities?: string[];
-}
-
-interface TransformerCapability {
-  kind: "transformer";
-  id: string;
-  from: IrKind;
-  to: IrKind;
-  semanticCapabilities?: string[];
-}
-```
-
-The exact names can change later.
-What matters now is:
-
-- typed separation of parser, transformer, and generator roles
-- explicit IR-layer boundaries
-- explicit required-versus-optional IR dependencies
-- a route planner that can operate from capabilities rather than only hard-coded format pairs
+- separate parser, generator, and transformer roles explicitly
+- keep IR-layer dependencies explicit
+- distinguish required IR from optional preserved IR
+- let the planner reason from declared capabilities rather than only hard-coded format pairs
 
 ## Runtime Planning Rule
 
-The runtime planner should answer two questions for every requested conversion.
+For any requested conversion, the planner should answer:
 
-### 1. Can This Parser And Generator Be Matched Truthfully
+1. can parser output satisfy generator input truthfully
+2. if yes, what route preserves the most useful semantics with the least extra machinery
 
-That requires checking:
-
-- whether the parser can produce the IRs the generator requires
-- whether missing IRs can be synthesized through declared transformers
-- whether the resulting route stays within allowed semantic-loss boundaries
-
-### 2. If They Can Be Matched, What Is The Best Route
-
-That route should include:
+At minimum, that means tracking:
 
 - parser stage
 - zero or more transformer stages
 - generator stage
-- the materialized IR set carried between stages
-- capability and semantic-loss metadata for the final result
+- materialized IR layers carried between stages
+- capability and semantic-loss metadata for the resulting route
 
 ## Planned Repository Transition
 
 The intended evolution path should be:
 
-1. keep the current static route table as the executable baseline
-2. add explicit parser and generator capability declarations next to route planning
-3. teach the planner to derive routes from capability declarations
-4. downgrade the hand-written route table into tests or fallback fixtures
+1. keep the current registry-backed planner as the executable baseline
+2. continue enriching parser and generator capability declarations
+3. add richer matching only when new IR families or real transformer steps require it
+4. keep hard-coded route assumptions out of new package-local logic
 
-This keeps the current SDK working while moving orchestration toward the long-term architecture described in this document.
+This keeps the current SDK working while moving orchestration toward the long-term architecture described here without reintroducing duplicated planning logic.
 
 ## Recommended First-Phase Rule
 
-The first implementation of the registry should stay simple.
+Keep the registry simple:
 
-It should:
+- explicit registration
+- basic lookup by source or target
+- simple compatibility checks
 
-- support explicit static registration
-- support basic lookup by source or target
-- validate simple chain compatibility
-
-It should not yet try to become:
-
-- a full optimizer
-- a weighted graph planner
-- an automatic best-path chooser for every future conversion scenario
-
-Those can come later if the project actually needs them.
+Do not turn it into a general optimizer unless the repository actually needs that complexity.
 
 ## Practical Consequences For Current Work
 
 Under this model:
 
 - the current `@aio/core` schema package remains the `Shape IR`
-- the current JSON and TypeScript schema parsers remain `Shape IR` producers
-- the current JSON Schema parser remains a `Shape IR` producer for its current supported subset
+- the current JSON parser remains a `Value IR` plus inferred `Shape IR` producer
+- the current TypeScript parser remains a `Shape IR` producer
+- the current JSON Schema parser remains a `Shape IR + Constraint IR` producer for its supported subset
 - future value-format-first parsers such as YAML or TOML should be evaluated carefully against `Value IR`
 - future validator-focused work such as Zod should be evaluated carefully against `Constraint IR`
 

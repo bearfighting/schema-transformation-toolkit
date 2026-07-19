@@ -10,6 +10,9 @@ It exists to answer three questions before more parser or generator work lands:
 - how to decide whether a semantic belongs in shape or constraints
 - how parsers, transformers, and generators should compose across the three layers
 
+Use [architecture-layering.md](architecture-layering.md) for long-term routing, registry, and orchestration structure.
+This document should stay focused on IR meaning, current implemented boundaries, and layer-composition rules.
+
 ## Current Repository Status
 
 Today the repository has an explicit multi-IR shell in `@aio/core`.
@@ -29,7 +32,7 @@ Current examples:
 - the JSON Schema generator can render from `Shape IR` alone or from `Shape IR + Constraint IR`
 
 This means the repository is no longer only discussing a future split.
-The split now exists, but routing and capability matching are still in a transitional state.
+The split now exists in code and is already part of runtime artifacts and route planning.
 
 ## Three IR Layers
 
@@ -248,53 +251,25 @@ This is intentionally an overlay model:
 - constraints attach by logical path
 - generators and transforms can consume constraints opportunistically without changing `Shape IR`
 
-## Current Pipeline Reality
+## Current Composition Reality
 
-Today the SDK route planner still uses a static route table.
-
-That static plan is only a partial description of runtime behavior:
+Today the SDK planner already carries the multi-IR split in runtime route metadata:
 
 - `json -> *` routes explicitly pass through `value` then `shape`
 - `typescript -> *` routes explicitly pass through `shape`
-- `json-schema -> *` routes are still labeled as `shape` routes in route metadata
-- but the runtime already preserves `constraints` when the parser produces them and the generator can consume them
+- `json-schema -> json-schema` routes explicitly preserve `constraint`
+- runtime artifacts can carry `value`, `shape`, and `constraints` together when available
 
-So the repository is currently in an intermediate state:
+So the current repository should be read as:
 
-- IR boundaries are now explicit in core contracts
-- runtime artifacts can already carry multiple IR layers
-- route metadata has not yet been promoted into a true capability planner
+- IR boundaries are explicit in core contracts
+- runtime planning already understands multiple IR layers
+- future work should refine capability matching without collapsing those boundaries
 
-## Next Boundary Rule
+## Constraint Attachment Rule
 
-The next routing implementation should stop hard-coding only `source format -> target format`.
-
-Instead, it should answer at runtime:
-
-- what IRs a parser can produce
-- which of those IRs are required by the selected generator
-- which IRs are optional but preservable
-- whether a transformer is needed between produced and required IRs
-- what semantics will be preserved, normalized, or lost along the way
-
-Recommended direction:
-
-- `ShapeDocument` remains the structural source of truth
-- `ConstraintDocument` stores entries that target shape nodes
-- each constraint entry attaches rules to one shape node or one shape field
-
-Conceptually:
-
-```ts
-interface ConstraintDocument {
-  entries: ConstraintEntry[];
-}
-
-interface ConstraintEntry {
-  target: ShapeNodeTarget;
-  constraints: Constraint[];
-}
-```
+`ShapeDocument` remains the structural source of truth.
+`ConstraintDocument` should store entries that target shape nodes or fields rather than mirroring the full shape tree.
 
 Preferred long-term attachment:
 
@@ -308,144 +283,32 @@ Avoid:
 
 - a second tree of `ConstraintObject`, `ConstraintArray`, `ConstraintTuple`, and similar mirrored node kinds
 
-## Parser Responsibilities
+## Producer And Consumer Rules
 
-Each parser should emit only the layers that naturally exist in its source.
+Parsers should emit only the layers that naturally exist in their source:
 
-### Value-Family Parsers
+- value-family parsers primarily produce `Value IR`
+- serializable-type parsers primarily produce `Shape IR`
+- schema-and-validator parsers may produce `Shape IR + Constraint IR`
 
-Examples:
+Generators should consume only the layers they actually need:
 
-- JSON
-- YAML
-- TOML
+- value generators consume `Value IR`
+- language-type generators usually consume `Shape IR`
+- richer schema generators may consume `Shape IR + Constraint IR`
 
-Recommended output:
-
-- primary output: `Value IR`
-- optional follow-on transform: `Value IR -> Shape IR`
-
-Important rule:
-
-- parsing a value and inferring a shape are different responsibilities, even if one package temporarily offers both
-
-### Shape-Family Parsers
-
-Examples:
-
-- TypeScript serializable type subset
-- future schema-oriented language types
-
-Recommended output:
-
-- primary output: `Shape IR`
-
-Important rule:
-
-- these parsers should target structural meaning, not full language semantics
-
-### Shape-Plus-Constraint Parsers
-
-Examples:
-
-- JSON Schema
-- OpenAPI schema objects
-- validator DSLs that mix structure and refinements
-
-Recommended output:
-
-- `Shape IR`
-- `Constraint IR` when supported semantics require it
-
-Important rule:
-
-- if a source contains both shape and constraints, the parser should separate them conceptually even if implementation staging lands in phases
-
-## Generator Responsibilities
-
-Generators should declare which IR layers they consume.
-
-### Value Generators
-
-Examples:
-
-- JSON output
-- YAML output
-- TOML output
-
-Recommended input:
-
-- `Value IR`
-
-### Shape Generators
-
-Examples:
-
-- TypeScript generator
-- future Rust, Go, Java, or Kotlin schema-oriented generators
-
-Recommended input:
-
-- `Shape IR`
-
-### Shape-Plus-Constraint Generators
-
-Examples:
-
-- JSON Schema generator
-- OpenAPI schema generator
-- validator-library generators
-
-Recommended input:
-
-- `Shape IR`
-- optional `Constraint IR`
-
-Important rule:
-
-- successful generation from shape alone must still be allowed when constraints are absent
-- when constraints are present but unsupported, the generator should report semantic loss explicitly
-
-## Recommended Pipeline Rules
-
-The project should prefer explicit transforms over hidden mixed responsibilities.
-
-Recommended flows:
-
-1. `JSON/YAML/TOML -> Value IR`
-2. `Value IR -> Shape IR` for inference-oriented workflows
-3. `TypeScript subset -> Shape IR`
-4. `JSON Schema -> Shape IR + Constraint IR`
-5. `Shape IR -> TypeScript`
-6. `Shape IR + Constraint IR -> JSON Schema`
-
-This keeps the architecture honest about where inference, structure, and validation are happening.
+The guiding rule is to prefer explicit transforms over hidden mixed responsibilities.
+That keeps inference, structure, and validation separate even when one package temporarily offers multiple steps.
 
 ## Current Practical Mapping
 
 For the current repository, use this interpretation:
 
 - `@aio/core` is the canonical home of `Shape IR v0`
-- the JSON parser currently mixes value parsing and shape inference in one package boundary
+- the JSON path materializes `Value IR` and then infers `Shape IR`
 - the TypeScript parser is a direct `Shape IR` producer
-- the JSON Schema parser is currently a shape-subset parser with explicit exclusions for many constraint keywords
-- the JSON Schema generator is currently a shape-first generator with target-local rendering options
-
-This is acceptable as an implementation stage.
-
-What should change next is the architecture contract, not an immediate full code rewrite.
-
-## Near-Term Implementation Guidance
-
-Before adding new languages or broad new schema features, prefer this order:
-
-1. explicitly document the current `Shape IR v0` boundary
-2. document which source semantics are intentionally dropped, normalized, or deferred
-3. add capability and semantic-loss reporting around parser and generator behavior
-4. gather evidence about repeated pressure for shared constraints
-5. only then decide whether to introduce a real `Constraint IR`
-
-This keeps the repository from overfitting shared abstractions to JSON Schema alone.
+- the JSON Schema parser is a `Shape IR + Constraint IR` producer for the currently supported subset
+- the JSON Schema generator can consume `Shape IR` alone or `Shape IR + Constraint IR`
 
 ## Design Guardrails
 
@@ -455,11 +318,8 @@ This keeps the repository from overfitting shared abstractions to JSON Schema al
 - do not add new parser or generator families without first stating which IR layer they consume or produce
 - do not silently erase unsupported semantics when a diagnostic or loss report would preserve important truth
 
-## Open Design Questions
+## Maintenance Rule
 
-- should object open-versus-closed behavior become a shared semantic or remain target-local?
-- what is the minimum useful first version of `Constraint IR` if it is introduced?
-- should semantic-loss reporting exist before `Constraint IR`, and likely as part of every generator result shape?
-- when `Value IR` arrives, should JSON parsing split into two packages or remain one package with two entry points?
-
-These questions should be resolved with implementation evidence, not just preference.
+- keep this file focused on IR meaning, semantic placement rules, and current layer composition
+- keep routing and registry evolution in [architecture-layering.md](architecture-layering.md)
+- keep repository-level prioritization in [progress.md](progress.md)

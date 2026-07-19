@@ -11,6 +11,9 @@ This document defines how parser, generator, and future transform layers should 
 
 It exists to keep the repository honest about successful conversion not always meaning full semantic preservation.
 
+Use [ir-boundaries.md](ir-boundaries.md) for IR placement rules and [architecture-layering.md](architecture-layering.md) for routing and planner structure.
+This document should stay focused on result-contract semantics.
+
 ## Why This Matters
 
 The repository now has enough surface area that simple `ok: true` is no longer a sufficient contract.
@@ -110,9 +113,7 @@ Current repository note:
 
 - parser success already supports `document`, optional `constraints`, `diagnostics`, and `semanticNotes`
 - generator success already supports `diagnostics` and `semanticNotes`
-- SDK conversion success now supports `artifacts.value`, `artifacts.shape`, `artifacts.constraints`, route-level `losses`, `preservedCapabilities`, and a staged `report`
-
-The remaining gap is that parser and generator capability declarations are not yet the primary runtime source of truth for route planning.
+- SDK conversion success already supports `artifacts.value`, `artifacts.shape`, `artifacts.constraints`, route-level `losses`, `preservedCapabilities`, and a staged `report`
 
 ### Return Success Without Diagnostics When
 
@@ -201,26 +202,6 @@ interface LossFact {
 
 The exact type names can change.
 The important rule is that callers should be able to inspect route-level preservation and loss facts without reverse-engineering them from free-form docs.
-
-## Runtime Capability Matching
-
-Because different parser and generator combinations will need different IR sets, capability matching should happen at runtime.
-
-That planner should determine:
-
-- whether a parser can satisfy a generator directly
-- whether optional IRs can also be preserved on this route
-- whether a transformer is required to bridge the gap
-- which semantic losses are inherent to the selected chain
-
-Examples:
-
-- `typescript -> json-schema` may only require `Shape IR`
-- `json-schema -> json-schema` should preserve `Constraint IR` when available
-- `json -> json-schema` may produce `Value IR` and infer `Shape IR`, but have no `Constraint IR` unless a later enrichment step exists
-
-This means capability matching is not only about format compatibility.
-It is also about truthfully describing what semantic layers survive the route.
 
 ## Diagnostics Policy
 
@@ -338,11 +319,8 @@ Use the following interpretation today:
 
 - `@aio/core` result contracts already support success diagnostics
 - parser failure codes are already fairly mature
-- JSON Schema parser diagnostics already model normalization and accepted lowering
-- JSON Schema generator diagnostics already model some widening cases
-- the repository does not yet have one unified capability-and-loss document per surface
-
-This document is meant to become that cross-cutting contract.
+- several current surfaces already distinguish direct support, normalization, widening, and explicit failure through diagnostics
+- per-surface documentation is still catching up to one consistent capability-and-loss pattern
 
 ## Recommended Documentation Pattern Per Surface
 
@@ -382,13 +360,9 @@ That should be reflected in:
 - parser or generator tests
 - integration tests when cross-package behavior is involved
 
-## Near-Term Application
+## Maintenance Rule
 
-The most useful next application of this contract is:
-
-1. keep `Shape IR v0` stable
-2. classify current JSON Schema behavior using this capability-and-loss model
-3. decide whether future pressure belongs in `Shape IR`, `Constraint IR`, or target-local policy
-4. only then expand result contracts further if the current shared `diagnostics` field is not expressive enough
-
-This sequence lets the project improve semantic clarity before committing to larger API changes.
+- keep this file focused on success, failure, normalization, and semantic-loss result rules
+- keep IR placement rules in [ir-boundaries.md](ir-boundaries.md)
+- keep routing and planner evolution in [architecture-layering.md](architecture-layering.md)
+- keep repository-level prioritization in [progress.md](progress.md)

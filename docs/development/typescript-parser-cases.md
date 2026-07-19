@@ -5,6 +5,12 @@ This file defines the first supported TypeScript parser subset as concrete succe
 The goal is not to parse the whole TypeScript type system.
 The goal is to validate the shared schema IR against a second source language with a narrow, data-shape-oriented subset.
 
+This file is the concrete case catalog, not a repository status page or execution checklist.
+
+- repository-level prioritization lives in [progress.md](progress.md)
+- TypeScript-parser task tracking lives in [typescript-parser-checklist.md](typescript-parser-checklist.md)
+- preprocess and module-boundary intent lives in [typescript-parser-preprocess.md](typescript-parser-preprocess.md)
+
 ## Purpose
 
 These cases should answer:
@@ -341,6 +347,12 @@ Expected schema IR shape:
 
 These cases should fail with structured parser diagnostics rather than being approximated loosely.
 The matrix is grouped by the parser surface that should report the failure, so tests can lock both the stable error code and the expected diagnostic path granularity.
+
+## Maintenance Rule
+
+- keep this file focused on representative success and failure examples
+- do not repeat repository-level status or near-term work prioritization here
+- prefer adding or adjusting cases when parser behavior changes, rather than expanding prose elsewhere
 
 ### Entry Contract Failures
 

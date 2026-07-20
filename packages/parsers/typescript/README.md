@@ -118,6 +118,12 @@ These are accepted syntax-to-shape normalization paths rather than full-fidelity
 - declaration-form distinctions that do not survive into shared shape semantics are treated as normalization, not as lossless round-trip guarantees
 - the parser's job is shared data-shape inference, not preservation of all source-language structure
 
+Current success-with-diagnostics expectations:
+
+- implicit entry selection may surface parser semantic notes so callers can see which conservative selection rule was used
+- future successful parser normalizations should keep using parser notes or diagnostics when the accepted syntax distinction matters to downstream review
+- unsupported constructs should continue to fail explicitly instead of being silently widened into approximate shared-shape meaning
+
 ### Unsupported Or Intentionally Deferred
 
 - missing explicit entry names when multiple supported declarations or multiple exported declarations make entry selection ambiguous
@@ -139,6 +145,28 @@ These are accepted syntax-to-shape normalization paths rather than full-fidelity
 - enum initializers outside the supported literal, implicit-numeric, or earlier-member-reference subset
 
 These cases fail explicitly rather than being widened into guessed schema meaning.
+
+### Boundary Classification
+
+The current unsupported surface splits into two buckets:
+
+Not yet supported, but still plausible near-term parser work:
+
+- imported, namespace-imported, or re-export-only entry paths that require cross-file resolution
+- namespace re-export forwarding and export-all forwarding when they could determine the requested entry
+- interface `extends` clauses once preprocess and reachable-graph handling stay explicit
+- utility types beyond `Record`
+- conditional, mapped, function, and intersection types only if repeated pressure shows they fit the shared schema subset cleanly
+
+Intentionally outside the current project boundary unless the shared IR direction changes materially:
+
+- classes and value-level module statements as schema entry forms
+- unsupported object type members such as methods
+- computed property names and other property forms that do not describe portable data-shape fields directly
+- generic unsupported syntax kinds that do not preserve data-shape-oriented schema meaning
+- general computed enum evaluation beyond the current literal and earlier-member-reference subset
+
+That split is meant to keep near-term parser work focused on entry handling, preprocess clarity, and richer single-file support before broader type-system ambition.
 
 ## Current Unsupported Subset
 
@@ -262,6 +290,18 @@ Common extra evidence currently includes:
 - imported type references: `importSource`, `importedName`
 - namespace-imported type references: `importSource`, `importedNamespace`, `qualifiedReference`
 - re-export-only entries: `moduleSpecifier`, `importedName`, `declarationText`
+
+## Near-Term Parser Slice
+
+The current recommended next parser slice is still conservative single-file entry handling rather than broader type-system expansion.
+
+That currently means:
+
+- tighten exported-root versus local-root convergence in additional single-file edge cases
+- keep implicit-entry ambiguity reasons stable and reviewable as an internal contract
+- continue improving preprocess-facing evidence and higher-level reporting before taking on multi-file resolution
+
+The checklist and repository progress docs use the same priority order so parser behavior, failure reporting, and work tracking stay aligned.
 
 ### Diagnostic Examples
 

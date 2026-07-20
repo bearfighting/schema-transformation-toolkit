@@ -30,6 +30,15 @@ That means:
 - syntax-level normalization into the same shared shape meaning may succeed with diagnostics when that distinction is important to surface
 - unsupported TypeScript type-system constructs should fail explicitly rather than being widened into misleading schema shapes
 
+## Boundary Classification
+
+The current unsupported surface should be read in two buckets:
+
+- not yet supported but still plausible future parser work: conservative multi-file entry handling, import-aware resolution, selected utility types beyond `Record`, interface heritage, and carefully chosen type-system forms such as `intersection`, `conditional`, or `mapped` types if they prove to fit the shared schema subset cleanly
+- intentionally outside the current project boundary unless shared IR goals change materially: classes as schema entries, value-level module statements, method-like object members, computed property names, and general syntax forms that do not describe portable data-shape semantics directly
+
+This split exists to keep parser work focused on entry handling, preprocess clarity, and richer single-file support before broader type-system ambition.
+
 ## Entry Assumption
 
 The current parser should parse one selected entry declaration at a time.
@@ -54,6 +63,17 @@ When that ambiguity happens, `missing-typescript-entry` diagnostics should prese
 When the parser does select an entry implicitly, successful results should emit a `typescript-implicit-entry-selected` semantic note with the corresponding selection rule in evidence.
 
 Top-level statements that do not change reachable schema meaning may still be ignored.
+
+## Current Near-Term Slice
+
+The most valuable near-term parser slice is still conservative single-file entry improvement rather than broader type-system coverage.
+
+That means:
+
+- extend automatic root discovery only where the declaration graph still yields one unique, explainable candidate
+- keep implicit-entry ambiguity evidence stable and inspectable
+- improve preprocess-facing diagnostics and reporting before crossing into multi-file resolution
+- treat broader type-system support as follow-on work after those boundaries stay clear
 
 ## Supported Success Cases
 

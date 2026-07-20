@@ -98,6 +98,11 @@ That currently means:
 - keep entry-selection and ambiguity reasons stable as an internal contract, with documentation and type-comment polish rather than behavior churn
 - continue improving higher-level SDK reporting for implicit-entry and preprocess decisions without widening into CLI work or multi-file resolution
 
+The current unsupported parser surface should also be read in two buckets:
+
+- not yet supported but still plausible near-term work: import-aware entry handling, selected utility-type expansion beyond `Record`, interface heritage, and carefully chosen broader type-system forms only when they still fit the shared schema subset cleanly
+- intentionally outside the current project boundary unless shared IR goals change materially: classes as schema entries, value-level module statements, method-like object members, computed property names, and other syntax that does not describe portable data-shape semantics directly
+
 ## Deferred
 
 Intentionally deferred for now:

@@ -37,9 +37,9 @@ This file should stay focused on TypeScript-parser-specific execution details.
 
 - [x] add parser-facing source span or line-column diagnostics on top of the current logical `path` diagnostics
 - [x] decide and document the intended support strategy for `enum`, `readonly` properties, and readonly array or tuple syntax before implementing them
-- [ ] keep the supported success subset, explicit failure matrix, and package docs aligned as new cases land
-- [ ] apply the capability-and-loss documentation pattern explicitly in the parser package README once the next supported slice lands
-- [ ] decide the next parser slice in favor of entry handling, preprocess clarity, and richer single-file support before taking on broader type-system constructs
+- [x] keep the supported success subset, explicit failure matrix, and package docs aligned as new cases land
+- [x] apply the capability-and-loss documentation pattern explicitly in the parser package README once the next supported slice lands
+- [x] decide the next parser slice in favor of entry handling, preprocess clarity, and richer single-file support before taking on broader type-system constructs
 
 ### Source Span Diagnostics Breakdown
 
@@ -78,9 +78,9 @@ Chosen direction for v0:
 
 - [x] expand representative unsupported-node diagnostics so they preserve both logical `path` information and useful source evidence
 - [x] continue broadening that richer evidence coverage to future unsupported parser surfaces such as declaration-level pre-processing or multi-file boundaries
-- [ ] decide which currently unsupported features are "not yet supported" versus intentionally outside the project boundary
+- [x] decide which currently unsupported features are "not yet supported" versus intentionally outside the project boundary
 - [x] improve explicit diagnostics for unsupported top-level module statements and entry-resolution-adjacent preprocess cases
-- [ ] keep parser capability and semantic-loss documentation aligned with actual runtime behavior as new cases land
+- [x] keep parser capability and semantic-loss documentation aligned with actual runtime behavior as new cases land
 
 ### Can Wait
 
@@ -99,6 +99,23 @@ Concrete next candidates from this bucket, once the current Must and Should item
 - extend root discovery only when the single-file declaration graph still yields a unique, explainable candidate
 - expand preprocess evidence and source-span coverage again when multi-file entry resolution work starts
 - carefully chosen import-aware work only if the preprocess boundary stays explicit and additive
+
+Chosen near-term slice after the July 19, 2026 parser push:
+
+- continue conservative automatic root discovery work only for explainable single-file declaration graphs
+- stabilize implicit-entry ambiguity reasons and preprocess evidence as a reviewable contract
+- defer broader type-system constructs until that single-file entry and preprocess boundary remains clear
+
+Recently locked contract details inside that slice:
+
+- document-name tie-breaking stays narrow and should not weaken ambiguity reporting when no candidate actually matches
+- exported-only cycles may still fall back to a unique local root when the full single-file declaration graph remains explainable
+- re-export and export-all forwarding stay preprocess noise when they do not determine a uniquely explainable local entry, and they do not become hidden tie-breakers when ambiguity remains
+
+Current unsupported-feature classification:
+
+- not yet supported: import-aware entry handling, export forwarding that would require cross-file reasoning, interface heritage, utility types beyond `Record`, and carefully chosen broader type-system forms when they still fit the shared schema subset
+- intentionally outside the current project boundary for now: classes as schema entries, value-level module statements, method-like object members, computed property names, and syntax that does not describe portable data-shape semantics directly
 
 ## Longer-Term Backlog
 

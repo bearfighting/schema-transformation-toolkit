@@ -32,7 +32,7 @@ The current generator supports:
 - literal nodes as exact TypeScript literal types
 - union nodes as exact TypeScript union types
 - optional tuple elements as `?`
-- record nodes as `Record<K, V>`
+- record nodes as `Record<string, T>`
 - `unknown` nodes as `unknown`
 - configurable array rendering with `T[]` / `Array<T>`
 - normalized identifier naming for type names and field names
@@ -77,10 +77,12 @@ These are target-shape normalization choices rather than semantic loss in shared
 
 ### Supported With Semantic Loss Or Widening
 
-- no major lossy success path is intentionally emphasized today beyond ordinary naming normalization and target rendering choices
-- if a future shared semantic must render more broadly in TypeScript than its source evidence suggested, that should succeed only with diagnostics
+- `integer` shared scalars render as TypeScript `number` and now return success with structured widening diagnostics plus semantic notes
+- shared `unknown` nodes render as TypeScript `unknown` and now return success with structured widening diagnostics because the target type remains broader than the original source evidence
+- if future shared semantics must render more broadly in TypeScript than their source evidence suggested, those cases should also succeed only with diagnostics
 
 This generator is currently stricter about invalid naming and unsupported nodes than the JSON Schema generator is about target widening.
+It now also rejects rendered type-name and field-name collisions explicitly instead of emitting duplicate TypeScript declarations or object properties silently.
 
 ### Unsupported Or Intentionally Deferred
 
@@ -120,7 +122,7 @@ These rules come from the configured naming strategy and can be replaced.
 
 - returns `{ ok: true, output }` on success
 - returns `{ ok: false, code, message }` on generation failure
-- may also include `diagnostics`
+- may also include `diagnostics` and `semanticNotes`
 
 `resolveTypeScriptGeneratorOptions(options?)`
 
@@ -275,7 +277,10 @@ Unsupported cases should fail explicitly rather than being approximated loosely.
 The current generator can return structured failures for:
 
 - invalid rendered type names
+- duplicate rendered type names across the root export and reusable definitions
+- duplicate rendered field names inside one rendered object shape
 - invalid rendered field names
+- invalid runtime record keys that do not match the current shared `Record<string, T>` boundary
 - invalid rendered or missing reference names
 - unsupported runtime node kinds
 
@@ -285,12 +290,24 @@ Current diagnostics behavior:
 
 - generator failures also include structured diagnostics with the same primary `code` and `message`
 - generator failure diagnostics now also include stable `path` and `nodeKind`, plus `evidence` for rendered/source naming failures where useful
-- success results currently stay quiet unless future generator warnings become useful
+- naming-collision failures now preserve the conflicting rendered name plus the contributing schema source names
+- field-name collisions are checked per rendered object scope, including nested inline object types and quoted-versus-identifier property forms that would resolve to the same TypeScript property name
+- runtime record-key validation now rejects non-string keys instead of emitting unsupported or contract-drifting `Record<...>` forms
+- success results now also surface `unknown` rendering as a structured widening warning plus semantic note instead of staying silent
+- success results now surface integer-to-number widening as a structured warning plus semantic note instead of staying silent
+
+Example collision shapes now rejected explicitly:
+
+- two distinct definitions that both render to `user_profile`
+- two sibling fields that both render to `userId`
+- one field rendered as `userId` and another rendered as `"userId"` inside the same object shape
 
 Under the shared capability-and-loss contract, this means:
 
-- most current generator caveats are handled as explicit failure rather than lossy success
-- if future TypeScript target limitations still allow truthful but imperfect rendering, those cases should become success-with-diagnostics rather than silent success
+- current naming and reference caveats are handled as explicit failure rather than lossy success
+- current integer rendering is handled as truthful success-with-diagnostics because TypeScript has no distinct integer scalar
+- current unknown rendering is handled as truthful success-with-diagnostics because TypeScript cannot preserve the shared unknown/source-evidence distinction precisely
+- future TypeScript target limitations that still allow truthful but imperfect rendering should also become success-with-diagnostics rather than silent success
 
 ## Where To Look Next
 

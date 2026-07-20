@@ -30,6 +30,32 @@ export function validateRenderableDocument(
     );
   }
 
+  const renderedTypeNameEntries = new Map<
+    string,
+    {
+      sourceNames: string[];
+      path: string[];
+      nodeKind: "document" | "definition";
+    }
+  >();
+
+  const rootDefinition = doc.definitions.find(
+    (definition) => definition.name.source === doc.name.source,
+  );
+  const rootPath =
+    rootDefinition === undefined
+      ? ["document"]
+      : ["definitions", rootDefinition.name.source];
+  const rootNodeKind = rootDefinition === undefined ? "document" : "definition";
+
+  registerRenderedTypeName(
+    renderedTypeNameEntries,
+    renderedTypeName,
+    doc.name.source,
+    rootPath,
+    rootNodeKind,
+  );
+
   for (const definition of doc.definitions) {
     const definitionNameFailure = validateRenderableDefinitionName(
       definition,
@@ -39,6 +65,19 @@ export function validateRenderableDocument(
 
     if (definitionNameFailure !== null) {
       return definitionNameFailure;
+    }
+
+    const renderedDefinitionName = renderTypeName(definition.name, options);
+    const duplicateRenderedNameFailure = registerRenderedTypeName(
+      renderedTypeNameEntries,
+      renderedDefinitionName,
+      definition.name.source,
+      ["definitions", definition.name.source],
+      "definition",
+    );
+
+    if (duplicateRenderedNameFailure !== null) {
+      return duplicateRenderedNameFailure;
     }
 
     const definitionFailure = validateRenderableTypeNode(
@@ -54,6 +93,47 @@ export function validateRenderableDocument(
   }
 
   return validateRenderableTypeNode(doc.root, options, doc, ["root"]);
+}
+
+function registerRenderedTypeName(
+  renderedTypeNameEntries: Map<
+    string,
+    {
+      sourceNames: string[];
+      path: string[];
+      nodeKind: "document" | "definition";
+    }
+  >,
+  renderedName: string,
+  sourceName: string,
+  path: string[],
+  nodeKind: "document" | "definition",
+): TypeScriptGenerateFailureResult | null {
+  const existing = renderedTypeNameEntries.get(renderedName);
+
+  if (existing === undefined) {
+    renderedTypeNameEntries.set(renderedName, {
+      sourceNames: [sourceName],
+      path,
+      nodeKind,
+    });
+    return null;
+  }
+
+  const sourceNames = Array.from(
+    new Set([...existing.sourceNames, sourceName]),
+  ).sort();
+
+  return createValidationFailure(
+    "duplicate-rendered-type-name",
+    `The rendered type name "${renderedName}" is produced by multiple schema declarations and cannot be emitted safely.`,
+    path,
+    nodeKind,
+    {
+      renderedName,
+      sourceNames,
+    },
+  );
 }
 
 function validateRenderableTypeNode(
@@ -124,6 +204,15 @@ function validateRenderableTypeNode(
       }
       return null;
     case "record": {
+      if (!isRenderableRecordKeyNode(node.key)) {
+        return createValidationFailure(
+          "invalid-record-key",
+          "TypeScript record keys must currently render from string scalar keys.",
+          [...path, "key"],
+          "record",
+        );
+      }
+
       const keyFailure = validateRenderableTypeNode(node.key, options, doc, [
         ...path,
         "key",
@@ -191,6 +280,8 @@ function validateRenderableObjectType(
   doc: SchemaDocument,
   path: string[],
 ): TypeScriptGenerateFailureResult | null {
+  const renderedFieldNameEntries = new Map<string, string[]>();
+
   for (const field of node.fields) {
     const renderedFieldName = renderFieldName(field.name, options);
     const fieldPath = [...path, field.name.source];
@@ -208,6 +299,17 @@ function validateRenderableObjectType(
       );
     }
 
+    const duplicateRenderedFieldNameFailure = registerRenderedFieldName(
+      renderedFieldNameEntries,
+      renderedFieldName,
+      field.name.source,
+      fieldPath,
+    );
+
+    if (duplicateRenderedFieldNameFailure !== null) {
+      return duplicateRenderedFieldNameFailure;
+    }
+
     const nestedFailure = validateRenderableTypeNode(
       field.type,
       options,
@@ -221,6 +323,48 @@ function validateRenderableObjectType(
   }
 
   return null;
+}
+
+function registerRenderedFieldName(
+  renderedFieldNameEntries: Map<string, string[]>,
+  renderedName: string,
+  sourceName: string,
+  path: string[],
+): TypeScriptGenerateFailureResult | null {
+  const collisionKey = normalizeRenderedFieldCollisionKey(renderedName);
+  const existing = renderedFieldNameEntries.get(collisionKey);
+
+  if (existing === undefined) {
+    renderedFieldNameEntries.set(collisionKey, [sourceName]);
+    return null;
+  }
+
+  const sourceNames = Array.from(new Set([...existing, sourceName])).sort();
+
+  return createValidationFailure(
+    "duplicate-rendered-field-name",
+    `The rendered field name "${collisionKey}" is produced by multiple schema fields and cannot be emitted safely.`,
+    path,
+    "field",
+    {
+      renderedName: collisionKey,
+      sourceNames,
+    },
+  );
+}
+
+function normalizeRenderedFieldCollisionKey(renderedName: string): string {
+  if (!isQuotedPropertyKey(renderedName)) {
+    return renderedName;
+  }
+
+  try {
+    const parsed = JSON.parse(renderedName);
+
+    return typeof parsed === "string" ? parsed : renderedName;
+  } catch {
+    return renderedName;
+  }
 }
 
 function createValidationFailure(
@@ -305,6 +449,10 @@ function isValidTypeName(value: string): boolean {
 
 function isValidFieldName(value: string): boolean {
   return isTypeScriptIdentifier(value) || isQuotedPropertyKey(value);
+}
+
+function isRenderableRecordKeyNode(node: SchemaNode): boolean {
+  return node.kind === "scalar" && node.scalar === "string";
 }
 
 function isTypeScriptIdentifier(value: string): boolean {

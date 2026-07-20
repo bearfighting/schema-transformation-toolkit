@@ -123,6 +123,49 @@ describe("parser-typescript implicit entry analysis", () => {
     });
   });
 
+  it("uses a preferred document-name-derived entry when it matches an ambiguous exported root candidate", () => {
+    const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
+      [
+        "export type User = { id: number };",
+        "export type Account = { name: string };",
+      ].join("\n"),
+    );
+
+    expect(
+      analyzeImplicitEntry({
+        declarationMap,
+        exportedDeclarationMap,
+        preferredEntryName: "User",
+      }),
+    ).toEqual({
+      entryName: "User",
+      rootCandidates: ["Account", "User"],
+      exportedRootCandidates: ["Account", "User"],
+      selectionReason: "document-name-match",
+    });
+  });
+
+  it("keeps exported-root ambiguity when a preferred document-name-derived entry matches no exported root candidate", () => {
+    const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
+      [
+        "export type User = { id: number };",
+        "export type Account = { name: string };",
+      ].join("\n"),
+    );
+
+    expect(
+      analyzeImplicitEntry({
+        declarationMap,
+        exportedDeclarationMap,
+        preferredEntryName: "Directory",
+      }),
+    ).toEqual({
+      rootCandidates: ["Account", "User"],
+      exportedRootCandidates: ["Account", "User"],
+      ambiguityReason: "multiple-exported-root-candidates",
+    });
+  });
+
   it("reports cyclic-root-candidates when declarations only reference each other cyclically", () => {
     const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
       ["type A = B;", "type B = A;"].join("\n"),
@@ -139,6 +182,31 @@ describe("parser-typescript implicit entry analysis", () => {
       rootCandidates: [],
       exportedRootCandidates: [],
       ambiguityReason: "cyclic-root-candidates",
+    });
+  });
+
+  it("falls back to the unique local root when exported declarations stay cyclic", () => {
+    const { declarationMap, exportedDeclarationMap } = collectDeclarationMaps(
+      [
+        "export type User = Account;",
+        "export type Account = User;",
+        "type Directory = User[];",
+      ].join("\n"),
+    );
+
+    expect(collectRootDeclarationNames(declarationMap)).toEqual(["Directory"]);
+    expect(collectRootDeclarationNames(exportedDeclarationMap)).toEqual([]);
+
+    expect(
+      analyzeImplicitEntry({
+        declarationMap,
+        exportedDeclarationMap,
+      }),
+    ).toEqual({
+      entryName: "Directory",
+      rootCandidates: ["Directory"],
+      exportedRootCandidates: [],
+      selectionReason: "single-root",
     });
   });
 

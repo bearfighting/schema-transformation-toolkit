@@ -31,7 +31,7 @@ The package currently supports:
 - automatic entry inference when exported supported declarations form exactly one root in the exported declaration graph
 - automatic entry inference when the local supported declaration graph has exactly one root declaration
 - conservative document-name tie-breaking when a custom `...Document` name matches exactly one ambiguous root candidate
-- ignoring side-effect imports and empty export markers when they do not affect reachable schema declarations
+- ignoring side-effect imports, empty export markers, and entry-irrelevant forwarding noise when they do not affect reachable schema declarations
 - `type` aliases, `interface` declarations, and `enum` declarations
 - `export`-modified supported declarations when the underlying declaration shape stays within the current schema subset
 - single-file parsing where all reachable schema declarations are defined in the same source text
@@ -85,7 +85,10 @@ It does not mean full TypeScript syntax fidelity or lossless recovery of declara
 - explicit named entry declarations
 - automatic entry inference when exactly one supported top-level declaration exists
 - automatic entry inference when exactly one supported top-level declaration is exported
+- automatic entry inference when exported supported declarations still collapse to exactly one exported root
+- automatic entry inference when exported ambiguity remains but the local supported declaration graph still has exactly one root
 - ignoring side-effect imports and empty export markers when they do not affect reachable schema declarations
+- ignoring re-export and export-all forwarding noise when local entry selection is already conservative and complete
 - `type` aliases, `interface` declarations, and supported `enum` declarations
 - `export`-modified supported declarations that stay within the current schema subset
 - single-file reachable declarations
@@ -118,6 +121,12 @@ These are accepted syntax-to-shape normalization paths rather than full-fidelity
 - declaration-form distinctions that do not survive into shared shape semantics are treated as normalization, not as lossless round-trip guarantees
 - the parser's job is shared data-shape inference, not preservation of all source-language structure
 
+Current success-with-diagnostics expectations:
+
+- implicit entry selection may surface parser semantic notes so callers can see which conservative selection rule was used
+- future successful parser normalizations should keep using parser notes or diagnostics when the accepted syntax distinction matters to downstream review
+- unsupported constructs should continue to fail explicitly instead of being silently widened into approximate shared-shape meaning
+
 ### Unsupported Or Intentionally Deferred
 
 - missing explicit entry names when multiple supported declarations or multiple exported declarations make entry selection ambiguous
@@ -139,6 +148,28 @@ These are accepted syntax-to-shape normalization paths rather than full-fidelity
 - enum initializers outside the supported literal, implicit-numeric, or earlier-member-reference subset
 
 These cases fail explicitly rather than being widened into guessed schema meaning.
+
+### Boundary Classification
+
+The current unsupported surface splits into two buckets:
+
+Not yet supported, but still plausible near-term parser work:
+
+- imported, namespace-imported, or re-export-only entry paths that require cross-file resolution
+- namespace re-export forwarding and export-all forwarding when they could determine the requested entry
+- interface `extends` clauses once preprocess and reachable-graph handling stay explicit
+- utility types beyond `Record`
+- conditional, mapped, function, and intersection types only if repeated pressure shows they fit the shared schema subset cleanly
+
+Intentionally outside the current project boundary unless the shared IR direction changes materially:
+
+- classes and value-level module statements as schema entry forms
+- unsupported object type members such as methods
+- computed property names and other property forms that do not describe portable data-shape fields directly
+- generic unsupported syntax kinds that do not preserve data-shape-oriented schema meaning
+- general computed enum evaluation beyond the current literal and earlier-member-reference subset
+
+That split is meant to keep near-term parser work focused on entry handling, preprocess clarity, and richer single-file support before broader type-system ambition.
 
 ## Current Unsupported Subset
 
@@ -207,6 +238,13 @@ The parser accepts an explicit `entry` and can infer one automatically when the 
 Successful results return a `SchemaDocument` whose root is usually a reference to the selected named definition.
 When the entry is selected implicitly, success also includes a parser `semanticNote` with code `typescript-implicit-entry-selected` so callers can see which inference rule was used.
 
+Current implicit-entry guardrails:
+
+- document-name tie-breaking stays narrow and applies only when the derived preferred entry matches one existing local or exported root candidate exactly
+- if exported declarations stay cyclic but the full local declaration graph still has one unique root, the parser may still select that local root conservatively
+- re-export and export-all forwarding remain preprocess noise when they do not actually determine the chosen local entry
+- the same forwarding forms do not weaken ambiguity reporting when local or exported root selection still remains unresolved
+
 ## Current Failure Model
 
 Current failure results use stable parser-facing codes, including:
@@ -230,6 +268,7 @@ Current failure results use stable parser-facing codes, including:
 
 Diagnostics carry the shared `core` shape, including stable `path`, `nodeKind`, and `evidence` fields when the parser can determine a meaningful logical location.
 For implicit-entry ambiguity, `missing-typescript-entry` evidence may now include `rootCandidates`, `exportedRootCandidates`, and `implicitEntryAmbiguityReason` so callers can see why root discovery stayed conservative, including cycle-only cases where no root candidate exists.
+That ambiguity classification is intended to stay stable even when custom document names, re-export forwarding, or export-all forwarding are present but do not actually resolve the candidate set.
 
 Under the shared capability-and-loss contract, this means:
 
@@ -262,6 +301,19 @@ Common extra evidence currently includes:
 - imported type references: `importSource`, `importedName`
 - namespace-imported type references: `importSource`, `importedNamespace`, `qualifiedReference`
 - re-export-only entries: `moduleSpecifier`, `importedName`, `declarationText`
+
+## Near-Term Parser Slice
+
+The current recommended next parser slice is still conservative single-file entry handling rather than broader type-system expansion.
+
+That currently means:
+
+- tighten exported-root versus local-root convergence in additional single-file edge cases
+- keep implicit-entry ambiguity reasons stable and reviewable as an internal contract
+- continue improving preprocess-facing evidence and higher-level reporting before taking on multi-file resolution
+
+The checklist and repository progress docs use the same priority order so parser behavior, failure reporting, and work tracking stay aligned.
+Recent parser tests now also lock that contract across success-path and failure-matrix coverage for document-name tie-breaking, exported-cycle fallback, and entry-irrelevant forwarding noise.
 
 ### Diagnostic Examples
 

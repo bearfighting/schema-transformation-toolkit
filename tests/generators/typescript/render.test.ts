@@ -674,7 +674,11 @@ describe("generator-typescript", () => {
             detail: "JSON Schema boolean true was lowered to unknown.",
           },
         }),
-        unknownUnionWideningSemanticNote(["root"], [1], ["literal", "reference"]),
+        unknownUnionWideningSemanticNote(
+          ["root"],
+          [1],
+          ["literal", "reference"],
+        ),
       ],
     });
   });
@@ -830,7 +834,9 @@ describe("generator-typescript", () => {
           ]),
         ),
       ),
-    ).toBe("export type RequiredAfterOptionalTuple = [number, string?, boolean];");
+    ).toBe(
+      "export type RequiredAfterOptionalTuple = [number, string?, boolean];",
+    );
   });
 
   it("renders record nodes in TypeScript output", () => {
@@ -1247,20 +1253,26 @@ describe("generator-typescript", () => {
   });
 
   it("returns structured failures when rendered type names collide across definitions", () => {
-    const doc = schemaDocument("Directory", schemaReferenceNode("user-profile"), {
-      definitions: [
-        schemaDefinition(
-          "user-profile",
-          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
-        ),
-        schemaDefinition(
-          "user_profile",
-          schemaObjectNode([
-            schemaFieldNode("name", schemaScalarNode("string")),
-          ]),
-        ),
-      ],
-    });
+    const doc = schemaDocument(
+      "Directory",
+      schemaReferenceNode("user-profile"),
+      {
+        definitions: [
+          schemaDefinition(
+            "user-profile",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+          schemaDefinition(
+            "user_profile",
+            schemaObjectNode([
+              schemaFieldNode("name", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
 
     expect(
       tryGenerateTypeScript(doc, {
@@ -1303,14 +1315,20 @@ describe("generator-typescript", () => {
   });
 
   it("returns structured failures when the root name collides with a rendered definition name", () => {
-    const doc = schemaDocument("user_profile", schemaReferenceNode("user-profile"), {
-      definitions: [
-        schemaDefinition(
-          "user-profile",
-          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
-        ),
-      ],
-    });
+    const doc = schemaDocument(
+      "user_profile",
+      schemaReferenceNode("user-profile"),
+      {
+        definitions: [
+          schemaDefinition(
+            "user-profile",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+        ],
+      },
+    );
 
     expect(
       tryGenerateTypeScript(doc, {

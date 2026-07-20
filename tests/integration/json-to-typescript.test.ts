@@ -21,6 +21,96 @@ import {
   preparedJsonParserOptions,
 } from "../../packages/parsers/json/src/index.js";
 
+function integerWideningDiagnostic(path: string[]) {
+  return {
+    severity: "warning" as const,
+    code: "integer-widened-to-number",
+    message:
+      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+    path,
+    nodeKind: "scalar" as const,
+    source: "generator-typescript",
+    evidence: {
+      sourceScalar: "integer",
+      renderedScalar: "number",
+    },
+  };
+}
+
+function integerWideningSemanticNote(path: string[]) {
+  return {
+    kind: "widening" as const,
+    code: "integer-widened-to-number",
+    message:
+      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+    path,
+    nodeKind: "scalar" as const,
+    source: "generator-typescript",
+    layer: "target" as const,
+    evidence: {
+      sourceScalar: "integer",
+      renderedScalar: "number",
+    },
+  };
+}
+
+function unknownWideningDiagnostic(
+  path: string[],
+  options: {
+    reason: string;
+    nullable: boolean;
+    renderedForm: string;
+    sourceEvidence?: Record<string, unknown>;
+  },
+) {
+  return {
+    severity: "warning" as const,
+    code: "wide-unknown-type",
+    message:
+      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+    path,
+    nodeKind: "unknown" as const,
+    source: "generator-typescript",
+    evidence: {
+      reason: options.reason,
+      nullable: options.nullable,
+      renderedForm: options.renderedForm,
+      ...(options.sourceEvidence
+        ? { sourceEvidence: options.sourceEvidence }
+        : {}),
+    },
+  };
+}
+
+function unknownWideningSemanticNote(
+  path: string[],
+  options: {
+    reason: string;
+    nullable: boolean;
+    renderedForm: string;
+    sourceEvidence?: Record<string, unknown>;
+  },
+) {
+  return {
+    kind: "widening" as const,
+    code: "wide-unknown-type",
+    message:
+      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+    path,
+    nodeKind: "unknown" as const,
+    source: "generator-typescript",
+    layer: "target" as const,
+    evidence: {
+      reason: options.reason,
+      nullable: options.nullable,
+      renderedForm: options.renderedForm,
+      ...(options.sourceEvidence
+        ? { sourceEvidence: options.sourceEvidence }
+        : {}),
+    },
+  };
+}
+
 describe("integration: json -> ir -> typescript", () => {
   it("converts supported json samples into TypeScript with default parser/generator instances", () => {
     const parsed = jsonParser.parse(
@@ -48,6 +138,10 @@ describe("integration: json -> ir -> typescript", () => {
         "  };",
         "}>;",
       ].join("\n"),
+      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
+      semanticNotes: [
+        integerWideningSemanticNote(["root", "elementType", "id"]),
+      ],
     });
   });
 
@@ -71,6 +165,10 @@ describe("integration: json -> ir -> typescript", () => {
         "  name?: string | null;",
         "}>;",
       ].join("\n"),
+      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
+      semanticNotes: [
+        integerWideningSemanticNote(["root", "elementType", "id"]),
+      ],
     });
   });
 
@@ -101,6 +199,26 @@ describe("integration: json -> ir -> typescript", () => {
         "  tags: unknown[];",
         "}",
       ].join("\n"),
+      diagnostics: [
+        unknownWideningDiagnostic(["root", "tags", "elementType"], {
+          reason: "empty-array-element",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+          },
+        }),
+      ],
+      semanticNotes: [
+        unknownWideningSemanticNote(["root", "tags", "elementType"], {
+          reason: "empty-array-element",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+          },
+        }),
+      ],
     });
   });
 
@@ -149,6 +267,8 @@ describe("integration: json -> ir -> typescript", () => {
         "  };",
         "}",
       ].join("\n"),
+      diagnostics: [integerWideningDiagnostic(["root", "user-id"])],
+      semanticNotes: [integerWideningSemanticNote(["root", "user-id"])],
     });
   });
 
@@ -202,6 +322,8 @@ describe("integration: json -> ir -> typescript", () => {
         "  pair: [number, string];",
         "}",
       ].join("\n"),
+      diagnostics: [integerWideningDiagnostic(["root", "pair", "0"])],
+      semanticNotes: [integerWideningSemanticNote(["root", "pair", "0"])],
     });
   });
 
@@ -252,6 +374,12 @@ describe("integration: json -> ir -> typescript", () => {
         "  count: number;",
         "}>;",
       ].join("\n"),
+      diagnostics: [
+        integerWideningDiagnostic(["root", "elementType", "1", "count"]),
+      ],
+      semanticNotes: [
+        integerWideningSemanticNote(["root", "elementType", "1", "count"]),
+      ],
     });
   });
 
@@ -309,6 +437,28 @@ describe("integration: json -> ir -> typescript", () => {
         "  value: unknown;",
         "}>;",
       ].join("\n"),
+      diagnostics: [
+        unknownWideningDiagnostic(["root", "elementType", "value"], {
+          reason: "mixed-types-collapsed",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            observedKinds: ["integer", "string"],
+          },
+        }),
+      ],
+      semanticNotes: [
+        unknownWideningSemanticNote(["root", "elementType", "value"], {
+          reason: "mixed-types-collapsed",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            observedKinds: ["integer", "string"],
+          },
+        }),
+      ],
     });
   });
 
@@ -407,6 +557,12 @@ describe("integration: json -> ir -> typescript", () => {
         "",
         "export type UserDirectory = UserProfile[];",
       ].join("\n"),
+      diagnostics: [
+        integerWideningDiagnostic(["definitions", "user-profile", "id"]),
+      ],
+      semanticNotes: [
+        integerWideningSemanticNote(["definitions", "user-profile", "id"]),
+      ],
     });
   });
 });

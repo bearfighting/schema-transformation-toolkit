@@ -106,6 +106,12 @@ Chosen near-term slice after the July 19, 2026 parser push:
 - stabilize implicit-entry ambiguity reasons and preprocess evidence as a reviewable contract
 - defer broader type-system constructs until that single-file entry and preprocess boundary remains clear
 
+Recently locked contract details inside that slice:
+
+- document-name tie-breaking stays narrow and should not weaken ambiguity reporting when no candidate actually matches
+- exported-only cycles may still fall back to a unique local root when the full single-file declaration graph remains explainable
+- re-export and export-all forwarding stay preprocess noise when they do not determine a uniquely explainable local entry, and they do not become hidden tie-breakers when ambiguity remains
+
 Current unsupported-feature classification:
 
 - not yet supported: import-aware entry handling, export forwarding that would require cross-file reasoning, interface heritage, utility types beyond `Record`, and carefully chosen broader type-system forms when they still fit the shared schema subset

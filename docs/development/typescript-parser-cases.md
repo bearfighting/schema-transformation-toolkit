@@ -60,6 +60,7 @@ Examples:
 The parser should stay conservative when root discovery is ambiguous.
 It should not guess a root declaration automatically when multiple supported top-level declarations remain independent or when the local declaration graph has no unique root.
 When that ambiguity happens, `missing-typescript-entry` diagnostics should preserve `rootCandidates`, `exportedRootCandidates`, and `implicitEntryAmbiguityReason` in evidence so callers can inspect what the parser considered, including cycle-only cases where no declaration root exists.
+Document-name tie-breaking should remain narrow: it may resolve ambiguity only when the derived preferred entry matches exactly one existing local or exported root candidate, and it should not weaken the original ambiguity classification when no such match exists.
 When the parser does select an entry implicitly, successful results should emit a `typescript-implicit-entry-selected` semantic note with the corresponding selection rule in evidence.
 
 Top-level statements that do not change reachable schema meaning may still be ignored.
@@ -128,6 +129,32 @@ Expected schema IR shape:
 - the only supported local declaration may still be selected as the entry
 - these statements are treated as preprocess-level noise rather than schema meaning
 
+Variants that should remain ignorable when they do not determine the chosen entry:
+
+```ts
+export { ExternalUser } from "./models";
+interface User {
+  id: number;
+}
+```
+
+```ts
+export * from "./models";
+interface User {
+  id: number;
+}
+```
+
+Expected schema IR shape for these variants:
+
+- re-export and export-all forwarding should not override a uniquely explainable local declaration
+- the parser should keep treating those module-boundary statements as noise when local entry selection is already conservative and complete
+
+When local entry selection is still ambiguous, those forwarding forms should also remain noise rather than hidden tie-breakers:
+
+- they should not upgrade multiple local root candidates into an implicit entry choice
+- the parser should keep reporting the original local ambiguity until an explicit or conservatively derived entry is available
+
 ### 4. Exported Entry Discovery With Local Helpers
 
 Source:
@@ -178,7 +205,38 @@ Expected schema IR shape:
 - exported helper declarations may still participate in the same local declaration chain
 - unrelated local non-exported helpers do not prevent entry discovery when the exported declaration graph still has exactly one root
 
-### 7. Optional Property
+### 7. Unique Local Root After Exported Cycle
+
+Source:
+
+```ts
+export type User = Account;
+export type Account = User;
+type Directory = User[];
+```
+
+Expected schema IR shape:
+
+- exported declarations alone do not yield a unique exported root because they only reference each other
+- the parser may still select `Directory` as the implicit entry when the full local declaration graph has exactly one root
+- this should remain a `single-root` decision rather than an exported-root decision
+
+### 8. Document-Name Tie-Break For Exported Root Ambiguity
+
+Source:
+
+```ts
+export type User = { id: number };
+export type Account = { name: string };
+```
+
+Expected schema IR shape:
+
+- multiple exported supported roots still remain ambiguous without an explicit or derived preference
+- a custom document name such as `UserDocument` may still select `User` conservatively
+- this should remain a `document-name-match` decision rather than a broader exported-root heuristic
+
+### 9. Optional Property
 
 Source:
 
@@ -193,7 +251,7 @@ Expected schema IR shape:
 - `name` maps to `required: false`
 - optional presence remains distinct from `null`
 
-### 6. Nullable Property Via Union
+### 10. Nullable Property Via Union
 
 Source:
 
@@ -208,7 +266,7 @@ Expected schema IR shape:
 - `name` maps to a non-optional field
 - field nullability is preserved distinctly from optionality
 
-### 7. Array Type
+### 11. Array Type
 
 Source:
 
@@ -221,7 +279,7 @@ Expected schema IR shape:
 - array maps to `SchemaArrayNode`
 - element type may be a reference
 
-### 8. Generic Array Type
+### 12. Generic Array Type
 
 Source:
 
@@ -233,7 +291,7 @@ Expected schema IR shape:
 
 - same semantic result as `User[]`
 
-### 9. Tuple Type
+### 13. Tuple Type
 
 Source:
 
@@ -246,7 +304,7 @@ Expected schema IR shape:
 - tuple maps to `SchemaTupleNode`
 - tuple positions stay ordered and required by default
 
-### 10. Union Type
+### 14. Union Type
 
 Source:
 
@@ -258,7 +316,7 @@ Expected schema IR shape:
 
 - union maps to `SchemaUnionNode`
 
-### 11. Literal Union
+### 15. Literal Union
 
 Source:
 
@@ -271,7 +329,7 @@ Expected schema IR shape:
 - each literal maps to a literal node
 - the result remains a union, not a widened string
 
-### 12. Null Root
+### 16. Null Root
 
 Source:
 

@@ -222,6 +222,16 @@ export interface ConversionPolicyDecision {
   path?: string[];
   evidence?: unknown;
 }
+export interface ConversionSemanticCaveat {
+  phase: "parse" | "generate";
+  kind: Exclude<SchemaSemanticNote["kind"], "policy">;
+  code: string;
+  message: string;
+  source?: string;
+  path?: string[];
+  layer?: SchemaSemanticNote["layer"];
+  evidence?: unknown;
+}
 export interface ParserCapabilities {
   format: string;
   producesIr: IrKind[];
@@ -237,6 +247,7 @@ export interface ConversionReport {
   losses?: SemanticLoss[];
   preservedCapabilities?: ConversionCapability[];
   semanticNotes?: ConversionReportStage<SchemaSemanticNote>;
+  semanticCaveats?: ConversionSemanticCaveat[];
   policyDecisions?: ConversionPolicyDecision[];
   entrySelection?: ConversionEntrySelection;
 }
@@ -276,6 +287,7 @@ export type {
   ConversionEntrySelection,
   ConversionPolicyDecision,
   ConversionReport,
+  ConversionSemanticCaveat,
   ConversionCapability,
   GeneratorCapabilities,
   ParserCapabilities,

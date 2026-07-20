@@ -100,6 +100,150 @@ describe("sdk api contract", () => {
     ]);
   });
 
+  it("surfaces generator semantic caveats in the higher-level report", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json",
+      targetFormat: "typescript",
+      input: '{"id":1,"name":"Ada"}',
+      name: "User",
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.report?.semanticCaveats).toEqual([
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "integer-widened-to-number",
+        message:
+          "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+        source: "generator-typescript",
+        path: ["root", "id"],
+        layer: "target",
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+    ]);
+  });
+
+  it("surfaces union-level unknown widening caveats in the higher-level report", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      input: JSON.stringify({
+        title: "WideValues",
+        anyOf: [{ const: "open" }, true],
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.report?.semanticCaveats).toEqual([
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "unknown-union-member-absorbs-union",
+        message:
+          "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
+        source: "generator-typescript",
+        path: ["root"],
+        layer: "target",
+        evidence: {
+          unknownMemberIndexes: [1],
+          memberKinds: ["literal", "unknown"],
+        },
+      },
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "wide-unknown-type",
+        message:
+          "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+        source: "generator-typescript",
+        path: ["root", "1"],
+        layer: "target",
+        evidence: {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("surfaces referenced unknown-union widening caveats in the higher-level report", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      input: JSON.stringify({
+        title: "WideValuesDocument",
+        $defs: {
+          FallbackValue: true,
+          WideValues: {
+            anyOf: [{ const: "open" }, { $ref: "#/$defs/FallbackValue" }],
+          },
+        },
+        $ref: "#/$defs/WideValues",
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.report?.semanticCaveats).toEqual([
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "wide-unknown-type",
+        message:
+          "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+        source: "generator-typescript",
+        path: ["definitions", "FallbackValue"],
+        layer: "target",
+        evidence: {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        },
+      },
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "unknown-union-member-absorbs-union",
+        message:
+          "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
+        source: "generator-typescript",
+        path: ["definitions", "WideValues"],
+        layer: "target",
+        evidence: {
+          unknownMemberIndexes: [1],
+          memberKinds: ["literal", "reference"],
+        },
+      },
+    ]);
+  });
+
   it("surfaces implicit TypeScript entry selection in the higher-level report", () => {
     const result = sdkModule.convert({
       sourceFormat: "typescript",

@@ -31,6 +31,137 @@ import {
 } from "../../../packages/generators/typescript/src/index.js";
 import { inferJsonDocument } from "../../../packages/parsers/json/src/index.js";
 
+function integerWideningDiagnostic(path: string[]) {
+  return {
+    severity: "warning" as const,
+    code: "integer-widened-to-number",
+    message:
+      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+    path,
+    nodeKind: "scalar" as const,
+    source: "generator-typescript",
+    evidence: {
+      sourceScalar: "integer",
+      renderedScalar: "number",
+    },
+  };
+}
+
+function integerWideningSemanticNote(path: string[]) {
+  return {
+    kind: "widening" as const,
+    code: "integer-widened-to-number",
+    message:
+      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+    path,
+    nodeKind: "scalar" as const,
+    source: "generator-typescript",
+    layer: "target" as const,
+    evidence: {
+      sourceScalar: "integer",
+      renderedScalar: "number",
+    },
+  };
+}
+
+function unknownWideningDiagnostic(
+  path: string[],
+  options: {
+    reason: string;
+    nullable: boolean;
+    renderedForm: string;
+    sourceEvidence?: Record<string, unknown>;
+  },
+) {
+  return {
+    severity: "warning" as const,
+    code: "wide-unknown-type",
+    message:
+      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+    path,
+    nodeKind: "unknown" as const,
+    source: "generator-typescript",
+    evidence: {
+      reason: options.reason,
+      nullable: options.nullable,
+      renderedForm: options.renderedForm,
+      ...(options.sourceEvidence
+        ? { sourceEvidence: options.sourceEvidence }
+        : {}),
+    },
+  };
+}
+
+function unknownWideningSemanticNote(
+  path: string[],
+  options: {
+    reason: string;
+    nullable: boolean;
+    renderedForm: string;
+    sourceEvidence?: Record<string, unknown>;
+  },
+) {
+  return {
+    kind: "widening" as const,
+    code: "wide-unknown-type",
+    message:
+      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+    path,
+    nodeKind: "unknown" as const,
+    source: "generator-typescript",
+    layer: "target" as const,
+    evidence: {
+      reason: options.reason,
+      nullable: options.nullable,
+      renderedForm: options.renderedForm,
+      ...(options.sourceEvidence
+        ? { sourceEvidence: options.sourceEvidence }
+        : {}),
+    },
+  };
+}
+
+function unknownUnionWideningDiagnostic(
+  path: string[],
+  unknownMemberIndexes: number[],
+  memberKinds: string[] = ["literal", "unknown"],
+) {
+  return {
+    severity: "warning" as const,
+    code: "unknown-union-member-absorbs-union",
+    message:
+      "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
+    path,
+    nodeKind: "union" as const,
+    source: "generator-typescript",
+    evidence: {
+      unknownMemberIndexes,
+      memberKinds,
+    },
+  };
+}
+
+function unknownUnionWideningSemanticNote(
+  path: string[],
+  unknownMemberIndexes: number[],
+  memberKinds: string[] = ["literal", "unknown"],
+) {
+  return {
+    kind: "widening" as const,
+    code: "unknown-union-member-absorbs-union",
+    message:
+      "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
+    path,
+    nodeKind: "union" as const,
+    source: "generator-typescript",
+    layer: "target" as const,
+    evidence: {
+      unknownMemberIndexes,
+      memberKinds,
+    },
+  };
+}
+
 describe("generator-typescript", () => {
   it("generates a root interface for object documents", () => {
     const doc = schemaDocument(
@@ -308,6 +439,8 @@ describe("generator-typescript", () => {
       output: ["export interface UserProfile {", "  userId: number;", "}"].join(
         "\n",
       ),
+      diagnostics: [integerWideningDiagnostic(["root", "user_id"])],
+      semanticNotes: [integerWideningSemanticNote(["root", "user_id"])],
     });
 
     expect(
@@ -393,6 +526,157 @@ describe("generator-typescript", () => {
         ),
       ),
     ).toBe("export type CollapsedUnknown = unknown[];");
+
+    expect(
+      tryGenerateTypeScript(
+        schemaDocument(
+          "CollapsedUnknown",
+          schemaArrayNode(
+            schemaUnknownNode({
+              reason: "mixed-types-collapsed",
+              evidence: {
+                source: "parser-json",
+                detail: "mixed scalar samples",
+                observedKinds: ["boolean", "string"],
+              },
+            }),
+          ),
+        ),
+      ),
+    ).toEqual({
+      ok: true,
+      output: "export type CollapsedUnknown = unknown[];",
+      diagnostics: [
+        unknownWideningDiagnostic(["root", "elementType"], {
+          reason: "mixed-types-collapsed",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "mixed scalar samples",
+            observedKinds: ["boolean", "string"],
+          },
+        }),
+      ],
+      semanticNotes: [
+        unknownWideningSemanticNote(["root", "elementType"], {
+          reason: "mixed-types-collapsed",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "mixed scalar samples",
+            observedKinds: ["boolean", "string"],
+          },
+        }),
+      ],
+    });
+  });
+
+  it("reports widened unions when an unknown member absorbs narrower branches", () => {
+    expect(
+      tryGenerateTypeScript(
+        schemaDocument(
+          "WideValues",
+          schemaUnionNode([
+            schemaLiteralNode("open"),
+            schemaUnknownNode({
+              reason: "no-evidence",
+              evidence: {
+                source: "parser-json",
+                detail: "JSON Schema boolean true was lowered to unknown.",
+              },
+            }),
+          ]),
+        ),
+      ),
+    ).toEqual({
+      ok: true,
+      output: 'export type WideValues = "open" | unknown;',
+      diagnostics: [
+        unknownUnionWideningDiagnostic(["root"], [1]),
+        unknownWideningDiagnostic(["root", "1"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        }),
+      ],
+      semanticNotes: [
+        unknownUnionWideningSemanticNote(["root"], [1]),
+        unknownWideningSemanticNote(["root", "1"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        }),
+      ],
+    });
+  });
+
+  it("reports widened unions when an unknown definition is included by reference", () => {
+    expect(
+      tryGenerateTypeScript(
+        schemaDocument(
+          "WideValues",
+          schemaUnionNode([
+            schemaLiteralNode("open"),
+            schemaReferenceNode("FallbackValue"),
+          ]),
+          {
+            definitions: [
+              schemaDefinition(
+                "FallbackValue",
+                schemaUnknownNode({
+                  reason: "no-evidence",
+                  evidence: {
+                    source: "parser-json",
+                    detail: "JSON Schema boolean true was lowered to unknown.",
+                  },
+                }),
+              ),
+            ],
+          },
+        ),
+      ),
+    ).toEqual({
+      ok: true,
+      output: [
+        "export type FallbackValue = unknown;",
+        "",
+        'export type WideValues = "open" | FallbackValue;',
+      ].join("\n"),
+      diagnostics: [
+        unknownWideningDiagnostic(["definitions", "FallbackValue"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        }),
+        unknownUnionWideningDiagnostic(["root"], [1], ["literal", "reference"]),
+      ],
+      semanticNotes: [
+        unknownWideningSemanticNote(["definitions", "FallbackValue"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        }),
+        unknownUnionWideningSemanticNote(["root"], [1], ["literal", "reference"]),
+      ],
+    });
   });
 
   it("renders literal nodes in TypeScript output", () => {
@@ -532,6 +816,21 @@ describe("generator-typescript", () => {
         ),
       ),
     ).toBe("export type NullableOptionalTuple = [number, (string | null)?];");
+
+    expect(
+      generateTypeScript(
+        schemaDocument(
+          "RequiredAfterOptionalTuple",
+          schemaTupleNode([
+            schemaScalarNode("integer"),
+            schemaTupleElement(schemaScalarNode("string"), {
+              required: false,
+            }),
+            schemaScalarNode("boolean"),
+          ]),
+        ),
+      ),
+    ).toBe("export type RequiredAfterOptionalTuple = [number, string?, boolean];");
   });
 
   it("renders record nodes in TypeScript output", () => {
@@ -573,6 +872,38 @@ describe("generator-typescript", () => {
         "}",
       ].join("\n"),
     );
+  });
+
+  it("returns structured failures for non-string record keys on runtime documents", () => {
+    const doc: SchemaDocument = {
+      version: "0.1",
+      kind: "document",
+      name: identifierName("BrokenRecord"),
+      definitions: [],
+      root: {
+        kind: "record",
+        key: schemaScalarNode("integer"),
+        value: schemaScalarNode("string"),
+      },
+    };
+
+    expect(tryGenerateTypeScript(doc)).toEqual({
+      ok: false,
+      code: "invalid-record-key",
+      message:
+        "TypeScript record keys must currently render from string scalar keys.",
+      diagnostics: [
+        {
+          severity: "error",
+          code: "invalid-record-key",
+          message:
+            "TypeScript record keys must currently render from string scalar keys.",
+          path: ["root", "key"],
+          nodeKind: "record",
+          source: "generator-typescript",
+        },
+      ],
+    });
   });
 
   it("renders reusable object definitions before the root export", () => {
@@ -915,6 +1246,258 @@ describe("generator-typescript", () => {
     });
   });
 
+  it("returns structured failures when rendered type names collide across definitions", () => {
+    const doc = schemaDocument("Directory", schemaReferenceNode("user-profile"), {
+      definitions: [
+        schemaDefinition(
+          "user-profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+        ),
+        schemaDefinition(
+          "user_profile",
+          schemaObjectNode([
+            schemaFieldNode("name", schemaScalarNode("string")),
+          ]),
+        ),
+      ],
+    });
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: createNamingStrategy({
+          typeName: {
+            style: "snake",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+          fieldName: {
+            style: "camel",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+        }),
+      }),
+    ).toEqual({
+      ok: false,
+      code: "duplicate-rendered-type-name",
+      message:
+        'The rendered type name "user_profile" is produced by multiple schema declarations and cannot be emitted safely.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "duplicate-rendered-type-name",
+          message:
+            'The rendered type name "user_profile" is produced by multiple schema declarations and cannot be emitted safely.',
+          path: ["definitions", "user_profile"],
+          nodeKind: "definition",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "user_profile",
+            sourceNames: ["user-profile", "user_profile"],
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures when the root name collides with a rendered definition name", () => {
+    const doc = schemaDocument("user_profile", schemaReferenceNode("user-profile"), {
+      definitions: [
+        schemaDefinition(
+          "user-profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+        ),
+      ],
+    });
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: createNamingStrategy({
+          typeName: {
+            style: "snake",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+          fieldName: {
+            style: "camel",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+        }),
+      }),
+    ).toEqual({
+      ok: false,
+      code: "duplicate-rendered-type-name",
+      message:
+        'The rendered type name "user_profile" is produced by multiple schema declarations and cannot be emitted safely.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "duplicate-rendered-type-name",
+          message:
+            'The rendered type name "user_profile" is produced by multiple schema declarations and cannot be emitted safely.',
+          path: ["definitions", "user-profile"],
+          nodeKind: "definition",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "user_profile",
+            sourceNames: ["user-profile", "user_profile"],
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures when rendered field names collide in one object", () => {
+    const doc = schemaDocument(
+      "UserShape",
+      schemaObjectNode([
+        schemaFieldNode("user-id", schemaScalarNode("integer")),
+        schemaFieldNode("user_id", schemaScalarNode("string")),
+      ]),
+    );
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: createNamingStrategy({
+          typeName: {
+            style: "pascal",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+          fieldName: {
+            style: "camel",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+        }),
+      }),
+    ).toEqual({
+      ok: false,
+      code: "duplicate-rendered-field-name",
+      message:
+        'The rendered field name "userId" is produced by multiple schema fields and cannot be emitted safely.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "duplicate-rendered-field-name",
+          message:
+            'The rendered field name "userId" is produced by multiple schema fields and cannot be emitted safely.',
+          path: ["root", "user_id"],
+          nodeKind: "field",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "userId",
+            sourceNames: ["user-id", "user_id"],
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures when rendered field names collide in nested objects", () => {
+    const doc = schemaDocument(
+      "NestedShape",
+      schemaObjectNode([
+        schemaFieldNode(
+          "profile",
+          schemaObjectNode([
+            schemaFieldNode("display-name", schemaScalarNode("string")),
+            schemaFieldNode("display_name", schemaScalarNode("string")),
+          ]),
+        ),
+      ]),
+    );
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: createNamingStrategy({
+          typeName: {
+            style: "pascal",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+          fieldName: {
+            style: "camel",
+            invalidPrefix: "_",
+            reservedWordHandling: "suffix",
+            reservedWordSuffix: "_",
+          },
+        }),
+      }),
+    ).toEqual({
+      ok: false,
+      code: "duplicate-rendered-field-name",
+      message:
+        'The rendered field name "displayName" is produced by multiple schema fields and cannot be emitted safely.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "duplicate-rendered-field-name",
+          message:
+            'The rendered field name "displayName" is produced by multiple schema fields and cannot be emitted safely.',
+          path: ["root", "profile", "display_name"],
+          nodeKind: "field",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "displayName",
+            sourceNames: ["display-name", "display_name"],
+          },
+        },
+      ],
+    });
+  });
+
+  it("returns structured failures when identifier and quoted field forms collide", () => {
+    const doc = schemaDocument(
+      "QuotedCollisionShape",
+      schemaObjectNode([
+        schemaFieldNode("plain", schemaScalarNode("string")),
+        schemaFieldNode("quoted", schemaScalarNode("string")),
+      ]),
+    );
+
+    expect(
+      tryGenerateTypeScript(doc, {
+        namingStrategy: {
+          renderTypeName(name) {
+            return name.source;
+          },
+          renderFieldName(name) {
+            return name.source === "plain" ? "userId" : '"userId"';
+          },
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      code: "duplicate-rendered-field-name",
+      message:
+        'The rendered field name "userId" is produced by multiple schema fields and cannot be emitted safely.',
+      diagnostics: [
+        {
+          severity: "error",
+          code: "duplicate-rendered-field-name",
+          message:
+            'The rendered field name "userId" is produced by multiple schema fields and cannot be emitted safely.',
+          path: ["root", "quoted"],
+          nodeKind: "field",
+          source: "generator-typescript",
+          evidence: {
+            renderedName: "userId",
+            sourceNames: ["plain", "quoted"],
+          },
+        },
+      ],
+    });
+  });
+
   it("creates configured generator instances", () => {
     const generator = createTypeScriptGenerator({
       rootObjectMode: "type",
@@ -946,6 +1529,8 @@ describe("generator-typescript", () => {
       output: ["export type user_profile = {", "  user_id: number;", "};"].join(
         "\n",
       ),
+      diagnostics: [integerWideningDiagnostic(["root", "userId"])],
+      semanticNotes: [integerWideningSemanticNote(["root", "userId"])],
     });
   });
 
@@ -998,6 +1583,8 @@ describe("generator-typescript", () => {
       output: ["export type user_profile = {", "  user_id: number;", "};"].join(
         "\n",
       ),
+      diagnostics: [integerWideningDiagnostic(["root", "userId"])],
+      semanticNotes: [integerWideningSemanticNote(["root", "userId"])],
     });
   });
 
@@ -1049,6 +1636,10 @@ describe("generator-typescript", () => {
       output: ["export type UserList = ({", "  id: number;", "})[];"].join(
         "\n",
       ),
+      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
+      semanticNotes: [
+        integerWideningSemanticNote(["root", "elementType", "id"]),
+      ],
     });
 
     expect(
@@ -1060,6 +1651,10 @@ describe("generator-typescript", () => {
       output: ["export type UserList = Array<{", "  id: number;", "}>;"].join(
         "\n",
       ),
+      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
+      semanticNotes: [
+        integerWideningSemanticNote(["root", "elementType", "id"]),
+      ],
     });
   });
 

@@ -2,6 +2,7 @@ export type {
   ConversionEntrySelection,
   ConversionPolicyDecision,
   ConversionReport,
+  ConversionSemanticCaveat,
   ConversionCapability,
   GeneratorCapabilities,
   ParserCapabilities,

@@ -1,6 +1,7 @@
 import type {
   ConversionEntrySelection,
   ConversionPolicyDecision,
+  ConversionSemanticCaveat,
   ConstraintDocument,
   ConversionCapability,
   ConversionReport,
@@ -17,6 +18,11 @@ import type {
   ConversionTargetFormat,
 } from "./types.js";
 
+type TargetSemanticCaveatNote = SchemaSemanticNote & {
+  kind: Exclude<SchemaSemanticNote["kind"], "policy">;
+  layer: "target";
+};
+
 export function buildConversionReport(
   parseDiagnostics: SchemaDiagnostic[],
   generateDiagnostics: SchemaDiagnostic[],
@@ -31,6 +37,10 @@ export function buildConversionReport(
     parseSemanticNotes,
     generateSemanticNotes,
   );
+  const semanticCaveats = extractSemanticCaveats(
+    parseSemanticNotes,
+    generateSemanticNotes,
+  );
   const entrySelection = extractEntrySelection(policyDecisions);
 
   if (
@@ -38,6 +48,7 @@ export function buildConversionReport(
     losses.length === 0 &&
     preservedCapabilities.length === 0 &&
     allSemanticNotes.length === 0 &&
+    semanticCaveats.length === 0 &&
     policyDecisions.length === 0 &&
     !entrySelection
   ) {
@@ -71,6 +82,7 @@ export function buildConversionReport(
           },
         }
       : {}),
+    ...(semanticCaveats.length > 0 ? { semanticCaveats } : {}),
     ...(policyDecisions.length > 0 ? { policyDecisions } : {}),
     ...(entrySelection ? { entrySelection } : {}),
   };
@@ -161,6 +173,42 @@ export function extractPolicyDecisions(
         ...(note.evidence ? { evidence: note.evidence } : {}),
       })),
   ];
+}
+
+export function extractSemanticCaveats(
+  parseSemanticNotes: SchemaSemanticNote[],
+  generateSemanticNotes: SchemaSemanticNote[] = [],
+): ConversionSemanticCaveat[] {
+  return [
+    ...parseSemanticNotes
+      .filter(isTargetSemanticCaveatNote)
+      .map((note) => toSemanticCaveat("parse", note)),
+    ...generateSemanticNotes
+      .filter(isTargetSemanticCaveatNote)
+      .map((note) => toSemanticCaveat("generate", note)),
+  ];
+}
+
+function toSemanticCaveat(
+  phase: "parse" | "generate",
+  note: TargetSemanticCaveatNote,
+): ConversionSemanticCaveat {
+  return {
+    phase,
+    kind: note.kind,
+    code: note.code,
+    message: note.message,
+    ...(note.source ? { source: note.source } : {}),
+    ...(note.path ? { path: note.path } : {}),
+    ...(note.layer ? { layer: note.layer } : {}),
+    ...(note.evidence ? { evidence: note.evidence } : {}),
+  };
+}
+
+function isTargetSemanticCaveatNote(
+  note: SchemaSemanticNote,
+): note is TargetSemanticCaveatNote {
+  return note.kind !== "policy" && note.layer === "target";
 }
 
 export function collectPreservedCapabilities(

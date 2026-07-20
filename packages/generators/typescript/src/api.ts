@@ -1,4 +1,5 @@
 import type { SchemaDocument, SchemaGenerator } from "@aio/core";
+import { collectTypeScriptSemanticObservations } from "./diagnostics.js";
 import { renderTypeScriptDocument } from "./emit.js";
 import type { TypeScriptGenerateResult } from "./failure.js";
 import {
@@ -105,8 +106,17 @@ function renderTypeScriptDocumentResult(
     return validationFailure;
   }
 
+  const observations = collectTypeScriptSemanticObservations(doc);
+  const output = renderTypeScriptDocument(doc, options);
+
   return {
     ok: true,
-    output: renderTypeScriptDocument(doc, options),
+    output,
+    ...(observations.diagnostics.length > 0
+      ? { diagnostics: observations.diagnostics }
+      : {}),
+    ...(observations.semanticNotes.length > 0
+      ? { semanticNotes: observations.semanticNotes }
+      : {}),
   };
 }

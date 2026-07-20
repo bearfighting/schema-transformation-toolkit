@@ -107,6 +107,128 @@ describe("parser-typescript failure matrix", () => {
         ],
       });
     });
+
+    it("keeps local-root ambiguity when re-export forwarding noise does not determine the entry", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            'export { ExternalUser } from "./models";',
+            "type User = { id: number };",
+            "type Account = { name: string };",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: [],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "multiple-local-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 101, line: 3, column: 33 },
+                length: 101,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it("keeps local-root ambiguity when export-all forwarding noise does not determine the entry", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            'export * from "./models";',
+            "type User = { id: number };",
+            "type Account = { name: string };",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "TypeScriptDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: [],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: [],
+              implicitEntryAmbiguityReason: "multiple-local-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 86, line: 3, column: 33 },
+                length: 86,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it("keeps exported-root ambiguity when the document name matches no exported root candidate", () => {
+      expect(
+        typeScriptParser.parse(
+          [
+            "export type User = { id: number };",
+            "export type Account = { name: string };",
+          ].join("\n"),
+          {
+            name: "DirectoryDocument",
+          },
+        ),
+      ).toEqual({
+        ok: false,
+        code: "missing-typescript-entry",
+        message:
+          "TypeScript parser v0 requires an explicit entry declaration name.",
+        diagnostics: [
+          {
+            severity: "error",
+            code: "missing-typescript-entry",
+            message:
+              "TypeScript parser v0 requires an explicit entry declaration name.",
+            path: ["entry"],
+            source: "parser-typescript",
+            evidence: {
+              documentName: "DirectoryDocument",
+              availableDeclarations: ["Account", "User"],
+              availableExportedDeclarations: ["Account", "User"],
+              rootCandidates: ["Account", "User"],
+              exportedRootCandidates: ["Account", "User"],
+              implicitEntryAmbiguityReason: "multiple-exported-root-candidates",
+              sourceLocation: {
+                start: { offset: 0, line: 1, column: 1 },
+                end: { offset: 74, line: 2, column: 40 },
+                length: 74,
+              },
+            },
+          },
+        ],
+      });
+    });
   });
 
   describe("unsupported definition syntax", () => {

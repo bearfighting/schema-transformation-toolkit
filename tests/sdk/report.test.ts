@@ -74,6 +74,20 @@ describe("sdk reporting helpers", () => {
     ];
     const generateSemanticNotes: SchemaSemanticNote[] = [
       {
+        kind: "widening",
+        code: "integer-widened-to-number",
+        message:
+          "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+        path: ["root", "id"],
+        nodeKind: "scalar",
+        source: "generator-typescript",
+        layer: "target",
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+      {
         kind: "policy",
         code: "generator-target-policy",
         message: "The generator applied a target shaping policy.",
@@ -131,6 +145,22 @@ describe("sdk reporting helpers", () => {
           selectionReason: "single-root",
         },
       },
+      semanticCaveats: [
+        {
+          phase: "generate",
+          kind: "widening",
+          code: "integer-widened-to-number",
+          message:
+            "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+          source: "generator-typescript",
+          path: ["root", "id"],
+          layer: "target",
+          evidence: {
+            sourceScalar: "integer",
+            renderedScalar: "number",
+          },
+        },
+      ],
       policyDecisions: [
         {
           phase: "parse",

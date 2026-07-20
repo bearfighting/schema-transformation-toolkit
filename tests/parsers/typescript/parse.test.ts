@@ -140,6 +140,91 @@ describe("parser-typescript success paths", () => {
       });
     });
 
+    it("ignores re-export forwarding noise when a single supported local declaration still explains the entry", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            'export { ExternalUser } from "./models";',
+            "interface User { id: number }",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the single supported declaration rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "single-declaration",
+            },
+          },
+        ],
+      });
+    });
+
+    it("ignores export-all forwarding noise when a single supported local declaration still explains the entry", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          ['export * from "./models";', "interface User { id: number }"].join(
+            "\n",
+          ),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("User"),
+          {
+            definitions: [
+              schemaDefinition(
+                "User",
+                schemaObjectNode([
+                  schemaFieldNode("id", schemaScalarNode("number")),
+                ]),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the single supported declaration rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "single-declaration",
+            },
+          },
+        ],
+      });
+    });
+
     it("infers the only exported supported declaration when local helper declarations are also present", () => {
       expect(
         tryInferTypeScriptDocumentWithOptions(
@@ -370,6 +455,48 @@ describe("parser-typescript success paths", () => {
       });
     });
 
+    it("uses the document name as a conservative tie-breaker when it matches an ambiguous exported root candidate", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "export type User = { id: number };",
+            "export type Account = { name: string };",
+          ].join("\n"),
+          {
+            name: "UserDocument",
+          },
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument("UserDocument", schemaReferenceNode("User"), {
+          definitions: [
+            schemaDefinition(
+              "User",
+              schemaObjectNode([
+                schemaFieldNode("id", schemaScalarNode("number")),
+              ]),
+            ),
+          ],
+        }),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "User" implicitly using the document name match rule.',
+            path: ["entry", "User"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "User",
+              selectionReason: "document-name-match",
+            },
+          },
+        ],
+      });
+    });
+
     it("still requires an explicit entry when multiple independent declaration roots remain", () => {
       expect(
         tryInferTypeScriptDocumentWithOptions(
@@ -440,6 +567,50 @@ describe("parser-typescript success paths", () => {
                 end: { offset: 23, line: 2, column: 12 },
                 length: 23,
               },
+            },
+          },
+        ],
+      });
+    });
+
+    it("falls back to the unique local root when exported declarations only form a cycle", () => {
+      expect(
+        tryInferTypeScriptDocumentWithOptions(
+          [
+            "export type User = Account;",
+            "export type Account = User;",
+            "type Directory = User[];",
+          ].join("\n"),
+        ),
+      ).toEqual({
+        ok: true,
+        document: schemaDocument(
+          "TypeScriptDocument",
+          schemaReferenceNode("Directory"),
+          {
+            definitions: [
+              schemaDefinition("Account", schemaReferenceNode("User")),
+              schemaDefinition("User", schemaReferenceNode("Account")),
+              schemaDefinition(
+                "Directory",
+                schemaArrayNode(schemaReferenceNode("User")),
+              ),
+            ],
+          },
+        ),
+        semanticNotes: [
+          {
+            kind: "policy",
+            code: "typescript-implicit-entry-selected",
+            message:
+              'The TypeScript parser selected entry "Directory" implicitly using the single local root rule.',
+            path: ["entry", "Directory"],
+            nodeKind: "entry",
+            source: "parser-typescript",
+            layer: "shape",
+            evidence: {
+              entry: "Directory",
+              selectionReason: "single-root",
             },
           },
         ],

@@ -60,13 +60,16 @@ Shared constraint semantics currently cover:
 Recommended order for near-term work:
 
 1. keep the current TypeScript parser slice stable now that its single-file entry and preprocess contract is in good shape
-2. treat TypeScript generator hardening as the next follow-on work where parser expansion already exposed target-validation gaps
-3. keep parser and generator capability, diagnostic, semantic-note, and semantic-loss reporting aligned with actual behavior
-4. keep shared-IR expansion gated on repeated pressure across multiple sources or targets rather than one format alone
+2. keep consolidating TypeScript generator truthfulness while extracting shared IR traversal mechanics for diagnostics and validation
+3. turn the current strong but hand-organized test suite into reusable semantic fixtures plus minimal cross-parser equivalence coverage
+4. keep parser and generator capability, diagnostic, semantic-note, and semantic-loss reporting aligned with actual behavior
+5. keep shared-IR expansion gated on repeated pressure across multiple sources or targets rather than one format alone
 
 That means current implementation energy should favor:
 
 - generator safety checks and truthfulness over target-local option growth
+- shared traversal helpers for analysis-style IR consumers over heavy visitor-pattern machinery
+- reusable semantic fixtures and equivalence coverage over adding many more isolated route tests
 - preprocess and entry-boundary clarity over broader type-system ambition
 - more real-world single-file support over early multi-file resolution when parser work resumes
 - explicit unsupported-case reporting over silent widening
@@ -130,17 +133,30 @@ Additional generator unknown-semantics follow-up completed on July 20, 2026:
 - generator and integration tests now lock unknown widening across direct generator use, JSON pipelines, and JSON Schema pipelines
 - generator docs now describe `unknown` rendering as another intentional TypeScript success-with-diagnostics path
 
+Additional generator union-truthfulness follow-up completed on July 20, 2026:
+
+- the TypeScript generator now reports a target-layer widening caveat when `unknown` members absorb narrower union branches
+- the same caveat now also covers local references that resolve to `unknown` definitions, not only direct union members
+- generator, integration, and SDK tests now lock both direct and reference-resolved unknown-union widening behavior
+
+Additional documentation planning follow-up completed on July 20, 2026:
+
+- test planning docs now reflect the real repository state instead of assuming the project is still only building early Parser → IR infrastructure
+- a dedicated design note now records the planned lightweight `Shape IR` traversal layer for diagnostics and validation consumers
+- the current next-step focus is now documented as two parallel workstreams: shared traversal extraction and reusable semantic fixture/equivalence coverage
+
 ## Next Planned Push
 
-When work resumes, the most valuable next step is to harden the TypeScript generator where current IR semantics can still render invalid target output under custom naming strategies.
+When work resumes, the most valuable next step is to keep pairing generator-truthfulness work with structural cleanup that makes future generators and tests cheaper to maintain.
 
 That currently means:
 
+- extract a lightweight shared traversal layer for `Shape IR` analysis-style consumers before more generators repeat the same recursive mechanics
 - keep rendered-name validation ahead of string emission whenever custom naming strategies can collapse distinct schema declarations
 - keep rendered-field validation ahead of string emission whenever custom naming strategies can collapse sibling fields inside one object scope
 - keep widening diagnostics explicit whenever shared semantics truthfully degrade at the TypeScript target layer
-- continue documenting generator-side failure versus success-with-diagnostics boundaries
-- resume parser root-discovery expansion only after the current generator hardening gaps are no longer the sharper correctness risk
+- start converting current high-value tests into reusable semantic fixtures and minimal cross-parser equivalence cases
+- resume parser root-discovery expansion only after the current generator hardening and test-structure gaps are no longer the sharper correctness risk
 
 Recent contract clarifications within that slice:
 
@@ -154,6 +170,8 @@ Recent contract clarifications within that slice:
 - runtime record nodes should fail explicitly when their keys do not match the current string-key shared boundary
 - higher-level SDK reporting should summarize target-layer caveats without turning parse-side normalization notes into report noise
 - shared unknown nodes should report widening when they render as TypeScript `unknown`
+- unions should report widening when direct or reference-resolved unknown branches effectively absorb narrower TypeScript member semantics
+- shared IR traversal should be centralized first for diagnostics and validation, not forced into emitter code prematurely
 
 The current unsupported parser surface should also be read in two buckets:
 

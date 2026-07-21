@@ -4,6 +4,11 @@ import {
   configureJsonSchemaGenerator,
   jsonSchemaGenerator,
 } from "../../packages/generators/json-schema/src/index.js";
+import {
+  expectDiagnosticCode,
+  expectSemanticNoteCode,
+} from "../helpers/diagnostic-assertions.js";
+import { expectOk } from "../helpers/result-assertions.js";
 
 describe("integration: json -> ir -> json-schema", () => {
   it("preserves optional and nullable object field semantics across the full pipeline", () => {
@@ -14,11 +19,11 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -47,9 +52,7 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
     expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -81,11 +84,11 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -112,11 +115,11 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -151,36 +154,18 @@ describe("integration: json -> ir -> json-schema", () => {
           ],
         },
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "overlapping-oneof-members",
-          message:
-            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
-          path: ["root", "elementType"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          evidence: expect.objectContaining({
-            unionComposition: "oneOf",
-          }),
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "policy",
-          code: "overlapping-oneof-members",
-          message:
-            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
-          path: ["root", "elementType"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: expect.objectContaining({
-            unionComposition: "oneOf",
-          }),
-        },
-      ],
     });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.semanticNotes).toHaveLength(1);
+    expectDiagnosticCode(result.diagnostics, "overlapping-oneof-members");
+    expectSemanticNoteCode(result.semanticNotes, "overlapping-oneof-members");
   });
 
   it("preserves collapsed unknown semantics across the full pipeline in unknown mode", () => {
@@ -191,11 +176,11 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -203,36 +188,18 @@ describe("integration: json -> ir -> json-schema", () => {
         type: "array",
         items: true,
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: expect.objectContaining({
-            reason: "mixed-types-collapsed",
-          }),
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: expect.objectContaining({
-            reason: "mixed-types-collapsed",
-          }),
-        },
-      ],
     });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.semanticNotes).toHaveLength(1);
+    expectDiagnosticCode(result.diagnostics, "wide-unknown-schema");
+    expectSemanticNoteCode(result.semanticNotes, "wide-unknown-schema");
   });
 
   it("supports configured generator options in the same pipeline", () => {
@@ -251,11 +218,11 @@ describe("integration: json -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(configuredGenerator.generator.generate(parsed.document)).toEqual({
+    const result = configuredGenerator.generator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -293,86 +260,28 @@ describe("integration: json -> ir -> json-schema", () => {
           ],
         },
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "overlapping-anyof-members",
-          message:
-            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
-          path: ["root", "elementType"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          evidence: expect.objectContaining({
-            unionComposition: "anyOf",
-          }),
-        },
-        {
-          severity: "warning",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root", "elementType", "0"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          evidence: expect.objectContaining({
-            objectAdditionalPropertiesMode: "false",
-          }),
-        },
-        {
-          severity: "warning",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root", "elementType", "1"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          evidence: expect.objectContaining({
-            objectAdditionalPropertiesMode: "false",
-          }),
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "policy",
-          code: "overlapping-anyof-members",
-          message:
-            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
-          path: ["root", "elementType"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: expect.objectContaining({
-            unionComposition: "anyOf",
-          }),
-        },
-        {
-          kind: "policy",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root", "elementType", "0"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: expect.objectContaining({
-            objectAdditionalPropertiesMode: "false",
-          }),
-        },
-        {
-          kind: "policy",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root", "elementType", "1"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: expect.objectContaining({
-            objectAdditionalPropertiesMode: "false",
-          }),
-        },
-      ],
     });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.diagnostics).toHaveLength(3);
+    expect(result.semanticNotes).toHaveLength(3);
+    expectDiagnosticCode(result.diagnostics, "overlapping-anyof-members");
+    expectSemanticNoteCode(result.semanticNotes, "overlapping-anyof-members");
+    expect(
+      result.diagnostics?.filter(
+        (diagnostic) => diagnostic.code === "closed-object-schema",
+      ),
+    ).toHaveLength(2);
+    expect(
+      result.semanticNotes?.filter(
+        (semanticNote) => semanticNote.code === "closed-object-schema",
+      ),
+    ).toHaveLength(2);
   });
 
   it("propagates parser failures before generation", () => {

@@ -20,7 +20,9 @@ It now has:
 - structured diagnostics, semantic notes, capability declarations, and semantic-loss reporting
 - an SDK planner that derives routes and capability summaries from parser and generator registries
 
-The current center of gravity is to keep those contracts truthful and stable while expanding supported schema semantics carefully.
+The current center of gravity is to keep those contracts truthful and stable while extracting shared IR traversal mechanics carefully.
+
+The repository now also has a shared test-architecture layer for semantic fixtures, cross-parser equivalence smoke, generator validity checks, capability coverage automation, and an expanded real-world corpus.
 
 ## Supported Routes
 
@@ -59,25 +61,46 @@ Shared constraint semantics currently cover:
 
 Recommended order for near-term work:
 
-1. keep the current TypeScript parser slice stable now that its single-file entry and preprocess contract is in good shape
-2. keep consolidating TypeScript generator truthfulness while extracting shared IR traversal mechanics for diagnostics and validation
-3. turn the current strong but hand-organized test suite into reusable semantic fixtures plus minimal cross-parser equivalence coverage
-4. keep parser and generator capability, diagnostic, semantic-note, and semantic-loss reporting aligned with actual behavior
-5. keep shared-IR expansion gated on repeated pressure across multiple sources or targets rather than one format alone
+1. extract a lightweight shared IR traversal layer for diagnostics, validation, and future generators without changing current semantics
+2. keep parser and generator capability, diagnostic, semantic-note, and semantic-loss reporting aligned with actual behavior
+3. keep the newer fixture-driven and corpus-driven test layers stable while only trimming low-value route snapshots
+4. keep shared-IR expansion gated on repeated pressure across multiple sources or targets rather than one format alone
+5. resume broader format or parser-surface growth only after traversal extraction stops being the sharper duplication risk
 
 That means current implementation energy should favor:
 
-- generator safety checks and truthfulness over target-local option growth
 - shared traversal helpers for analysis-style IR consumers over heavy visitor-pattern machinery
-- reusable semantic fixtures and equivalence coverage over adding many more isolated route tests
+- generator safety checks and truthfulness over target-local option growth
+- extending the shared semantic fixture matrix and corpus over adding many more isolated route tests
 - preprocess and entry-boundary clarity over broader type-system ambition
-- more real-world single-file support over early multi-file resolution when parser work resumes
+- more real-world corpus pressure over speculative route explosion
 - explicit unsupported-case reporting over silent widening
 - stable shared contracts over format-local option churn
 
 TypeScript-parser-specific task tracking should stay in [typescript-parser-checklist.md](typescript-parser-checklist.md), not here.
 
 ## Latest Work Snapshot
+
+Latest testing-architecture progress completed on July 21, 2026:
+
+- introduced a shared `tests/fixtures/semantics` layer with reusable fixture types, selectors, and canonical semantic-case definitions
+- introduced shared test helpers for schema equivalence, diagnostics, generator contracts, capability coverage, constraint assertions, syntax validation, and minimal corpus execution
+- added shared semantic smoke coverage for primitive, presence, collection, union, reference, constraint, and annotation cases
+- added a first `typescript <-> json-schema` cross-parser equivalence smoke suite driven by shared fixtures
+- added TypeScript syntax validation and JSON Schema structural validation as generator-level checks instead of relying only on string assertions
+- added generator contract smoke suites for both TypeScript and JSON Schema targets
+- added capability coverage automation to ensure declared supported capabilities map to shared fixture coverage
+- added an initial real-world corpus spanning JSON, TypeScript, and JSON Schema inputs
+- tightened schema-equivalence normalization so recursive root references remain stable instead of being collapsed away incorrectly
+
+Additional test-structure cleanup completed on July 21, 2026:
+
+- extracted shared result assertions so integration and parser suites no longer repeat the same `ok`-branch boilerplate
+- extracted shared TypeScript generator event builders for integer widening, unknown widening, and unknown-union widening assertions
+- extracted shared JSON Schema generator event builders for wide-unknown, overlapping-union, and closed-object policy assertions
+- extracted shared schema-document helper utilities for definition-name assertions used across integration and parser suites
+- reduced duplicated route-local assertion scaffolding across JSON, JSON Schema, and TypeScript integration tests without removing their route-specific behavior checks
+- aligned selected parser tests with the same shared helper style so future fixture migrations can keep shrinking one-off assertion code
 
 Latest parser-focused progress completed on July 19, 2026:
 
@@ -145,18 +168,44 @@ Additional documentation planning follow-up completed on July 20, 2026:
 - a dedicated design note now records the planned lightweight `Shape IR` traversal layer for diagnostics and validation consumers
 - the current next-step focus is now documented as two parallel workstreams: shared traversal extraction and reusable semantic fixture/equivalence coverage
 
+Additional second-stage test consolidation completed on July 21, 2026:
+
+- generator truthfulness expectations now live in shared semantic fixtures for wide unknown and unknown-union cases instead of only route-local contract tests
+- SDK semantic caveat and semantic loss checks now consume the same fixture-level route expectations used by lower-level truthfulness tests
+- selected `json -> typescript`, `json-schema -> typescript`, `json -> json-schema`, and `json-schema -> json-schema` integration tests now prefer output-shape plus code-level assertions over full duplicated generator event payload snapshots
+- selected `typescript -> typescript` and `typescript -> json-schema` integration tests now also start from the same route-specific-smoke model for basic object, tuple, literal, enum, readonly, and nested composition cases
+
+Additional real-world corpus expansion completed on July 21, 2026:
+
+- the corpus now includes ten cases instead of the earlier minimal six, adding widening-heavy JSON Schema bundles, an OpenAPI-components-style schema bundle, a richer TypeScript dashboard configuration shape, and a nested workspace-style JSON config sample
+- corpus tests now include targeted assertions for constraint-heavy OpenAPI-style schemas, widening-heavy loose bundles, OpenAPI response envelopes, TypeScript tuple or record or union normalization, and nested workspace-style JSON config regeneration
+
+Additional transition-planning progress completed on July 21, 2026:
+
+- the current test-refactoring slice no longer appears blocked on a parser, IR, or generator correctness defect discovered during consolidation
+- the main remaining structural duplication risk now sits in repeated ad-hoc `Shape IR` traversal inside diagnostics and validation-style consumers
+- the repository is therefore ready to treat shared IR traversal extraction as the next primary refactor, with the current fixture, SDK, integration, and corpus layers acting as regression guardrails
+
 ## Next Planned Push
 
-When work resumes, the most valuable next step is to keep pairing generator-truthfulness work with structural cleanup that makes future generators and tests cheaper to maintain.
+When work resumes, the most valuable next step is to extract shared IR traversal mechanics without regressing into semantic drift.
 
 That currently means:
 
 - extract a lightweight shared traversal layer for `Shape IR` analysis-style consumers before more generators repeat the same recursive mechanics
+- keep the newer shared fixture, SDK truthfulness, integration, and corpus layers as the primary safety net during that extraction
+- trim or repurpose only the remaining low-value route snapshots after traversal work lands, not during the first mechanical extraction steps
+- expand the corpus only where it adds new traversal pressure or boundary coverage
+- keep moving truthfulness-sensitive generator and parser assertions toward shared helpers instead of repeating them in isolated suites
 - keep rendered-name validation ahead of string emission whenever custom naming strategies can collapse distinct schema declarations
 - keep rendered-field validation ahead of string emission whenever custom naming strategies can collapse sibling fields inside one object scope
 - keep widening diagnostics explicit whenever shared semantics truthfully degrade at the TypeScript target layer
-- start converting current high-value tests into reusable semantic fixtures and minimal cross-parser equivalence cases
 - resume parser root-discovery expansion only after the current generator hardening and test-structure gaps are no longer the sharper correctness risk
+
+The current highest-leverage next step inside that slice is now:
+
+- extract the first shared traversal helpers for diagnostics and validation-style consumers while preserving current emitted diagnostics, semantic notes, and failure boundaries
+- use the now-expanded fixture, SDK, integration, and corpus suite as the acceptance harness for that extraction rather than broadening semantics concurrently
 
 Recent contract clarifications within that slice:
 
@@ -211,7 +260,29 @@ When new pressure appears, classify it as one of:
 
 ## Latest Verification Notes
 
-The latest local verification pass completed on July 20, 2026 and included:
+The latest local verification pass completed on July 21, 2026 and included:
+
+- `pnpm vitest run tests/generators/typescript/render.test.ts tests/integration/json-to-typescript.test.ts tests/integration/json-schema-to-typescript.test.ts tests/integration/json-to-json-schema.test.ts`
+- `pnpm vitest run tests/integration/json-schema-to-json-schema.test.ts tests/integration/json-to-json-schema.test.ts`
+- `pnpm vitest run tests/generators/json-schema/render.test.ts tests/generators/json-schema/contract.test.ts tests/generators/json-schema/structure.test.ts`
+- `pnpm vitest run tests/integration/typescript-to-typescript.test.ts tests/integration/typescript-to-json-schema.test.ts`
+- `pnpm vitest run tests/integration/json-schema-to-typescript.test.ts tests/integration/json-schema-to-json-schema.test.ts`
+- `pnpm vitest run tests/parsers/json-schema/parse.test.ts`
+- `pnpm test`
+- `pnpm vitest run tests/fixtures/semantic-fixtures-smoke.test.ts`
+- `pnpm vitest run tests/fixtures/semantic-constraint-fixtures-smoke.test.ts`
+- `pnpm vitest run tests/equivalence/typescript-json-schema.test.ts`
+- `pnpm vitest run tests/generators/typescript/syntax.test.ts`
+- `pnpm vitest run tests/generators/json-schema/structure.test.ts`
+- `pnpm vitest run tests/generators/typescript/contract.test.ts tests/generators/json-schema/contract.test.ts`
+- `pnpm vitest run tests/sdk/capability-coverage.test.ts`
+- `pnpm vitest run tests/real-world/minimal-corpus.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm test`
+
+That pass finished green with `38` test files and `513` tests passing.
+
+The previous local verification pass completed on July 20, 2026 and included:
 
 - `pnpm vitest run tests/parsers/typescript/implicit-entry.test.ts tests/parsers/typescript/parse.test.ts`
 - `pnpm vitest run tests/parsers/typescript/parse.test.ts`

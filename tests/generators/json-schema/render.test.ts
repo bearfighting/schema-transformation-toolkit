@@ -26,6 +26,14 @@ import {
   resolveJsonSchemaGeneratorOptions,
   tryGenerateJsonSchema,
 } from "../../../packages/generators/json-schema/src/index.js";
+import {
+  closedObjectSchemaDiagnostic,
+  closedObjectSchemaSemanticNote,
+  overlappingUnionPolicyDiagnostic,
+  overlappingUnionPolicySemanticNote,
+  wideUnknownSchemaDiagnostic,
+  wideUnknownSchemaSemanticNote,
+} from "../../helpers/json-schema-generator-events.js";
 
 describe("generator-json-schema", () => {
   it("generates object documents with required and nullable fields", () => {
@@ -98,35 +106,16 @@ describe("generator-json-schema", () => {
         required: ["id"],
       },
       diagnostics: [
-        {
-          severity: "warning",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          evidence: {
-            objectAdditionalPropertiesMode: "false",
-            fieldNames: ["id"],
-          },
-        },
+        closedObjectSchemaDiagnostic(["root"], {
+          objectAdditionalPropertiesMode: "false",
+          fieldNames: ["id"],
+        }),
       ],
       semanticNotes: [
-        {
-          kind: "policy",
-          code: "closed-object-schema",
-          message:
-            "This object schema is rendering with additionalProperties: false, which may reject extra properties beyond the shared IR field set.",
-          path: ["root"],
-          nodeKind: "object",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: {
-            objectAdditionalPropertiesMode: "false",
-            fieldNames: ["id"],
-          },
-        },
+        closedObjectSchemaSemanticNote(["root"], {
+          objectAdditionalPropertiesMode: "false",
+          fieldNames: ["id"],
+        }),
       ],
     });
   });
@@ -257,15 +246,10 @@ describe("generator-json-schema", () => {
         oneOf: [{ type: "string" }, { const: "open" }],
       },
       diagnostics: [
-        {
-          severity: "warning",
-          code: "overlapping-oneof-members",
-          message:
-            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
-          path: ["root"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          evidence: {
+        overlappingUnionPolicyDiagnostic(
+          "overlapping-oneof-members",
+          ["root"],
+          {
             unionComposition: "oneOf",
             overlappingPairs: [{ left: 0, right: 1 }],
             memberKinds: [
@@ -277,19 +261,13 @@ describe("generator-json-schema", () => {
               },
             ],
           },
-        },
+        ),
       ],
       semanticNotes: [
-        {
-          kind: "policy",
-          code: "overlapping-oneof-members",
-          message:
-            "This union is rendering with oneOf, but some member branches may overlap under JSON Schema semantics.",
-          path: ["root"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: {
+        overlappingUnionPolicySemanticNote(
+          "overlapping-oneof-members",
+          ["root"],
+          {
             unionComposition: "oneOf",
             overlappingPairs: [{ left: 0, right: 1 }],
             memberKinds: [
@@ -301,7 +279,7 @@ describe("generator-json-schema", () => {
               },
             ],
           },
-        },
+        ),
       ],
     });
 
@@ -317,15 +295,10 @@ describe("generator-json-schema", () => {
         anyOf: [{ type: "string" }, { const: "open" }],
       },
       diagnostics: [
-        {
-          severity: "warning",
-          code: "overlapping-anyof-members",
-          message:
-            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
-          path: ["root"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          evidence: {
+        overlappingUnionPolicyDiagnostic(
+          "overlapping-anyof-members",
+          ["root"],
+          {
             unionComposition: "anyOf",
             overlappingPairs: [{ left: 0, right: 1 }],
             memberKinds: [
@@ -337,19 +310,13 @@ describe("generator-json-schema", () => {
               },
             ],
           },
-        },
+        ),
       ],
       semanticNotes: [
-        {
-          kind: "policy",
-          code: "overlapping-anyof-members",
-          message:
-            "This union is rendering with anyOf, so overlapping member branches may be accepted without exclusivity under JSON Schema semantics.",
-          path: ["root"],
-          nodeKind: "union",
-          source: "generator-json-schema",
-          layer: "target",
-          evidence: {
+        overlappingUnionPolicySemanticNote(
+          "overlapping-anyof-members",
+          ["root"],
+          {
             unionComposition: "anyOf",
             overlappingPairs: [{ left: 0, right: 1 }],
             memberKinds: [
@@ -361,7 +328,7 @@ describe("generator-json-schema", () => {
               },
             ],
           },
-        },
+        ),
       ],
     });
   });
@@ -424,37 +391,18 @@ describe("generator-json-schema", () => {
         title: "UnknownValue",
       },
       diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-          },
-        },
+        wideUnknownSchemaDiagnostic(["root"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "metadata-only-root",
+        }),
       ],
       semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-          },
-        },
+        wideUnknownSchemaSemanticNote(["root"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "metadata-only-root",
+        }),
       ],
     });
   });
@@ -492,37 +440,18 @@ describe("generator-json-schema", () => {
         },
       },
       diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-          },
-        },
+        wideUnknownSchemaDiagnostic(["root"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "metadata-only-root",
+        }),
       ],
       semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-          },
-        },
+        wideUnknownSchemaSemanticNote(["root"], {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "metadata-only-root",
+        }),
       ],
     });
   });

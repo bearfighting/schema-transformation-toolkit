@@ -5,9 +5,7 @@ import {
   expectDiagnosticCodes,
   expectSemanticNoteCodes,
 } from "../../helpers/diagnostic-assertions.js";
-import {
-  getFixtureDocument,
-} from "../../helpers/generator-contract.js";
+import { getFixtureDocument } from "../../helpers/generator-contract.js";
 import { expectValidTypeScriptSyntax } from "../../helpers/typescript-syntax.js";
 
 describe("generator-typescript contract", () => {

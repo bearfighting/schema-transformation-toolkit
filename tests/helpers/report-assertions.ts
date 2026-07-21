@@ -53,9 +53,9 @@ export function expectSemanticLosses(
   expect(normalize(actual)).toEqual(
     normalize(
       expectedLosses.map((loss) => ({
-      code: "target-cannot-preserve-constraint",
-      lostCapability: loss.lostCapability,
-      sourcePath: loss.sourcePath,
+        code: "target-cannot-preserve-constraint",
+        lostCapability: loss.lostCapability,
+        sourcePath: loss.sourcePath,
       })),
     ),
   );

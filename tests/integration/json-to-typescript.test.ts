@@ -22,8 +22,6 @@ import {
 } from "../../packages/parsers/json/src/index.js";
 import { expectOk } from "../helpers/result-assertions.js";
 import {
-  integerWideningDiagnostic,
-  integerWideningSemanticNote,
   unknownWideningDiagnostic,
   unknownWideningSemanticNote,
 } from "../helpers/typescript-generator-events.js";
@@ -163,7 +161,9 @@ describe("integration: json -> ir -> typescript", () => {
 
     expectOk(parsed, "Expected the configured JSON parser to succeed.");
 
-    expect(configuredGenerator.generator.generate(parsed.document)).toMatchObject({
+    expect(
+      configuredGenerator.generator.generate(parsed.document),
+    ).toMatchObject({
       ok: true,
       output: [
         "export interface user_profile {",

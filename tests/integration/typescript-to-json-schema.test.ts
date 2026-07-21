@@ -281,7 +281,9 @@ describe("integration: typescript -> ir -> json-schema", () => {
       name: "User",
     });
     expect(definitionNames(readonlyParsed.document)).toEqual(["User"]);
-    const readonlyResult = jsonSchemaGenerator.generate(readonlyParsed.document);
+    const readonlyResult = jsonSchemaGenerator.generate(
+      readonlyParsed.document,
+    );
 
     expect(readonlyResult).toMatchObject({
       ok: true,

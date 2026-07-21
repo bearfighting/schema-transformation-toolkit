@@ -165,10 +165,7 @@ describe("integration: json -> ir -> json-schema", () => {
     expect(result.diagnostics).toHaveLength(1);
     expect(result.semanticNotes).toHaveLength(1);
     expectDiagnosticCode(result.diagnostics, "overlapping-oneof-members");
-    expectSemanticNoteCode(
-      result.semanticNotes,
-      "overlapping-oneof-members",
-    );
+    expectSemanticNoteCode(result.semanticNotes, "overlapping-oneof-members");
   });
 
   it("preserves collapsed unknown semantics across the full pipeline in unknown mode", () => {
@@ -274,10 +271,7 @@ describe("integration: json -> ir -> json-schema", () => {
     expect(result.diagnostics).toHaveLength(3);
     expect(result.semanticNotes).toHaveLength(3);
     expectDiagnosticCode(result.diagnostics, "overlapping-anyof-members");
-    expectSemanticNoteCode(
-      result.semanticNotes,
-      "overlapping-anyof-members",
-    );
+    expectSemanticNoteCode(result.semanticNotes, "overlapping-anyof-members");
     expect(
       result.diagnostics?.filter(
         (diagnostic) => diagnostic.code === "closed-object-schema",

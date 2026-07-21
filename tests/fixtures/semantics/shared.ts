@@ -1060,9 +1060,7 @@ export const tupleNullableReferenceFixture: SemanticFixture = {
       definitions: [
         schemaDefinition(
           "User",
-          schemaObjectNode([
-            schemaFieldNode("id", schemaScalarNode("number")),
-          ]),
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("number"))]),
         ),
         schemaDefinition(
           "TupleEnvelope",
@@ -1308,9 +1306,7 @@ export const recordTupleReferenceFixture: SemanticFixture = {
       definitions: [
         schemaDefinition(
           "User",
-          schemaObjectNode([
-            schemaFieldNode("id", schemaScalarNode("number")),
-          ]),
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("number"))]),
         ),
         schemaDefinition(
           "GroupedPairs",
@@ -1351,10 +1347,7 @@ export const recordTupleReferenceFixture: SemanticFixture = {
                 type: "object",
                 additionalProperties: {
                   type: "array",
-                  prefixItems: [
-                    { $ref: "#/$defs/User" },
-                    { type: "boolean" },
-                  ],
+                  prefixItems: [{ $ref: "#/$defs/User" }, { type: "boolean" }],
                   minItems: 2,
                   items: false,
                 },

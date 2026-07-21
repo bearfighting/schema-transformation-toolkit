@@ -11,8 +11,7 @@ export type SemanticFixtureFormatId = "json" | "json-schema" | "typescript";
 export type SemanticFixtureCoverageSubject =
   SemanticFixtureFormatId | "generator:json-schema" | "generator:typescript";
 export type SemanticFixtureGeneratorId =
-  | "generator:json-schema"
-  | "generator:typescript";
+  "generator:json-schema" | "generator:typescript";
 export type SemanticFixtureRouteId =
   `${SemanticFixtureFormatId}->${SemanticFixtureFormatId}`;
 
@@ -70,15 +69,9 @@ export interface SemanticFixture {
     Record<SemanticFixtureCoverageSubject, ConversionCapability[]>
   >;
   generatorExpectations?: Partial<
-    Record<
-      SemanticFixtureGeneratorId,
-      SemanticFixtureGeneratorExpectation
-    >
+    Record<SemanticFixtureGeneratorId, SemanticFixtureGeneratorExpectation>
   >;
   conversionExpectations?: Partial<
-    Record<
-      SemanticFixtureRouteId,
-      SemanticFixtureConversionExpectation
-    >
+    Record<SemanticFixtureRouteId, SemanticFixtureConversionExpectation>
   >;
 }

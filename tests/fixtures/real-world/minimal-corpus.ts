@@ -170,7 +170,7 @@ export const minimalRealWorldCorpus: RealWorldCorpusCase[] = [
     sourceFormat: "typescript",
     input: [
       'type WidgetKind = "chart" | "table";',
-      "type ThemeName = \"light\" | \"dark\";",
+      'type ThemeName = "light" | "dark";',
       "type WidgetLayout = readonly [number, number, number?, number?];",
       "type ChartSeries = { readonly label: string; readonly points: number[] };",
       "type TableColumn = { readonly key: string; readonly title: string };",

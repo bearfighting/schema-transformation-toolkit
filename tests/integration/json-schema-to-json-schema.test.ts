@@ -527,13 +527,13 @@ describe("integration: json-schema -> ir -> json-schema", () => {
     expect(result.diagnostics).toHaveLength(3);
     expect(result.semanticNotes).toHaveLength(3);
     expect(
-      result.diagnostics?.every((diagnostic) =>
-        diagnostic.code === "wide-unknown-schema",
+      result.diagnostics?.every(
+        (diagnostic) => diagnostic.code === "wide-unknown-schema",
       ),
     ).toBe(true);
     expect(
-      result.semanticNotes?.every((semanticNote) =>
-        semanticNote.code === "wide-unknown-schema",
+      result.semanticNotes?.every(
+        (semanticNote) => semanticNote.code === "wide-unknown-schema",
       ),
     ).toBe(true);
   });

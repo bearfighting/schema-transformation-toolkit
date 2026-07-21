@@ -232,7 +232,9 @@ describe("real-world minimal corpus", () => {
     );
 
     if (!schemaCase) {
-      throw new Error("Expected the dashboard TypeScript corpus case to exist.");
+      throw new Error(
+        "Expected the dashboard TypeScript corpus case to exist.",
+      );
     }
 
     const parsed = parseRealWorldCorpusCase(schemaCase);
@@ -243,13 +245,16 @@ describe("real-world minimal corpus", () => {
 
     expect(typeScriptOutput).toContain("export type WidgetLayout = [");
     expect(typeScriptOutput).toContain(
-      "export type ThemeName = \"light\" | \"dark\";",
+      'export type ThemeName = "light" | "dark";',
     );
     expect(typeScriptOutput).toContain("widgets: Record<string, Widget>;");
     expect(typeScriptOutput).toContain(
       "selected: [string, WidgetKind | null];",
     );
-    expectValidTypeScriptSyntax(typeScriptOutput, "typescript.dashboard-config.ts");
+    expectValidTypeScriptSyntax(
+      typeScriptOutput,
+      "typescript.dashboard-config.ts",
+    );
 
     expect(jsonSchemaOutput).toMatchObject({
       $ref: "#/$defs/DashboardConfig",
@@ -297,10 +302,7 @@ describe("real-world minimal corpus", () => {
                   type: "string",
                 },
                 {
-                  oneOf: [
-                    { $ref: "#/$defs/WidgetKind" },
-                    { type: "null" },
-                  ],
+                  oneOf: [{ $ref: "#/$defs/WidgetKind" }, { type: "null" }],
                 },
               ],
               minItems: 2,
@@ -328,7 +330,9 @@ describe("real-world minimal corpus", () => {
       ...(parsed.constraints ? { constraints: parsed.constraints } : {}),
     });
 
-    expect(typeScriptOutput).toContain("export interface WorkspacePipelineConfig");
+    expect(typeScriptOutput).toContain(
+      "export interface WorkspacePipelineConfig",
+    );
     expect(typeScriptOutput).toContain("environments: {");
     expect(typeScriptOutput).toContain("dev: {");
     expect(typeScriptOutput).toContain("ci: {");

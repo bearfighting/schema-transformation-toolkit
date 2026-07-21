@@ -71,9 +71,7 @@ describe("integration: typescript -> ir -> typescript", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      output: expect.stringContaining(
-        "export type Pair = [number, string];",
-      ),
+      output: expect.stringContaining("export type Pair = [number, string];"),
     });
 
     expectOk(result, "Expected the TypeScript generator to succeed.");
@@ -277,7 +275,9 @@ describe("integration: typescript -> ir -> typescript", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      output: expect.stringContaining('export type Status = "open" | "closed";'),
+      output: expect.stringContaining(
+        'export type Status = "open" | "closed";',
+      ),
     });
 
     expectOk(result, "Expected the TypeScript generator to succeed.");

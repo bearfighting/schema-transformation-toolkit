@@ -93,7 +93,10 @@ describe("semantic fixture foundation", () => {
     expectShapeKind(fromJsonSchema.document, "object");
     expectRequiredProperty(fromJson.document, "id", "scalar");
     expectRequiredProperty(fromJsonSchema.document, "id", "scalar");
-    expectIrEquivalent(fromJson.document, integerPropertyFixture.canonicalShape);
+    expectIrEquivalent(
+      fromJson.document,
+      integerPropertyFixture.canonicalShape,
+    );
     expectIrEquivalent(
       fromJsonSchema.document,
       integerPropertyFixture.canonicalShape,
@@ -127,8 +130,14 @@ describe("semantic fixture foundation", () => {
 
   it("parses the shared config-like fixture across JSON inference, TypeScript, and JSON Schema", () => {
     const fromJson = parseSemanticFixture(configLikeFixture, "json");
-    const fromTypeScript = parseSemanticFixture(configLikeFixture, "typescript");
-    const fromJsonSchema = parseSemanticFixture(configLikeFixture, "json-schema");
+    const fromTypeScript = parseSemanticFixture(
+      configLikeFixture,
+      "typescript",
+    );
+    const fromJsonSchema = parseSemanticFixture(
+      configLikeFixture,
+      "json-schema",
+    );
 
     expectShapeKind(fromJson.document, "object");
     expectShapeKind(fromTypeScript.document, "object");
@@ -137,8 +146,14 @@ describe("semantic fixture foundation", () => {
     expectRequiredProperty(fromTypeScript.document, "include", "array");
     expectRequiredProperty(fromJsonSchema.document, "exclude", "array");
     expectIrEquivalent(fromJson.document, configLikeFixture.canonicalShape);
-    expectIrEquivalent(fromTypeScript.document, configLikeFixture.canonicalShape);
-    expectIrEquivalent(fromJsonSchema.document, configLikeFixture.canonicalShape);
+    expectIrEquivalent(
+      fromTypeScript.document,
+      configLikeFixture.canonicalShape,
+    );
+    expectIrEquivalent(
+      fromJsonSchema.document,
+      configLikeFixture.canonicalShape,
+    );
   });
 
   it("parses the shared optional-property fixture from TypeScript", () => {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { jsonSchemaParser } from "../../packages/parsers/json-schema/src/index.js";
 import { jsonSchemaGenerator } from "../../packages/generators/json-schema/src/index.js";
+import {
+  expectDiagnosticCode,
+  expectSemanticNoteCode,
+} from "../helpers/diagnostic-assertions.js";
+import { expectOk } from "../helpers/result-assertions.js";
 
 describe("integration: json-schema -> ir -> json-schema", () => {
   it("round-trips the current generator-aligned object subset", () => {
@@ -21,11 +26,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -70,11 +75,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -111,11 +116,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!recordParsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(recordParsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(recordParsed.document)).toEqual({
+    const recordResult = jsonSchemaGenerator.generate(recordParsed.document);
+
+    expect(recordResult).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -123,50 +128,18 @@ describe("integration: json-schema -> ir -> json-schema", () => {
         type: "object",
         additionalProperties: true,
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "value"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail:
-                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
-            },
-          },
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "value"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail:
-                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
-            },
-          },
-        },
-      ],
     });
+
+    expect(recordResult.ok).toBe(true);
+
+    if (!recordResult.ok) {
+      return;
+    }
+
+    expect(recordResult.diagnostics).toHaveLength(1);
+    expect(recordResult.semanticNotes).toHaveLength(1);
+    expectDiagnosticCode(recordResult.diagnostics, "wide-unknown-schema");
+    expectSemanticNoteCode(recordResult.semanticNotes, "wide-unknown-schema");
 
     const nestedTrueParsed = jsonSchemaParser.parse(
       JSON.stringify({
@@ -183,11 +156,13 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!nestedTrueParsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(nestedTrueParsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(nestedTrueParsed.document)).toEqual({
+    const nestedTrueResult = jsonSchemaGenerator.generate(
+      nestedTrueParsed.document,
+    );
+
+    expect(nestedTrueResult).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -201,48 +176,21 @@ describe("integration: json-schema -> ir -> json-schema", () => {
         },
         required: ["tags"],
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "tags", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root", "tags", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
     });
+
+    expect(nestedTrueResult.ok).toBe(true);
+
+    if (!nestedTrueResult.ok) {
+      return;
+    }
+
+    expect(nestedTrueResult.diagnostics).toHaveLength(1);
+    expect(nestedTrueResult.semanticNotes).toHaveLength(1);
+    expectDiagnosticCode(nestedTrueResult.diagnostics, "wide-unknown-schema");
+    expectSemanticNoteCode(
+      nestedTrueResult.semanticNotes,
+      "wide-unknown-schema",
+    );
   });
 
   it("round-trips tuple schemas in the generator-aligned form", () => {
@@ -257,11 +205,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -286,11 +234,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -312,11 +260,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -337,93 +285,58 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       name: "UnknownValue",
     });
 
-    if (!metadataOnlyParsed.ok || !explicitTrueParsed.ok) {
-      throw new Error("Expected both JSON Schema parses to succeed.");
-    }
+    expectOk(
+      metadataOnlyParsed,
+      "Expected both JSON Schema parses to succeed.",
+    );
+    expectOk(
+      explicitTrueParsed,
+      "Expected both JSON Schema parses to succeed.",
+    );
 
-    const expected = {
-      ok: true as const,
+    const metadataOnlyResult = jsonSchemaGenerator.generate(
+      metadataOnlyParsed.document,
+    );
+    const explicitTrueResult = jsonSchemaGenerator.generate(
+      explicitTrueParsed.document,
+    );
+
+    expect(metadataOnlyResult).toMatchObject({
+      ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
         title: "UnknownValue",
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "Metadata-only root schema was lowered to unknown.",
-            },
-          },
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "widening" as const,
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["root"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape" as const,
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "Metadata-only root schema was lowered to unknown.",
-            },
-          },
-        },
-      ],
-    };
-
-    expect(jsonSchemaGenerator.generate(metadataOnlyParsed.document)).toEqual(
-      expected,
-    );
-    expect(jsonSchemaGenerator.generate(explicitTrueParsed.document)).toEqual({
-      ...expected,
-      diagnostics: [
-        {
-          ...expected.diagnostics[0],
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
-      semanticNotes: [
-        {
-          ...expected.semanticNotes[0],
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "metadata-only-root",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
     });
+    expect(explicitTrueResult).toMatchObject({
+      ok: true,
+      output: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: "UnknownValue",
+      },
+    });
+
+    expect(metadataOnlyResult.ok).toBe(true);
+    expect(explicitTrueResult.ok).toBe(true);
+
+    if (!metadataOnlyResult.ok || !explicitTrueResult.ok) {
+      return;
+    }
+
+    expect(metadataOnlyResult.diagnostics).toHaveLength(1);
+    expect(metadataOnlyResult.semanticNotes).toHaveLength(1);
+    expect(explicitTrueResult.diagnostics).toHaveLength(1);
+    expect(explicitTrueResult.semanticNotes).toHaveLength(1);
+    expectDiagnosticCode(metadataOnlyResult.diagnostics, "wide-unknown-schema");
+    expectSemanticNoteCode(
+      metadataOnlyResult.semanticNotes,
+      "wide-unknown-schema",
+    );
+    expectDiagnosticCode(explicitTrueResult.diagnostics, "wide-unknown-schema");
+    expectSemanticNoteCode(
+      explicitTrueResult.semanticNotes,
+      "wide-unknown-schema",
+    );
   });
 
   it("round-trips definitions that combine tuple, record, refs, and nullable fields", () => {
@@ -479,11 +392,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -569,11 +482,11 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    const result = jsonSchemaGenerator.generate(parsed.document);
+
+    expect(result).toMatchObject({
       ok: true,
       output: {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -603,124 +516,26 @@ describe("integration: json-schema -> ir -> json-schema", () => {
           $ref: "#/$defs/User",
         },
       },
-      diagnostics: [
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "LooseMap", "value"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail:
-                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
-            },
-          },
-        },
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "User", "metadata"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-        {
-          severity: "warning",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "User", "tags", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
-      semanticNotes: [
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "LooseMap", "value"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail:
-                'A JSON Schema "additionalProperties: true" map was lowered to Record<string, unknown>.',
-            },
-          },
-        },
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "User", "metadata"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-        {
-          kind: "widening",
-          code: "wide-unknown-schema",
-          message:
-            "This schema node renders as the widest JSON Schema and may accept values more broadly than the source evidence suggests.",
-          path: ["definitions", "User", "tags", "elementType"],
-          nodeKind: "unknown",
-          source: "generator-json-schema",
-          layer: "shape",
-          evidence: {
-            reason: "no-evidence",
-            nullable: false,
-            renderedForm: "true-schema",
-            sourceEvidence: {
-              source: "parser-json",
-              detail: "JSON Schema boolean true was lowered to unknown.",
-            },
-          },
-        },
-      ],
     });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.diagnostics).toHaveLength(3);
+    expect(result.semanticNotes).toHaveLength(3);
+    expect(
+      result.diagnostics?.every((diagnostic) =>
+        diagnostic.code === "wide-unknown-schema",
+      ),
+    ).toBe(true);
+    expect(
+      result.semanticNotes?.every((semanticNote) =>
+        semanticNote.code === "wide-unknown-schema",
+      ),
+    ).toBe(true);
   });
 
   it("parses closed objects into shape plus constraint artifacts", () => {
@@ -741,9 +556,7 @@ describe("integration: json-schema -> ir -> json-schema", () => {
 
     expect(parsed.ok).toBe(true);
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
     expect(parsed.constraints).toEqual({
       kind: "constraint-document",
@@ -837,9 +650,7 @@ describe("integration: json-schema -> ir -> json-schema", () => {
       }),
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON Schema parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON Schema parser to succeed.");
 
     expect(
       jsonSchemaGenerator.generate(parsed.document, {

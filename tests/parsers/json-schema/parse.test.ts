@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { jsonSchemaParser } from "../../../packages/parsers/json-schema/src/index.js";
+import { expectOk } from "../../helpers/result-assertions.js";
+import { definitionNames } from "../../helpers/schema-document-assertions.js";
 
 describe("parser-json-schema", () => {
   it("parses object schemas with required and nullable fields", () => {
@@ -120,19 +122,13 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(parsed.ok).toBe(true);
-
-    if (!parsed.ok) {
-      throw new Error("Expected parser to succeed.");
-    }
+    expectOk(parsed, "Expected parser to succeed.");
 
     expect(parsed.document.root).toEqual({
       kind: "reference",
       name: "Response",
     });
-    expect(
-      parsed.document.definitions.map((definition) => definition.name.source),
-    ).toEqual(["User", "Response"]);
+    expect(definitionNames(parsed.document)).toEqual(["User", "Response"]);
   });
 
   it("parses tuples and records", () => {
@@ -146,11 +142,7 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(tupleParsed.ok).toBe(true);
-
-    if (!tupleParsed.ok) {
-      throw new Error("Expected tuple parser to succeed.");
-    }
+    expectOk(tupleParsed, "Expected tuple parser to succeed.");
 
     expect(tupleParsed.document.root).toEqual({
       kind: "tuple",
@@ -183,11 +175,7 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(recordParsed.ok).toBe(true);
-
-    if (!recordParsed.ok) {
-      throw new Error("Expected record parser to succeed.");
-    }
+    expectOk(recordParsed, "Expected record parser to succeed.");
 
     expect(recordParsed.document.root).toEqual({
       kind: "record",
@@ -377,11 +365,7 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(parsed.ok).toBe(true);
-
-    if (!parsed.ok) {
-      throw new Error("Expected parser to succeed.");
-    }
+    expectOk(parsed, "Expected parser to succeed.");
 
     expect(parsed.constraints?.kind).toBe("constraint-document");
     expect(parsed.constraints?.name).toBe("ConstrainedUser");
@@ -816,11 +800,7 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(openObjectParsed.ok).toBe(true);
-
-    if (!openObjectParsed.ok) {
-      throw new Error("Expected open object parser to succeed.");
-    }
+    expectOk(openObjectParsed, "Expected open object parser to succeed.");
 
     expect(openObjectParsed.document.root).toEqual({
       kind: "object",
@@ -849,11 +829,7 @@ describe("parser-json-schema", () => {
       }),
     );
 
-    expect(wideRecordParsed.ok).toBe(true);
-
-    if (!wideRecordParsed.ok) {
-      throw new Error("Expected wide record parser to succeed.");
-    }
+    expectOk(wideRecordParsed, "Expected wide record parser to succeed.");
 
     expect(wideRecordParsed.document.root).toEqual({
       kind: "record",
@@ -1107,12 +1083,14 @@ describe("parser-json-schema", () => {
       name: "UnknownValue",
     });
 
-    expect(metadataOnlyParsed.ok).toBe(true);
-    expect(explicitTrueParsed.ok).toBe(true);
-
-    if (!metadataOnlyParsed.ok || !explicitTrueParsed.ok) {
-      throw new Error("Expected both wide-schema parses to succeed.");
-    }
+    expectOk(
+      metadataOnlyParsed,
+      "Expected both wide-schema parses to succeed.",
+    );
+    expectOk(
+      explicitTrueParsed,
+      "Expected both wide-schema parses to succeed.",
+    );
 
     expect(metadataOnlyParsed.document.root).toEqual({
       kind: "unknown",

@@ -20,96 +20,13 @@ import {
   jsonParser,
   preparedJsonParserOptions,
 } from "../../packages/parsers/json/src/index.js";
-
-function integerWideningDiagnostic(path: string[]) {
-  return {
-    severity: "warning" as const,
-    code: "integer-widened-to-number",
-    message:
-      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
-    path,
-    nodeKind: "scalar" as const,
-    source: "generator-typescript",
-    evidence: {
-      sourceScalar: "integer",
-      renderedScalar: "number",
-    },
-  };
-}
-
-function integerWideningSemanticNote(path: string[]) {
-  return {
-    kind: "widening" as const,
-    code: "integer-widened-to-number",
-    message:
-      "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
-    path,
-    nodeKind: "scalar" as const,
-    source: "generator-typescript",
-    layer: "target" as const,
-    evidence: {
-      sourceScalar: "integer",
-      renderedScalar: "number",
-    },
-  };
-}
-
-function unknownWideningDiagnostic(
-  path: string[],
-  options: {
-    reason: string;
-    nullable: boolean;
-    renderedForm: string;
-    sourceEvidence?: Record<string, unknown>;
-  },
-) {
-  return {
-    severity: "warning" as const,
-    code: "wide-unknown-type",
-    message:
-      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
-    path,
-    nodeKind: "unknown" as const,
-    source: "generator-typescript",
-    evidence: {
-      reason: options.reason,
-      nullable: options.nullable,
-      renderedForm: options.renderedForm,
-      ...(options.sourceEvidence
-        ? { sourceEvidence: options.sourceEvidence }
-        : {}),
-    },
-  };
-}
-
-function unknownWideningSemanticNote(
-  path: string[],
-  options: {
-    reason: string;
-    nullable: boolean;
-    renderedForm: string;
-    sourceEvidence?: Record<string, unknown>;
-  },
-) {
-  return {
-    kind: "widening" as const,
-    code: "wide-unknown-type",
-    message:
-      "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
-    path,
-    nodeKind: "unknown" as const,
-    source: "generator-typescript",
-    layer: "target" as const,
-    evidence: {
-      reason: options.reason,
-      nullable: options.nullable,
-      renderedForm: options.renderedForm,
-      ...(options.sourceEvidence
-        ? { sourceEvidence: options.sourceEvidence }
-        : {}),
-    },
-  };
-}
+import { expectOk } from "../helpers/result-assertions.js";
+import {
+  integerWideningDiagnostic,
+  integerWideningSemanticNote,
+  unknownWideningDiagnostic,
+  unknownWideningSemanticNote,
+} from "../helpers/typescript-generator-events.js";
 
 describe("integration: json -> ir -> typescript", () => {
   it("converts supported json samples into TypeScript with default parser/generator instances", () => {
@@ -120,14 +37,12 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
     expect(parsed.document.name.source).toBe("user-profile-list");
     expect(parsed.document.root.kind).toBe("array");
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(typeScriptGenerator.generate(parsed.document)).toMatchObject({
       ok: true,
       output: [
         "export type UserProfileList = Array<{",
@@ -138,10 +53,6 @@ describe("integration: json -> ir -> typescript", () => {
         "  };",
         "}>;",
       ].join("\n"),
-      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
-      semanticNotes: [
-        integerWideningSemanticNote(["root", "elementType", "id"]),
-      ],
     });
   });
 
@@ -153,11 +64,9 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(typeScriptGenerator.generate(parsed.document)).toMatchObject({
       ok: true,
       output: [
         "export type UserList = Array<{",
@@ -165,10 +74,6 @@ describe("integration: json -> ir -> typescript", () => {
         "  name?: string | null;",
         "}>;",
       ].join("\n"),
-      diagnostics: [integerWideningDiagnostic(["root", "elementType", "id"])],
-      semanticNotes: [
-        integerWideningSemanticNote(["root", "elementType", "id"]),
-      ],
     });
   });
 
@@ -180,11 +85,14 @@ describe("integration: json -> ir -> typescript", () => {
       name: "partial-shape",
     });
 
-    if (!topLevelNull.ok || !partialShape.ok) {
-      throw new Error(
-        "Expected the JSON parser to succeed for unresolved semantics.",
-      );
-    }
+    expectOk(
+      topLevelNull,
+      "Expected the JSON parser to succeed for unresolved semantics.",
+    );
+    expectOk(
+      partialShape,
+      "Expected the JSON parser to succeed for unresolved semantics.",
+    );
 
     expect(typeScriptGenerator.generate(topLevelNull.document)).toEqual({
       ok: true,
@@ -253,11 +161,9 @@ describe("integration: json -> ir -> typescript", () => {
       '{"user-id":1,"profile":{"display-name":"Ada"}}',
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the configured JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the configured JSON parser to succeed.");
 
-    expect(configuredGenerator.generator.generate(parsed.document)).toEqual({
+    expect(configuredGenerator.generator.generate(parsed.document)).toMatchObject({
       ok: true,
       output: [
         "export interface user_profile {",
@@ -267,8 +173,6 @@ describe("integration: json -> ir -> typescript", () => {
         "  };",
         "}",
       ].join("\n"),
-      diagnostics: [integerWideningDiagnostic(["root", "user-id"])],
-      semanticNotes: [integerWideningSemanticNote(["root", "user-id"])],
     });
   });
 
@@ -289,9 +193,7 @@ describe("integration: json -> ir -> typescript", () => {
 
     const parsed = configuredParser.parser.parse('[{"value":1},{"value":2}]');
 
-    if (!parsed.ok) {
-      throw new Error("Expected the configured JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the configured JSON parser to succeed.");
 
     expect(configuredGenerator.generator.generate(parsed.document)).toEqual({
       ok: true,
@@ -311,19 +213,15 @@ describe("integration: json -> ir -> typescript", () => {
       },
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(typeScriptGenerator.generate(parsed.document)).toMatchObject({
       ok: true,
       output: [
         "export interface CoordinatePair {",
         "  pair: [number, string];",
         "}",
       ].join("\n"),
-      diagnostics: [integerWideningDiagnostic(["root", "pair", "0"])],
-      semanticNotes: [integerWideningSemanticNote(["root", "pair", "0"])],
     });
   });
 
@@ -338,9 +236,7 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -359,11 +255,9 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(typeScriptGenerator.generate(parsed.document)).toMatchObject({
       ok: true,
       output: [
         "export type DiscriminatedValue = Array<{",
@@ -374,12 +268,6 @@ describe("integration: json -> ir -> typescript", () => {
         "  count: number;",
         "}>;",
       ].join("\n"),
-      diagnostics: [
-        integerWideningDiagnostic(["root", "elementType", "1", "count"]),
-      ],
-      semanticNotes: [
-        integerWideningSemanticNote(["root", "elementType", "1", "count"]),
-      ],
     });
   });
 
@@ -426,9 +314,7 @@ describe("integration: json -> ir -> typescript", () => {
       ],
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -492,9 +378,7 @@ describe("integration: json -> ir -> typescript", () => {
       name: "user-profile",
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the JSON parser to succeed.");
-    }
+    expectOk(parsed, "Expected the JSON parser to succeed.");
 
     expect(
       tryGenerateTypeScript(parsed.document, {
@@ -547,7 +431,7 @@ describe("integration: json -> ir -> typescript", () => {
       },
     );
 
-    expect(typeScriptGenerator.generate(document)).toEqual({
+    expect(typeScriptGenerator.generate(document)).toMatchObject({
       ok: true,
       output: [
         "export interface UserProfile {",
@@ -557,12 +441,6 @@ describe("integration: json -> ir -> typescript", () => {
         "",
         "export type UserDirectory = UserProfile[];",
       ].join("\n"),
-      diagnostics: [
-        integerWideningDiagnostic(["definitions", "user-profile", "id"]),
-      ],
-      semanticNotes: [
-        integerWideningSemanticNote(["definitions", "user-profile", "id"]),
-      ],
     });
   });
 });

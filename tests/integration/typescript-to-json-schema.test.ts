@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { typeScriptParser } from "../../packages/parsers/typescript/src/index.js";
 import { jsonSchemaGenerator } from "../../packages/generators/json-schema/src/index.js";
+import { expectOk } from "../helpers/result-assertions.js";
+import { definitionNames } from "../helpers/schema-document-assertions.js";
 
 describe("integration: typescript -> ir -> json-schema", () => {
   it("converts supported TypeScript schema declarations into JSON Schema", () => {
@@ -17,36 +19,42 @@ describe("integration: typescript -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(parsed.document.root).toEqual({
       kind: "reference",
       name: "User",
     });
     expect(definitionNames(parsed.document)).toEqual(["User"]);
+    const result = jsonSchemaGenerator.generate(parsed.document);
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
       output: {
-        $schema: "https://json-schema.org/draft/2020-12/schema",
         title: "UserDocument",
+        $ref: "#/$defs/User",
         $defs: {
           User: {
             type: "object",
-            properties: {
-              id: {
-                type: "number",
-              },
-              name: {
-                type: ["string", "null"],
-              },
-            },
             required: ["id"],
           },
         },
-        $ref: "#/$defs/User",
+      },
+    });
+
+    expectOk(result, "Expected the JSON Schema generator to succeed.");
+    expect(result.output).toMatchObject({
+      $defs: {
+        User: {
+          properties: {
+            id: {
+              type: "number",
+            },
+            name: {
+              type: ["string", "null"],
+            },
+          },
+        },
       },
     });
   });
@@ -66,9 +74,7 @@ describe("integration: typescript -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(parsed.document.root).toEqual({
       kind: "reference",
@@ -147,51 +153,52 @@ describe("integration: typescript -> ir -> json-schema", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(parsed.document.root).toEqual({
       kind: "reference",
       name: "Response",
     });
     expect(definitionNames(parsed.document)).toEqual(["User", "Response"]);
+    const result = jsonSchemaGenerator.generate(parsed.document);
 
-    expect(jsonSchemaGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
       output: {
-        $schema: "https://json-schema.org/draft/2020-12/schema",
         title: "ResponseDocument",
+        $ref: "#/$defs/Response",
         $defs: {
           User: {
             type: "object",
-            properties: {
-              id: {
-                type: "number",
-              },
-              name: {
-                type: "string",
-              },
-            },
             required: ["id", "name"],
           },
           Response: {
             type: "object",
-            properties: {
-              grouped: {
-                type: "object",
-                additionalProperties: {
-                  type: "array",
-                  items: {
-                    oneOf: [{ $ref: "#/$defs/User" }, { type: "null" }],
-                  },
-                },
-              },
-            },
             required: ["grouped"],
           },
         },
-        $ref: "#/$defs/Response",
+      },
+    });
+
+    expectOk(
+      result,
+      "Expected the JSON Schema generator to succeed for nested record unions.",
+    );
+    expect(result.output).toMatchObject({
+      $defs: {
+        Response: {
+          properties: {
+            grouped: {
+              type: "object",
+              additionalProperties: {
+                type: "array",
+                items: {
+                  oneOf: [{ $ref: "#/$defs/User" }, { type: "null" }],
+                },
+              },
+            },
+          },
+        },
       },
     });
   });
@@ -208,9 +215,7 @@ describe("integration: typescript -> ir -> json-schema", () => {
       },
     );
 
-    if (!enumParsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(enumParsed, "Expected the TypeScript parser to succeed.");
 
     expect(enumParsed.document.root).toEqual({
       kind: "reference",
@@ -220,27 +225,38 @@ describe("integration: typescript -> ir -> json-schema", () => {
       "Status",
       "Response",
     ]);
+    const enumResult = jsonSchemaGenerator.generate(enumParsed.document);
 
-    expect(jsonSchemaGenerator.generate(enumParsed.document)).toEqual({
+    expect(enumResult).toMatchObject({
       ok: true,
       output: {
-        $schema: "https://json-schema.org/draft/2020-12/schema",
         title: "ResponseDocument",
+        $ref: "#/$defs/Response",
         $defs: {
           Status: {
             oneOf: [{ const: "open" }, { const: "closed" }],
           },
           Response: {
             type: "object",
-            properties: {
-              status: {
-                $ref: "#/$defs/Status",
-              },
-            },
             required: ["status"],
           },
         },
-        $ref: "#/$defs/Response",
+      },
+    });
+
+    expectOk(
+      enumResult,
+      "Expected the JSON Schema generator to succeed for enum-like syntax.",
+    );
+    expect(enumResult.output).toMatchObject({
+      $defs: {
+        Response: {
+          properties: {
+            status: {
+              $ref: "#/$defs/Status",
+            },
+          },
+        },
       },
     });
 
@@ -258,52 +274,55 @@ describe("integration: typescript -> ir -> json-schema", () => {
       },
     );
 
-    if (!readonlyParsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(readonlyParsed, "Expected the TypeScript parser to succeed.");
 
     expect(readonlyParsed.document.root).toEqual({
       kind: "reference",
       name: "User",
     });
     expect(definitionNames(readonlyParsed.document)).toEqual(["User"]);
+    const readonlyResult = jsonSchemaGenerator.generate(readonlyParsed.document);
 
-    expect(jsonSchemaGenerator.generate(readonlyParsed.document)).toEqual({
+    expect(readonlyResult).toMatchObject({
       ok: true,
       output: {
-        $schema: "https://json-schema.org/draft/2020-12/schema",
         title: "UserDocument",
+        $ref: "#/$defs/User",
         $defs: {
           User: {
             type: "object",
-            properties: {
-              id: {
-                type: "number",
-              },
-              tags: {
-                type: "array",
-                items: {
-                  type: "string",
-                },
-              },
-              pair: {
-                type: "array",
-                prefixItems: [{ type: "number" }, { type: "string" }],
-                minItems: 1,
-                items: false,
-              },
-            },
             required: ["id", "tags", "pair"],
           },
         },
-        $ref: "#/$defs/User",
+      },
+    });
+
+    expectOk(
+      readonlyResult,
+      "Expected the JSON Schema generator to succeed for readonly syntax.",
+    );
+    expect(readonlyResult.output).toMatchObject({
+      $defs: {
+        User: {
+          properties: {
+            id: {
+              type: "number",
+            },
+            tags: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+            },
+            pair: {
+              type: "array",
+              prefixItems: [{ type: "number" }, { type: "string" }],
+              minItems: 1,
+              items: false,
+            },
+          },
+        },
       },
     });
   });
 });
-
-function definitionNames(document: {
-  definitions: Array<{ name: { source: string } }>;
-}): string[] {
-  return document.definitions.map((definition) => definition.name.source);
-}

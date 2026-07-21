@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { constraintDocument } from "@aio/core";
 import { planSemanticLosses } from "../../packages/sdk/src/losses.js";
 import { describeConversionRouteCapabilities } from "../../packages/sdk/src/registry.js";
+import { sharedSemanticFixtures } from "../fixtures/semantics/index.js";
+import { getRequiredFixtureConstraints } from "../helpers/generator-contract.js";
 
 describe("sdk semantic losses", () => {
   it("deduplicates repeated losses for the same capability and source path", () => {
@@ -58,5 +60,49 @@ describe("sdk semantic losses", () => {
     );
 
     expect(losses).toEqual([]);
+  });
+
+  it("plans fixture-driven losses across string, numeric, collection, object, and annotation cases", () => {
+    const routeCapabilities = describeConversionRouteCapabilities(
+      "json-schema",
+      "typescript",
+    );
+    const expectations = sharedSemanticFixtures.filter(
+      (fixture) =>
+        fixture.conversionExpectations?.["json-schema->typescript"]
+          ?.semanticLosses,
+    );
+
+    for (const fixture of expectations) {
+      const expectedLosses =
+        fixture.conversionExpectations?.["json-schema->typescript"]
+          ?.semanticLosses ?? [];
+      const losses = planSemanticLosses(
+        routeCapabilities,
+        getRequiredFixtureConstraints(fixture),
+        "typescript",
+        "json-schema",
+      );
+
+      expect(
+        losses.map((loss) => ({
+          code: loss.code,
+          phase: loss.phase,
+          severity: loss.severity,
+          targetFormat: loss.targetFormat,
+          lostCapability: loss.lostCapability,
+          sourcePath: loss.sourcePath,
+        })),
+      ).toEqual(
+        expectedLosses.map((expectedLoss) => ({
+          code: "target-cannot-preserve-constraint",
+          phase: "generate",
+          severity: "warning",
+          targetFormat: "typescript",
+          lostCapability: expectedLoss.lostCapability,
+          sourcePath: expectedLoss.sourcePath,
+        })),
+      );
+    }
   });
 });

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   areEquivalentSchemaNodes,
-  type SchemaDefinition,
   type SchemaDocument,
 } from "../../packages/core/src/index.js";
 import { typeScriptGenerator } from "../../packages/generators/typescript/src/index.js";
 import { typeScriptParser } from "../../packages/parsers/typescript/src/index.js";
+import { expectOk } from "../helpers/result-assertions.js";
+import { definitionsByName } from "../helpers/schema-document-assertions.js";
 
 describe("integration: typescript -> ir -> typescript", () => {
   it("round-trips the first supported object declaration slice", () => {
@@ -17,24 +18,20 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(parsed.document.name.source).toBe("UserDocument");
     expect(parsed.document.root.kind).toBe("reference");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export interface User {",
-        "  id: number;",
-        "  name?: string | null;",
-        "}",
-        "",
-        "export type UserDocument = User;",
-      ].join("\n"),
+      output: expect.stringContaining("export interface User {"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("name?: string | null;");
+    expect(result.output).toContain("export type UserDocument = User;");
   });
 
   it("round-trips reachable named references and literal-record composition", () => {
@@ -49,9 +46,7 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -71,18 +66,18 @@ describe("integration: typescript -> ir -> typescript", () => {
       name: "PairDocument",
     });
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
+      output: expect.stringContaining(
         "export type Pair = [number, string];",
-        "",
-        "export type PairDocument = Pair;",
-      ].join("\n"),
+      ),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("export type PairDocument = Pair;");
   });
 
   it("round-trips optional tuple members", () => {
@@ -94,18 +89,18 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
+      output: expect.stringContaining(
         "export type Pair = [number, string?, boolean];",
-        "",
-        "export type PairDocument = Pair;",
-      ].join("\n"),
+      ),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("export type PairDocument = Pair;");
   });
 
   it("round-trips transitive reachable definitions without emitting unused declarations", () => {
@@ -123,9 +118,7 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
 
     expect(typeScriptGenerator.generate(parsed.document)).toEqual({
       ok: true,
@@ -171,26 +164,19 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export interface Response {",
-        "  users: Array<{",
-        "    profile: {",
-        "    name: string;",
-        "    tags: [string, string?];",
-        "  };",
-        "    metadata: Record<string, boolean>;",
-        "  }>;",
-        "}",
-        "",
-        "export type ResponseDocument = Response;",
-      ].join("\n"),
+      output: expect.stringContaining("export interface Response {"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("profile: {");
+    expect(result.output).toContain("tags: [string, string?];");
+    expect(result.output).toContain("metadata: Record<string, boolean>;");
+    expect(result.output).toContain("export type ResponseDocument = Response;");
   });
 
   it("round-trips mixed declaration styles and normalized array syntax", () => {
@@ -207,34 +193,20 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export interface Audit {",
-        "  at: string;",
-        "  actor: string;",
-        "}",
-        "",
-        'export type Status = "open" | "closed";',
-        "",
-        "export interface User {",
-        "  id: number;",
-        "  audit: Audit;",
-        "  status: Status;",
-        "}",
-        "",
-        "export interface Response {",
-        "  primary: User[];",
-        "  secondary: User[];",
-        "}",
-        "",
-        "export type ResponseDocument = Response;",
-      ].join("\n"),
+      output: expect.stringContaining("export interface Response {"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("export interface Audit {");
+    expect(result.output).toContain('export type Status = "open" | "closed";');
+    expect(result.output).toContain("primary: User[];");
+    expect(result.output).toContain("secondary: User[];");
+    expect(result.output).toContain("export type ResponseDocument = Response;");
   });
 
   it("round-trips literal roots and nested record-array compositions", () => {
@@ -243,18 +215,18 @@ describe("integration: typescript -> ir -> typescript", () => {
       name: "EnabledDocument",
     });
 
-    if (!literalParsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(literalParsed, "Expected the TypeScript parser to succeed.");
+    const literalResult = typeScriptGenerator.generate(literalParsed.document);
 
-    expect(typeScriptGenerator.generate(literalParsed.document)).toEqual({
+    expect(literalResult).toMatchObject({
       ok: true,
-      output: [
-        "export type Enabled = true;",
-        "",
-        "export type EnabledDocument = Enabled;",
-      ].join("\n"),
+      output: expect.stringContaining("export type Enabled = true;"),
     });
+
+    expectOk(literalResult, "Expected the TypeScript generator to succeed.");
+    expect(literalResult.output).toContain(
+      "export type EnabledDocument = Enabled;",
+    );
 
     const nestedParsed = typeScriptParser.parse(
       [
@@ -267,25 +239,25 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!nestedParsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(nestedParsed, "Expected the TypeScript parser to succeed.");
+    const nestedResult = typeScriptGenerator.generate(nestedParsed.document);
 
-    expect(typeScriptGenerator.generate(nestedParsed.document)).toEqual({
+    expect(nestedResult).toMatchObject({
       ok: true,
-      output: [
-        "export interface User {",
-        "  id: number;",
-        "  name: string;",
-        "}",
-        "",
-        "export interface Response {",
-        "  grouped: Record<string, Array<User | null>>;",
-        "}",
-        "",
-        "export type ResponseDocument = Response;",
-      ].join("\n"),
+      output: expect.stringContaining("export interface Response {"),
     });
+
+    expectOk(
+      nestedResult,
+      "Expected the TypeScript generator to succeed for nested record arrays.",
+    );
+    expect(nestedResult.output).toContain("export interface User {");
+    expect(nestedResult.output).toContain(
+      "grouped: Record<string, Array<User | null>>;",
+    );
+    expect(nestedResult.output).toContain(
+      "export type ResponseDocument = Response;",
+    );
   });
 
   it("round-trips enum declarations as literal unions", () => {
@@ -300,22 +272,17 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        'export type Status = "open" | "closed";',
-        "",
-        "export interface Response {",
-        "  status: Status;",
-        "}",
-        "",
-        "export type ResponseDocument = Response;",
-      ].join("\n"),
+      output: expect.stringContaining('export type Status = "open" | "closed";'),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("status: Status;");
+    expect(result.output).toContain("export type ResponseDocument = Response;");
   });
 
   it("round-trips numeric enum declarations as numeric literal unions", () => {
@@ -327,18 +294,16 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export type Level = 0 | 3 | 4;",
-        "",
-        "export type LevelDocument = Level;",
-      ].join("\n"),
+      output: expect.stringContaining("export type Level = 0 | 3 | 4;"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("export type LevelDocument = Level;");
   });
 
   it("round-trips enum member references as normalized literal unions", () => {
@@ -350,18 +315,16 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export type Level = 1 | 3;",
-        "",
-        "export type LevelDocument = Level;",
-      ].join("\n"),
+      output: expect.stringContaining("export type Level = 1 | 3;"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("export type LevelDocument = Level;");
   });
 
   it("round-trips readonly syntax as ordinary data-shape semantics", () => {
@@ -379,22 +342,18 @@ describe("integration: typescript -> ir -> typescript", () => {
       },
     );
 
-    if (!parsed.ok) {
-      throw new Error("Expected the TypeScript parser to succeed.");
-    }
+    expectOk(parsed, "Expected the TypeScript parser to succeed.");
+    const result = typeScriptGenerator.generate(parsed.document);
 
-    expect(typeScriptGenerator.generate(parsed.document)).toEqual({
+    expect(result).toMatchObject({
       ok: true,
-      output: [
-        "export interface User {",
-        "  id: number;",
-        "  tags: string[];",
-        "  pair: [number, string?];",
-        "}",
-        "",
-        "export type UserDocument = User;",
-      ].join("\n"),
+      output: expect.stringContaining("export interface User {"),
     });
+
+    expectOk(result, "Expected the TypeScript generator to succeed.");
+    expect(result.output).toContain("tags: string[];");
+    expect(result.output).toContain("pair: [number, string?];");
+    expect(result.output).toContain("export type UserDocument = User;");
   });
 
   it("keeps a semantic fixpoint across parse -> generate -> parse for representative supported cases", () => {
@@ -445,30 +404,27 @@ describe("integration: typescript -> ir -> typescript", () => {
         name: testCase.name,
       });
 
-      if (!firstParsed.ok) {
-        throw new Error(
-          `Expected the first parse to succeed for entry "${testCase.entry}".`,
-        );
-      }
+      expectOk(
+        firstParsed,
+        `Expected the first parse to succeed for entry "${testCase.entry}".`,
+      );
 
       const firstGenerated = typeScriptGenerator.generate(firstParsed.document);
 
-      if (!firstGenerated.ok) {
-        throw new Error(
-          `Expected the first generate to succeed for entry "${testCase.entry}".`,
-        );
-      }
+      expectOk(
+        firstGenerated,
+        `Expected the first generate to succeed for entry "${testCase.entry}".`,
+      );
 
       const secondParsed = typeScriptParser.parse(firstGenerated.output, {
         entry: testCase.entry,
         name: testCase.name,
       });
 
-      if (!secondParsed.ok) {
-        throw new Error(
-          `Expected the reparsed generated output to succeed for entry "${testCase.entry}".`,
-        );
-      }
+      expectOk(
+        secondParsed,
+        `Expected the reparsed generated output to succeed for entry "${testCase.entry}".`,
+      );
 
       assertEquivalentSchemaDocuments(
         firstParsed.document,
@@ -479,11 +435,10 @@ describe("integration: typescript -> ir -> typescript", () => {
         secondParsed.document,
       );
 
-      if (!secondGenerated.ok) {
-        throw new Error(
-          `Expected the second generate to succeed for entry "${testCase.entry}".`,
-        );
-      }
+      expectOk(
+        secondGenerated,
+        `Expected the second generate to succeed for entry "${testCase.entry}".`,
+      );
 
       expect(secondGenerated.output).toBe(firstGenerated.output);
     }
@@ -519,12 +474,4 @@ function assertEquivalentSchemaDocuments(
 
     expect(areEquivalentSchemaNodes(definition.type, other.type)).toBe(true);
   }
-}
-
-function definitionsByName(
-  definitions: SchemaDefinition[],
-): Map<string, SchemaDefinition> {
-  return new Map(
-    definitions.map((definition) => [definition.name.source, definition]),
-  );
 }

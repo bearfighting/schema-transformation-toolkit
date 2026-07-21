@@ -1,5 +1,52 @@
 import { describe, expect, it } from "vitest";
 import * as sdkModule from "../../packages/sdk/src/index.js";
+import { sharedSemanticFixtures } from "../fixtures/semantics/index.js";
+import {
+  expectSemanticCaveatCodes,
+  expectSemanticLosses,
+} from "../helpers/report-assertions.js";
+
+type FixtureRouteSourceFormat = "json" | "json-schema" | "typescript";
+type FixtureRouteTargetFormat = "json-schema" | "typescript";
+
+function getFixtureRouteInput(
+  fixture: (typeof sharedSemanticFixtures)[number],
+  sourceFormat: FixtureRouteSourceFormat,
+): string {
+  switch (sourceFormat) {
+    case "json": {
+      const source = fixture.sources.json;
+
+      if (!source) {
+        break;
+      }
+
+      return source.input;
+    }
+    case "typescript": {
+      const source = fixture.sources.typescript;
+
+      if (!source) {
+        break;
+      }
+
+      return source.input;
+    }
+    case "json-schema": {
+      const source = fixture.sources["json-schema"];
+
+      if (!source) {
+        break;
+      }
+
+      return JSON.stringify(source.input);
+    }
+  }
+
+  throw new Error(
+    `Expected fixture "${fixture.id}" to define a ${sourceFormat} source.`,
+  );
+}
 
 describe("sdk api contract", () => {
   it("exposes only the stage 1 pipeline runtime surface", () => {
@@ -132,58 +179,57 @@ describe("sdk api contract", () => {
     ]);
   });
 
-  it("surfaces union-level unknown widening caveats in the higher-level report", () => {
-    const result = sdkModule.convert({
-      sourceFormat: "json-schema",
-      targetFormat: "typescript",
-      input: JSON.stringify({
-        title: "WideValues",
-        anyOf: [{ const: "open" }, true],
+  const fixtureRouteExpectations = sharedSemanticFixtures.flatMap((fixture) =>
+    Object.entries(fixture.conversionExpectations ?? {}).map(
+      ([routeId, expectation]) => ({
+        fixture,
+        routeId,
+        expectation,
       }),
+    ),
+  );
+
+  for (const { fixture, routeId, expectation } of fixtureRouteExpectations) {
+    it(`surfaces fixture-driven semantic caveats in the higher-level report for ${fixture.id} on ${routeId}`, () => {
+      const [sourceFormat, targetFormat] = routeId.split("->") as [
+        FixtureRouteSourceFormat,
+        FixtureRouteTargetFormat,
+      ];
+      const source = fixture.sources[sourceFormat];
+
+      expect(source).toBeDefined();
+
+      if (!source) {
+        throw new Error(
+          `Expected fixture "${fixture.id}" to define a ${sourceFormat} source.`,
+        );
+      }
+
+      const result = sdkModule.convert({
+        sourceFormat,
+        targetFormat,
+        input: getFixtureRouteInput(fixture, sourceFormat),
+        ...(source.options?.name ? { name: source.options.name } : {}),
+      });
+
+      expect(result.ok).toBe(true);
+
+      if (!result.ok) {
+        return;
+      }
+
+      if (expectation.semanticCaveatCodes) {
+        expectSemanticCaveatCodes(
+          result.report?.semanticCaveats,
+          expectation.semanticCaveatCodes,
+        );
+      }
+
+      if (expectation.semanticLosses) {
+        expectSemanticLosses(result.losses, expectation.semanticLosses);
+      }
     });
-
-    expect(result.ok).toBe(true);
-
-    if (!result.ok) {
-      return;
-    }
-
-    expect(result.report?.semanticCaveats).toEqual([
-      {
-        phase: "generate",
-        kind: "widening",
-        code: "unknown-union-member-absorbs-union",
-        message:
-          "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
-        source: "generator-typescript",
-        path: ["root"],
-        layer: "target",
-        evidence: {
-          unknownMemberIndexes: [1],
-          memberKinds: ["literal", "unknown"],
-        },
-      },
-      {
-        phase: "generate",
-        kind: "widening",
-        code: "wide-unknown-type",
-        message:
-          "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
-        source: "generator-typescript",
-        path: ["root", "1"],
-        layer: "target",
-        evidence: {
-          reason: "no-evidence",
-          nullable: false,
-          renderedForm: "unknown",
-          sourceEvidence: {
-            source: "parser-json",
-            detail: "JSON Schema boolean true was lowered to unknown.",
-          },
-        },
-      },
-    ]);
-  });
+  }
 
   it("surfaces referenced unknown-union widening caveats in the higher-level report", () => {
     const result = sdkModule.convert({

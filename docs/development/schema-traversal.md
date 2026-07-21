@@ -1,206 +1,249 @@
 # Schema IR Traversal Design
 
-## Purpose
+This document defines the near-term design for shared `Shape IR` traversal helpers.
 
-This document records the current design direction for shared `Shape IR` traversal helpers.
+It is meant to guide the next refactor directly.
+It should stay smaller than a framework spec and more concrete than a vague direction note.
 
-It exists to answer four practical questions:
+## Goal
 
-- how `SchemaDocument` and `SchemaNode` are traversed today
-- why repeated traversal code is starting to become a maintenance cost
-- whether the project should adopt a heavy visitor pattern right now
-- what the smallest useful shared traversal abstraction should be
+The current goal is:
 
-This is a near-term implementation guide, not a commitment to a large framework.
+- extract a lightweight shared traversal layer for `SchemaDocument` and `SchemaNode`
+- remove repeated recursion mechanics from analysis-style consumers
+- preserve current diagnostic, semantic-note, and validation behavior while doing so
 
-## Current Reality
+This is not a plan to introduce a heavy visitor framework.
 
-Today most `Shape IR` consumers traverse the tree by hand.
+## Why Now
 
-That is true in at least three places:
+The repository already has enough passing tests to protect a structural refactor:
 
-- generator emitters
-- generator validators
-- generator diagnostics or semantic-note collectors
+- shared semantic fixtures
+- generator contract tests
+- cross-parser equivalence smoke
+- route integration smoke
+- real-world corpus coverage
 
-Examples in the current repository:
-
-- `packages/generators/typescript/src/emit.ts`
-- `packages/generators/typescript/src/validate.ts`
-- `packages/generators/typescript/src/diagnostics.ts`
-- `packages/generators/json-schema/src/emit.ts`
-- `packages/generators/json-schema/src/diagnostics.ts`
-
-The common repeated work is:
-
-- recurse through `array.elementType`
-- recurse through `tuple.elements`
-- recurse through `record.key` and `record.value`
-- recurse through `object.fields`
-- recurse through `union.members`
-- carry a stable path
-- optionally resolve references through local definitions
-
-The target-specific work is still different, but the traversal mechanics are increasingly duplicated.
-
-## Why This Needs A Shared Layer
-
-The repository is no longer in a phase where only one generator or one analysis pass touches the IR.
-
-We now have multiple consumers that all need:
-
-- stable path propagation
-- definition lookup
-- recursive descent over the same node graph
-- a place to add future traversal-wide guardrails such as recursion limits or cycle handling
-
-If every new pass keeps re-implementing traversal, three costs grow over time:
-
-1. correctness drift
-2. path-shape drift
-3. duplicated maintenance when `SchemaNode` evolves
-
-This has already started to show up as repeated “walk the same node kinds again” logic in emit, validate, and diagnostics code.
-
-## Why Not A Heavy Visitor Pattern Yet
-
-A classic object-oriented visitor would likely be too heavy for the current codebase.
-
-Reasons:
-
-- `SchemaNode` is a plain discriminated union, not a method-owning class hierarchy
-- emit logic is strongly target-specific and often clearer when written directly
-- forcing every consumer through a large interface too early would increase indirection before the repository actually needs it
-- today the main pain is repeated traversal mechanics, not lack of polymorphism
-
-So the goal should not be “introduce a full visitor framework.”
-
-The goal should be:
-
-- share traversal mechanics
-- keep target-specific logic local
-- make future refactors easier
-
-## Recommended Near-Term Abstraction
-
-The recommended next step is a lightweight traversal helper in `@aio/core`, not a full visitor framework.
-
-The likely shape is:
-
-- `walkSchemaDocument(document, visitor, options?)`
-- `walkSchemaNode(node, context, visitor)`
-
-Where traversal context can include:
-
-- `path`
-- `parent`
-- `definitionLookup`
-- `rootDocumentName`
-- optional traversal state for cycle detection
-
-The visitor callback should receive enough context to let callers decide whether they are:
-
-- collecting diagnostics
-- collecting semantic notes
-- validating a boundary
-- counting or indexing nodes
-- building route or capability summaries
-
-## What Should Use It First
-
-The first consumers should be analysis-style passes, not emitters.
-
-Best early candidates:
+At the same time, repeated traversal logic is now showing up in multiple places:
 
 - `packages/generators/typescript/src/diagnostics.ts`
 - `packages/generators/typescript/src/validate.ts`
 - `packages/generators/json-schema/src/diagnostics.ts`
+- `packages/generators/json-schema/src/validate.ts`
 
-These passes already want:
+The main duplication is not target semantics.
+It is repeated mechanics:
 
-- stable recursion
-- stable path production
-- consistent reference handling
-- low ceremony
+- recurse through the same node kinds
+- carry stable logical paths
+- resolve local references when needed
+- avoid accidental infinite recursion
+- keep path and reference behavior consistent across passes
 
-They do not need target-specific rendering control over whitespace, precedence, or output assembly.
+## Scope Of The First Refactor
 
-That makes them the lowest-risk first migration set.
+The first traversal extraction should only target analysis-style consumers.
 
-## What Should Not Be Migrated First
+That means:
 
-Emitter code should not be the first migration target.
+- diagnostics collection
+- semantic-note collection
+- renderability validation
+- small future read-only inspections such as counting or indexing passes
 
-In the current repository, emitter logic still benefits from direct local recursion because it mixes:
+It should not first target:
 
-- traversal
-- formatting
-- precedence handling
-- target-specific syntax decisions
+- emitters
+- formatting-sensitive rendering
+- parser internals
+- a full transform or rewrite framework
 
-That means the first traversal helper should support emitters later if useful, but it should not be justified primarily by emitter refactoring.
+## Current Repeated Patterns
 
-## Reference Handling Rule
+The current generator diagnostics and validation passes repeatedly implement the same descent rules:
 
-The traversal helper should not silently expand references by default in all modes.
+- `array -> elementType`
+- `tuple -> elements[index].type`
+- `record -> key` and `value`
+- `object -> fields[index].type`
+- `union -> members[index]`
+- `reference -> optional local definition lookup`
 
-Instead it should make reference behavior explicit, for example:
-
-- visit reference node only
-- optionally resolve local definition for analysis
-- optionally prevent repeated expansion through cycle guards
-
-That matters because different passes need different truth:
-
-- emit may want the reference as reference
-- diagnostics may want both the reference site and the resolved semantic
-- validation may want to confirm the reference resolves at all before deeper checks
-
-## Path Stability Rule
-
-One reason to centralize traversal is to stabilize path construction.
-
-The helper should preserve current repository conventions such as:
+They also share the same path-shape conventions:
 
 - `["root"]`
+- `["definitions", "<Name>"]`
 - `["root", "elementType"]`
-- `["definitions", "Name"]`
-- `["root", "fieldName"]`
-- `["root", "1"]` for union or tuple member indexes
+- `["root", "<fieldName>"]`
+- `["root", "0"]`
+- `["definitions", "<Name>", "value"]`
 
-Future consumers should not have to rediscover these conventions independently.
+Those rules should stop being reimplemented ad hoc.
 
-## Recommended Work Plan
+## Design Principles
 
-The near-term implementation sequence should be:
+The traversal layer should follow these rules:
 
-1. add a minimal shared traversal helper in `@aio/core`
-2. migrate TypeScript generator diagnostics to it
-3. migrate TypeScript generator validation to it
-4. migrate JSON Schema generator diagnostics to it
-5. evaluate whether the abstraction remains small and helpful
-6. only then consider whether selected emit paths benefit from partial reuse
+1. keep traversal mechanics shared, keep semantics local
+2. preserve current path conventions exactly unless a deliberate migration is approved
+3. make reference expansion explicit rather than automatic
+4. stay read-only in the first version
+5. prefer small callback-based helpers over class hierarchies
+6. support partial adoption one consumer at a time
 
-## Non-Goals
+## Recommended First-Pass API
 
-This design should not currently aim to:
+The first useful abstraction should live in `@aio/core` and look roughly like this:
 
-- replace every recursive helper in one pass
-- introduce class-based AST nodes
-- force parser internals to use the same traversal abstraction immediately
-- hide target-specific logic behind a generic rendering interface
-- build a speculative framework for future formats before current consumers benefit
+```ts
+walkSchemaDocument(document, visitor, options?)
+walkSchemaNode(node, context, visitor)
+```
+
+The exact names can still change, but the first version should support:
+
+- document root traversal
+- definition traversal
+- stable logical path propagation
+- access to document-level definition lookup
+- optional local reference resolution
+- cycle-safe traversal state
+
+The callback context should be small and explicit, for example:
+
+```ts
+interface SchemaWalkContext {
+  document: SchemaDocument;
+  node: SchemaNode;
+  path: string[];
+  parent?: SchemaNode;
+  definition?: SchemaDefinition;
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  via?: {
+    kind: "root" | "definition" | "elementType" | "tuple-element" | "record-key" | "record-value" | "field" | "union-member" | "reference-resolution";
+    key?: string;
+    index?: number;
+    referenceName?: string;
+  };
+}
+```
+
+This does not need to be the public final type name.
+It does need to capture the data current consumers keep rebuilding manually.
+
+## Reference Policy
+
+Reference behavior must be explicit.
+Different passes need different truths.
+
+The first version should support at least these modes:
+
+- visit reference nodes only
+- visit reference nodes and optionally inspect the resolved definition separately
+- prevent repeated re-expansion through a cycle guard
+
+The helper should not silently inline references by default.
+
+That matters because:
+
+- diagnostics may care about both the reference site and the resolved semantic
+- validation may only need to confirm that a reference resolves
+- future emitters may want to keep references as references
+
+## Path Contract
+
+One major reason to centralize traversal is to freeze path behavior.
+
+The first traversal helper should preserve current logical path rules:
+
+- root starts at `["root"]`
+- definitions start at `["definitions", definition.name.source]`
+- array descent appends `"elementType"`
+- tuple and union descent appends the member index as a string
+- object descent appends `field.name.source`
+- record descent appends `"key"` or `"value"`
+
+The refactor should not change these path shapes incidentally.
+If a path convention ever changes later, it should be a deliberate contract change with test updates.
+
+## What The First Helper Should Not Do
+
+The first version should not try to:
+
+- mutate or rewrite nodes
+- build a full visitor interface with one method per node kind
+- hide target-local policy decisions
+- replace emitter recursion immediately
+- generalize across `Value IR` and `Constraint IR` before `Shape IR` adoption proves useful
+
+## First Migration Targets
+
+The first migration set should be:
+
+1. `packages/generators/typescript/src/diagnostics.ts`
+2. `packages/generators/typescript/src/validate.ts`
+3. `packages/generators/json-schema/src/diagnostics.ts`
+4. `packages/generators/json-schema/src/validate.ts`
+
+These are good early targets because they are:
+
+- read-only
+- path-sensitive
+- reference-aware
+- already duplicating similar recursion
+- protected by existing contract tests
+
+Emitter code can wait.
+
+## Acceptance Criteria
+
+The first traversal extraction is good enough when:
+
+1. the four early consumers above no longer reimplement the full node descent manually
+2. logical diagnostic paths remain stable
+3. reference-resolution behavior remains explicit and testable
+4. generator diagnostics and semantic notes do not drift
+5. generator validation failure boundaries do not drift
+6. the helper still feels small enough that a new analysis pass can adopt it without framework overhead
+
+## Regression Harness
+
+This refactor should be protected primarily by existing tests, not by adding a large new test family first.
+
+The expected safety net is:
+
+- shared semantic fixtures
+- generator contract tests
+- selected integration tests
+- corpus tests
+- `pnpm test`
+- `pnpm exec tsc --noEmit`
+
+The key question during rollout is not whether the helper looks elegant.
+It is whether current truthfulness-sensitive diagnostics, semantic notes, and failures stay stable.
+
+## Deferred Questions
+
+These questions are intentionally deferred until the first helper lands:
+
+- whether emitters should reuse part of the traversal layer
+- whether `Value IR` should get a similar helper
+- whether `Constraint IR` should use the same traversal API shape
+- whether a later transform API should be built on top of the walker
+- whether a heavier visitor pattern is ever justified
 
 ## Current Decision
 
-The current repository should move toward:
+The repository should now move toward:
 
-- shared lightweight traversal helpers
-- shared path and reference conventions
-- first use in diagnostics and validation
+- one lightweight shared traversal helper in `@aio/core`
+- explicit path and reference conventions
+- first adoption in diagnostics and validation
+- test-protected mechanical extraction before any semantic broadening
 
 It should not yet move toward:
 
-- a heavy classic visitor pattern
-- mandatory emitter migration
 - a broad AST framework rewrite
+- immediate emitter migration
+- speculative abstraction across every IR layer at once

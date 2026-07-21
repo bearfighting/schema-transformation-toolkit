@@ -1,52 +1,29 @@
 # Capabilities And Semantic Loss
 
-## Purpose
-
 This document defines how parser, generator, and future transform layers should describe:
 
 - what semantics they support
-- what semantics they intentionally lower or normalize
-- what semantics they reject explicitly
-- what semantics they can render only with information loss
+- what they normalize intentionally
+- what they reject explicitly
+- what they can render only with semantic widening or loss
 
-It exists to keep the repository honest about successful conversion not always meaning full semantic preservation.
+Use [ir-boundaries.md](ir-boundaries.md) for semantic placement and [architecture-layering.md](architecture-layering.md) for routing.
 
-Use [ir-boundaries.md](ir-boundaries.md) for IR placement rules and [architecture-layering.md](architecture-layering.md) for routing and planner structure.
-This document should stay focused on result-contract semantics.
-
-## Why This Matters
-
-The repository now has enough surface area that simple `ok: true` is no longer a sufficient contract.
-
-Current examples already show this:
-
-- a parser can succeed while lowering JSON Schema surface distinctions into shared shape semantics
-- a generator can succeed while widening `unknown` into a broader target form
-- a conversion can remain truthful while still losing source-specific information
-
-Without a shared contract, those cases become inconsistent:
-
-- some features fail explicitly
-- some features succeed silently
-- some features succeed with diagnostics
-
-That inconsistency makes it harder to expand parser and generator coverage safely.
-
-## Core Principle
+## Core Rule
 
 Use this rule throughout the repository:
 
 > success means the produced result is still truthful
 
-It does not necessarily mean:
+Success does not necessarily mean:
 
-- the source semantics were preserved exactly
-- the target can express every input distinction
+- source semantics were preserved exactly
+- target syntax can express every distinction
 - round-trip fidelity is lossless
 
-When truth is preserved only through widening, normalization, or target-specific lowering, that semantic loss should be visible.
+If truth is preserved only through normalization, widening, or target-local lowering, that caveat should be visible.
 
-## Terminology
+## Terms
 
 ### Capability
 
@@ -55,93 +32,63 @@ A capability is a semantic feature a parser, generator, or transform can handle 
 Examples:
 
 - object fields
-- tuple optional positions
+- tuples
 - document-local references
 - numeric constraints
-- closed-object semantics
+- closed-object behavior
 
-Capabilities should be described semantically, not as raw syntax trivia.
+Capabilities should be semantic, not syntax-node inventories.
 
 ### Normalization
 
-Normalization means converting multiple equivalent or near-equivalent source forms into one shared internal meaning.
+Normalization means multiple source forms lower into one shared meaning.
 
 Examples:
 
-- nullable property schema forms normalizing into field nullability
-- nested union syntax normalizing into one flattened shared union
+- nullable property forms normalizing into field nullability
+- nested unions normalizing into one flattened union
 
-Normalization is acceptable when the shared meaning remains truthful and intentionally canonical.
+Normalization is acceptable when the shared result remains truthful.
 
 ### Semantic Loss
 
-Semantic loss means some source or intermediate distinction is not preserved exactly in the produced result.
+Semantic loss means some distinction is not preserved exactly in the produced result.
 
 Examples:
 
-- `oneOf` versus `anyOf` collapsing into shared union semantics
+- `oneOf` versus `anyOf` collapsing into one shared union meaning
 - `unknown` rendering as JSON Schema `true`
 - a target omitting a source-only annotation
 
 Semantic loss does not automatically mean failure.
-It means the loss must be classified and surfaced consistently.
+It means the loss must be surfaced consistently.
 
 ### Explicit Failure
 
-Explicit failure means the current layer cannot preserve truth safely enough to return success.
+Failure is required when the current layer cannot preserve truth safely enough to return success.
 
-Examples:
-
-- unsupported closed-object parsing when the IR cannot represent it
-- invalid reference rendering
-- unsupported syntax outside the current parser subset
-
-## Result Contract Rules
-
-The repository should keep using structured success and failure results.
-
-Current shared result shapes already allow:
-
-- `ok: true` plus optional `diagnostics`
-- `ok: false` plus stable `code`, `message`, and optional `diagnostics`
-
-That baseline should remain.
-
-What this document adds is the semantic rule for when each result kind is appropriate.
-
-Current repository note:
-
-- parser success already supports `document`, optional `constraints`, `diagnostics`, and `semanticNotes`
-- generator success already supports `diagnostics` and `semanticNotes`
-- SDK conversion success already supports `artifacts.value`, `artifacts.shape`, `artifacts.constraints`, route-level `losses`, `preservedCapabilities`, and a staged `report`
+## Result Rules
 
 ### Return Success Without Diagnostics When
 
-- the input semantics are supported directly
+- the semantics are supported directly
 - the result preserves intended meaning without meaningful caveat
-- no important target-specific warning needs to be surfaced
 
 ### Return Success With Diagnostics When
 
 - the layer intentionally normalizes source forms
-- the layer widens or lowers semantics while staying truthful
-- the target cannot preserve some source distinction exactly
-- the output remains valid and useful, but the caller should know about the loss
+- the layer widens semantics while remaining truthful
+- the target cannot preserve some distinction exactly, but the output remains valid and useful
 
 ### Return Failure When
 
 - the layer cannot preserve truth safely
 - the current contract explicitly excludes the semantic
-- accepting the input would silently approximate behavior too aggressively
+- success would silently approximate behavior too aggressively
 
-## Capability Model
+## Capability States
 
-Every parser and generator should eventually describe its semantic capabilities in a stable, reviewable way.
-
-The model does not need to be runtime-enforced immediately.
-It should first be treated as a documentation and test-planning contract.
-
-Each capability should be classed into one of these states:
+Each capability should be classified in one of these states:
 
 - supported
 - supported with normalization
@@ -149,9 +96,9 @@ Each capability should be classed into one of these states:
 - unsupported
 - intentionally deferred
 
-### Suggested Capability Axes
+## Suggested Capability Axes
 
-The exact matrix can evolve, but current review should think in these semantic groups:
+Review should keep using semantic axes such as:
 
 - scalar families
 - literal values
@@ -159,12 +106,12 @@ The exact matrix can evolve, but current review should think in these semantic g
 - object fields
 - optional presence
 - nullable value semantics
-- homogeneous arrays
+- arrays
 - tuples
-- records or maps
+- records
 - unions
-- document-local references and definitions
-- open-versus-closed object semantics
+- local references and definitions
+- object closure
 - impossible-schema semantics
 - numeric constraints
 - string constraints
@@ -172,197 +119,70 @@ The exact matrix can evolve, but current review should think in these semantic g
 - portable annotations
 - external reference resolution
 
-These are intentionally semantic axes, not parser syntax-node inventories.
-
-## From Diagnostics To Explicit Capability Metadata
-
-The next contract evolution should make capability and loss status explicit instead of leaving everything implied by docs plus diagnostics.
-
-The intended direction is:
-
-- diagnostics remain event-level facts about a specific conversion
-- semantic notes remain structured explanations of normalization or widening
-- capability metadata becomes a declared contract for what a parser, transformer, or generator can preserve
-
-Conceptually, result contracts should grow toward metadata shaped like:
-
-```ts
-interface CapabilityMatch {
-  ir: "value" | "shape" | "constraint";
-  status: "required" | "optional" | "unused";
-}
-
-interface LossFact {
-  kind: string;
-  phase: "parse" | "transform" | "generate";
-  path?: string[];
-  severity: "info" | "warning" | "error";
-}
-```
-
-The exact type names can change.
-The important rule is that callers should be able to inspect route-level preservation and loss facts without reverse-engineering them from free-form docs.
-
-## Diagnostics Policy
+## Diagnostics Discipline
 
 Diagnostics are the main way to surface successful-but-imperfect conversions.
 
-### Required Properties
+They should:
 
-When diagnostics are emitted, they should continue using the shared `SchemaDiagnostic` shape:
+- describe semantic consequences, not implementation noise
+- stay stable enough for tests and downstream tooling
+- use logical `path` when a stable location exists
+- keep `evidence` small and structured
 
-- `severity`
-- `code`
-- `message`
-- `path` when a stable logical location exists
-- `nodeKind` when it clarifies the semantic target
-- `source`
-- `evidence` when small structured context helps
+They should not:
 
-### Diagnostic Classes
+- substitute for missing IR semantics
+- carry oversized raw parser traces
+- hide truthfulness-sensitive widening behind silent success
 
-Use diagnostics for these categories:
+## Layer Rules
 
-- normalization notice
-- semantic widening warning
-- target-expression limitation warning
-- unsupported-but-non-fatal omission warning
-- explicit failure detail
+### Parser
 
-### Diagnostic Discipline
+Parser success means the source was lowered into a truthful shared representation.
+Important normalization or loss should be surfaced.
 
-- diagnostics should describe semantic consequences, not internal implementation noise
-- diagnostics should stay stable enough for tests and downstream tooling
-- diagnostics should not become a substitute for missing IR semantics
-- diagnostics should not carry raw parser traces or oversized source snapshots
+Parser failure means the source could not be mapped safely into the current shared semantics.
 
-## Parser Contract
+### Generator
 
-Parsers should describe both accepted semantics and accepted lowerings.
+Generator success means the target output remains a truthful expression of the available shared semantics.
+Target-local widening or omission should be surfaced.
 
-### Parser Success Means
+Generator failure means the target cannot render the IR safely enough under the current contract.
 
-- the source was parsed into a truthful shared representation
-- any important normalization or semantic loss is surfaced in diagnostics
+### Transform
 
-### Parser Failure Means
+Transforms should follow the same rule:
 
-- the parser could not map the source into current shared semantics safely
-
-### Parser Capability Guidance
-
-For each supported parser family, maintain:
-
-- a supported semantic subset
-- a failure matrix for unsupported or invalid cases
-- a normalization and loss inventory for accepted-but-lowered cases
-
-Current JSON Schema examples:
-
-- `oneOf` and `anyOf` lowering into shared union semantics
-- boolean `true` lowering into `unknown`
-- nullable property forms normalizing into field nullability
-
-Those are successful parses with loss or normalization, not full-fidelity preservation.
-
-## Generator Contract
-
-Generators should describe both renderable semantics and target-specific loss boundaries.
-
-### Generator Success Means
-
-- the target output is valid under the chosen generator contract
-- any important widening, omission, or target-shaping caveat is surfaced in diagnostics
-
-### Generator Failure Means
-
-- the target cannot render the shared semantics safely under the current contract
-
-### Generator Capability Guidance
-
-For each generator, maintain:
-
-- a list of directly renderable shared semantics
-- target-local policy choices that affect output shape
-- target-side widening or omission warnings
-
-Current JSON Schema examples:
-
-- `unknown` rendering as `true`
-- object closure remaining a generator option rather than a shared semantic
-- union composition being target-configurable between `oneOf` and `anyOf`
-
-These are not all equal.
-Some are policy choices.
-Some are real semantic-loss boundaries.
-The documentation should say which is which.
-
-## Transform Contract
-
-Future transforms between IR layers should follow the same rules.
-
-Examples:
-
-- `Value IR -> Shape IR`
-- `Shape IR + Constraint IR -> Shape IR`
-- capability-aware projection into a target-specific model
-
-Transform success should also allow diagnostics when:
-
-- inference widens meaning
-- constraints are dropped intentionally
-- a projection preserves structure but not every refinement
+- if they preserve truth, success is allowed
+- if they normalize or widen, the caveat should be explicit
+- if they cannot preserve truth, they should fail
 
 ## Current Repository Interpretation
 
-Use the following interpretation today:
+Current examples already fit this model:
 
-- `@aio/core` result contracts already support success diagnostics
-- parser failure codes are already fairly mature
-- several current surfaces already distinguish direct support, normalization, widening, and explicit failure through diagnostics
-- per-surface documentation is still catching up to one consistent capability-and-loss pattern
+- JSON Schema parsing may succeed while lowering source distinctions into shared shape semantics
+- TypeScript generation may succeed while widening `integer` into `number`
+- `unknown` may render as a wider target form while still remaining truthful
 
-## Recommended Documentation Pattern Per Surface
+The repository should keep those cases explicit rather than silently folding them into plain success.
 
-Each parser or generator design doc should eventually include four small sections:
+## Testing Rule
 
-1. supported semantics
-2. accepted normalization
-3. semantic loss on success
-4. explicit failure boundary
+Tests should verify:
 
-This keeps implementation scope, diagnostics, and tests aligned.
+- direct support paths
+- accepted normalization paths
+- success-with-loss or success-with-diagnostics paths
+- explicit failure paths
 
-## Testing Expectations
+Shared semantic fixtures are now the preferred place to express those expectations.
 
-Capabilities and semantic loss should be testable, not just narrated.
+## Maintenance Rules
 
-Recommended expectations:
-
-- supported direct cases have success-path tests
-- normalization cases assert both result shape and diagnostics
-- semantic-loss cases assert success plus diagnostics
-- explicit failure cases assert failure code and diagnostics
-- integration tests cover at least one representative end-to-end loss path when behavior spans multiple packages
-
-## Acceptance Guidance
-
-A capability is not complete unless the repository is explicit about whether it is:
-
-- lossless
-- normalized
-- lossy but truthful
-- unsupported
-
-That should be reflected in:
-
-- development docs
-- parser or generator tests
-- integration tests when cross-package behavior is involved
-
-## Maintenance Rule
-
-- keep this file focused on success, failure, normalization, and semantic-loss result rules
-- keep IR placement rules in [ir-boundaries.md](ir-boundaries.md)
-- keep routing and planner evolution in [architecture-layering.md](architecture-layering.md)
-- keep repository-level prioritization in [progress.md](progress.md)
+- keep this file about truthfulness and result semantics only
+- keep capability definitions semantic rather than syntax-shaped
+- if a successful conversion is only truthful because of widening or omission, surface that fact explicitly

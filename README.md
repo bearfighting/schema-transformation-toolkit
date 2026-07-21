@@ -178,7 +178,7 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 ### Start Here
 
 - [README.md](README.md): project overview, package map, and current validated flows
-- [docs/development/public-api-stage1.md](docs/development/public-api-stage1.md): current Stage 1 SDK boundary and public API policy
+- [docs/development/progress.md](docs/development/progress.md): current repository state and next highest-leverage work
 - [packages/core/README.md](packages/core/README.md): shared IR model, invariants, and cross-package semantic boundary
 - [examples/README.md](examples/README.md): quick tour of current end-to-end examples
 
@@ -198,7 +198,7 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 ### Deep Dive
 
 - [docs/development/README.md](docs/development/README.md): development-doc index and suggested reading order
-- [docs/development/progress.md](docs/development/progress.md): unified current-state summary and completed milestone overview
+- [docs/development/test_plan.md](docs/development/test_plan.md): current testing strategy and refactor guardrails
 - [docs/development/architecture-layering.md](docs/development/architecture-layering.md): IR layering and capability-aware orchestration direction
 - [docs/development/ir-contract.md](docs/development/ir-contract.md): canonical shared IR contract
 - [docs/development/capabilities-and-loss.md](docs/development/capabilities-and-loss.md): conversion-result truthfulness and semantic-loss contract

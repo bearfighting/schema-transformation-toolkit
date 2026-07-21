@@ -8,10 +8,9 @@ This note defines the intended boundary between:
 
 The goal is to keep current unsupported module syntax explicit without baking today's single-file limitations into the long-term parser architecture.
 
-This file is a boundary note, not a status page or execution checklist.
+This file is a boundary note, not a status page or checklist.
 
 - repository-level prioritization lives in [progress.md](progress.md)
-- TypeScript-parser task tracking lives in [typescript-parser-checklist.md](typescript-parser-checklist.md)
 - concrete support and failure examples live in [typescript-parser-cases.md](typescript-parser-cases.md)
 
 ## Why This Boundary Exists

@@ -1,100 +1,50 @@
 # IR Boundaries
 
-## Purpose
+This document defines the semantic boundary between `Value IR`, `Shape IR`, and `Constraint IR`.
 
-This document defines the intended semantic boundary between `Value IR`, `Shape IR`, and `Constraint IR`.
+Use [architecture-layering.md](architecture-layering.md) for routing and package structure.
 
-It exists to answer three questions before more parser or generator work lands:
+## Current State
 
-- what each IR layer is responsible for
-- how to decide whether a semantic belongs in shape or constraints
-- how parsers, transformers, and generators should compose across the three layers
-
-Use [architecture-layering.md](architecture-layering.md) for long-term routing, registry, and orchestration structure.
-This document should stay focused on IR meaning, current implemented boundaries, and layer-composition rules.
-
-## Current Repository Status
-
-Today the repository has an explicit multi-IR shell in `@aio/core`.
-
-The current implemented state is:
+The repository already has an explicit multi-IR shell:
 
 - `Value IR` exists as a concrete value tree
-- `Shape IR` exists as the current `SchemaDocument` and `SchemaNode` model
-- `Constraint IR` exists as a separate document with targeted entries
-- `IrModel` exists as the combined transport model that can carry any subset of the three layers
+- `Shape IR` exists as the current schema document and node model
+- `Constraint IR` exists as a separate overlay document
+- `IrModel` is the transport model that can carry any subset of those layers
 
-Current examples:
+The split is no longer theoretical.
+It is already part of runtime artifacts and route planning.
 
-- the JSON path materializes `ValueDocument` and inferred `ShapeDocument`
-- the TypeScript parser directly produces `Shape IR`
-- the JSON Schema parser produces `Shape IR` plus `Constraint IR`
-- the JSON Schema generator can render from `Shape IR` alone or from `Shape IR + Constraint IR`
-
-This means the repository is no longer only discussing a future split.
-The split now exists in code and is already part of runtime artifacts and route planning.
-
-## Three IR Layers
+## Layer Meaning
 
 ### Value IR
 
-`Value IR` answers one question:
+`Value IR` answers:
 
 > what concrete value is present?
 
-Its job is to represent serialized data as data, without inferring reusable schema meaning.
+It is for serialized data as data.
+It is not for reusable schema meaning, constraints, or language syntax.
 
-Good fit for:
+Good fit:
 
 - JSON
 - YAML
 - TOML
 
-Expected responsibilities:
-
-- object or map values
-- array values
-- string values
-- numeric values
-- boolean values
-- `null`
-
-Non-goals:
-
-- reusable type definitions
-- optional-versus-required field semantics
-- validator constraints
-- language-specific type syntax
-
 ### Shape IR
 
-`Shape IR` answers one question:
+`Shape IR` answers:
 
 > what serialized structure is allowed?
 
-Its job is to represent reusable structural type meaning independent of one source language or schema ecosystem.
+It is for reusable serializable structure independent of one source language or schema ecosystem.
 
-Good fit for:
+Good fit:
 
-- TypeScript serializable type subsets
-- JSON sample inference
-- JSON Schema structural subsets
-- future schema-oriented language targets
-
-Expected responsibilities:
-
-- scalar families such as `string`, `integer`, `number`, `boolean`
-- exact scalar literals when they materially affect structure
-- `object`
-- `record`
-- `array`
-- `tuple`
-- `union`
-- `reference`
-- reusable `definitions`
-- optional presence
-- nullable value semantics
-- `unknown` when structure cannot be resolved safely
+- object, record, array, tuple, union, reference, reusable definitions
+- scalar families, literals, `null`, optional presence, nullable value semantics, `unknown`
 
 Non-goals:
 
@@ -102,98 +52,76 @@ Non-goals:
 - validator-specific rules
 - annotations that do not change structure
 
-Current repository note:
-
-The current `SchemaDocument` and `SchemaNode` model in `@aio/core` should be treated as `Shape IR v0`.
+The current `SchemaDocument` and `SchemaNode` model should be treated as `Shape IR v0`.
 
 ### Constraint IR
 
-`Constraint IR` answers one question:
+`Constraint IR` answers:
 
 > what extra validation or portable annotation rules apply to an already-known shape?
 
-Its job is to describe semantics that narrow, annotate, or qualify an existing shape without redefining that shape.
+It is for semantics that narrow, annotate, or qualify an existing shape without rebuilding that shape.
 
-Good fit for:
+Good fit:
 
-- JSON Schema validation keywords
-- OpenAPI schema constraints
-- validator-library refinements that are portable enough to share
-
-Expected responsibilities:
-
-- numeric constraints such as `minimum` and `maximum`
-- string constraints such as `minLength`, `maxLength`, and `pattern`
-- collection constraints such as `minItems`, `maxItems`, and `uniqueItems`
-- object-wide rules such as open-versus-closed behavior when that proves to be shared
-- portable annotations such as `description`, `default`, or `examples` if they become shared generator inputs
+- numeric constraints
+- string constraints
+- collection constraints
+- object-wide rules such as closure when that proves shared
+- portable annotations such as `description`, `default`, or `examples`
 
 Non-goals:
 
-- rebuilding a second structural tree
-- arbitrary runtime callbacks or execution hooks
+- duplicating the full shape tree
+- arbitrary runtime callbacks
 - source-language trivia
 
-## Decision Rule: Shape vs Constraint
+## Shape Versus Constraint Rule
 
-Use this rule first:
+Use this test first:
 
 > if removing a semantic changes the core allowed structure, it belongs to `Shape IR`
 
 Otherwise:
 
-> if removing a semantic leaves the same structure but with looser validation, it belongs to `Constraint IR`
+> if removing a semantic leaves the same structure but with looser validation or less annotation, it belongs to `Constraint IR`
 
-### Usually Shape
+Usually `Shape IR`:
 
-- `object`
-- `record`
-- `array`
-- `tuple`
-- `union`
-- `reference`
-- reusable `definitions`
+- object
+- record
+- array
+- tuple
+- union
+- reference
+- reusable definitions
 - optional presence
 - nullable value semantics
 
-### Usually Constraint
+Usually `Constraint IR`:
 
-- `minimum`
-- `maximum`
-- `exclusiveMinimum`
-- `exclusiveMaximum`
-- `multipleOf`
-- `minLength`
-- `maxLength`
-- `pattern`
-- `minItems`
-- `maxItems`
-- `uniqueItems`
+- `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`
+- `minLength`, `maxLength`, `pattern`, `format`
+- `minItems`, `maxItems`, `uniqueItems`
+- `minProperties`, `maxProperties`
+- portable annotations
 
-### Current Gray Areas
+## Current Gray Areas
 
-These are now partially implemented in `Constraint IR`, but should still be treated as areas that may refine further as more sources and targets land:
+These need repeated cross-format pressure before being treated as settled shared semantics:
 
-- object open-versus-closed semantics
-- portable annotations such as `description`, `default`, and `examples`
-- whether an eventual impossible-schema concept belongs in `Shape IR`, `Constraint IR`, or a combined model
+- object open-versus-closed behavior
+- portable annotations as first-class generator inputs
+- whether an eventual impossible or never-schema concept belongs in shape or constraints
 
-Current working repository state:
+Current working state:
 
-- `closed-object` is represented in `Constraint IR`
-- `format`, `default`, `examples`, `description`, `read-only`, and `write-only` are represented in `Constraint IR`
-- `required` and `nullable` remain `Shape IR` concerns
+- `required` and `nullable` remain `Shape IR`
+- `closed-object`, `format`, `default`, `examples`, `description`, `read-only`, and `write-only` live in `Constraint IR`
 
-The working rule for gray areas is:
+## Composition Rule
 
-- do not promote them into shared IR just because one format can express them
-- gather repeated pressure from multiple sources or targets first
-
-## Layer Relationships
-
-The three IRs should be related, but not collapsed into one model.
-
-Recommended dependency direction:
+The dependency direction should stay:
 
 - `Value IR` stands alone
 - `Shape IR` stands alone
@@ -201,125 +129,23 @@ Recommended dependency direction:
 
 That means:
 
-- a value parser should not be forced to emit constraints
-- a shape parser should not be forced to emit values
-- a constraint layer should attach to an existing shape instead of duplicating structure
+- value parsers should not be forced to emit constraints
+- shape parsers should not be forced to emit values
+- constraints should attach to shapes rather than duplicate structure
 
-## Recommended Document Model
+## Attachment Rule
 
-The current repository already follows this model conceptually:
+`Constraint IR` should stay an overlay model.
+It should target logical paths on top of shape semantics instead of mirroring the whole shape tree.
 
-```ts
-interface ModelDocument {
-  value?: ValueDocument;
-  shape?: ShapeDocument;
-  constraints?: ConstraintDocument;
-}
-```
+The practical rule is:
 
-In code, this transport model exists today as `IrModel` in `@aio/core`.
+- shape remains the structural truth
+- constraints attach by logical target
+- generators consume constraints opportunistically when the target can preserve them
 
-With the following meaning:
+## Maintenance Rules
 
-- `value` is present for value-format workflows
-- `shape` is present for schema and language-type workflows
-- `constraints` is present only when the source or target meaning includes them
-
-This is a routing model, not a requirement that every workflow materialize every layer.
-
-## Constraint Attachment Model
-
-`Constraint IR` should not mirror the full shape tree.
-
-The current repository already follows this rule through targeted entries:
-
-```ts
-interface ConstraintTarget {
-  kind: "document" | "root" | "definition" | "field" | "node";
-  path: string[];
-}
-
-interface ConstraintEntry {
-  target: ConstraintTarget;
-  constraints: Constraint[];
-}
-```
-
-This is intentionally an overlay model:
-
-- shape remains the source of structural truth
-- constraints attach by logical path
-- generators and transforms can consume constraints opportunistically without changing `Shape IR`
-
-## Current Composition Reality
-
-Today the SDK planner already carries the multi-IR split in runtime route metadata:
-
-- `json -> *` routes explicitly pass through `value` then `shape`
-- `typescript -> *` routes explicitly pass through `shape`
-- `json-schema -> json-schema` routes explicitly preserve `constraint`
-- runtime artifacts can carry `value`, `shape`, and `constraints` together when available
-
-So the current repository should be read as:
-
-- IR boundaries are explicit in core contracts
-- runtime planning already understands multiple IR layers
-- future work should refine capability matching without collapsing those boundaries
-
-## Constraint Attachment Rule
-
-`ShapeDocument` remains the structural source of truth.
-`ConstraintDocument` should store entries that target shape nodes or fields rather than mirroring the full shape tree.
-
-Preferred long-term attachment:
-
-- stable node ids or explicit node references
-
-Acceptable intermediate attachment:
-
-- logical shape paths
-
-Avoid:
-
-- a second tree of `ConstraintObject`, `ConstraintArray`, `ConstraintTuple`, and similar mirrored node kinds
-
-## Producer And Consumer Rules
-
-Parsers should emit only the layers that naturally exist in their source:
-
-- value-family parsers primarily produce `Value IR`
-- serializable-type parsers primarily produce `Shape IR`
-- schema-and-validator parsers may produce `Shape IR + Constraint IR`
-
-Generators should consume only the layers they actually need:
-
-- value generators consume `Value IR`
-- language-type generators usually consume `Shape IR`
-- richer schema generators may consume `Shape IR + Constraint IR`
-
-The guiding rule is to prefer explicit transforms over hidden mixed responsibilities.
-That keeps inference, structure, and validation separate even when one package temporarily offers multiple steps.
-
-## Current Practical Mapping
-
-For the current repository, use this interpretation:
-
-- `@aio/core` is the canonical home of `Shape IR v0`
-- the JSON path materializes `Value IR` and then infers `Shape IR`
-- the TypeScript parser is a direct `Shape IR` producer
-- the JSON Schema parser is a `Shape IR + Constraint IR` producer for the currently supported subset
-- the JSON Schema generator can consume `Shape IR` alone or `Shape IR + Constraint IR`
-
-## Design Guardrails
-
-- do not expand `Shape IR` just to preserve one source format's validation details
-- do not treat value inference as proof that value and shape must share one model
-- do not duplicate shape structure inside future constraint modeling
-- do not add new parser or generator families without first stating which IR layer they consume or produce
-- do not silently erase unsupported semantics when a diagnostic or loss report would preserve important truth
-
-## Maintenance Rule
-
-- keep this file focused on IR meaning, semantic placement rules, and current layer composition
-- keep routing and registry evolution in [architecture-layering.md](architecture-layering.md)
-- keep repository-level prioritization in [progress.md](progress.md)
+- keep this file about semantic placement only
+- do not move a format-local feature into shared IR because one source format can express it
+- require repeated pressure across multiple sources or targets before expanding shared semantics

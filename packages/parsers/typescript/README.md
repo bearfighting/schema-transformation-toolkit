@@ -19,7 +19,7 @@ If you want end-to-end examples rather than support bullets first, start with:
 The first supported subset is documented in:
 
 - [docs/development/typescript-parser-cases.md](../../../docs/development/typescript-parser-cases.md)
-- [docs/development/typescript-parser-checklist.md](../../../docs/development/typescript-parser-checklist.md)
+- [docs/development/typescript-parser-preprocess.md](../../../docs/development/typescript-parser-preprocess.md)
 
 ## Current Status
 

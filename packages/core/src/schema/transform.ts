@@ -18,10 +18,7 @@ export interface SchemaTransformOptions {
 }
 
 export interface SchemaTransformer {
-  transformNode?(
-    node: SchemaNode,
-    context: SchemaTransformContext,
-  ): SchemaNode;
+  transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 
 export function transformSchemaDocument(
@@ -196,8 +193,10 @@ export function transformSchemaNode(
       }),
   );
 
-  return transformer.transformNode?.(transformedChildren, context) ??
-    transformedChildren;
+  return (
+    transformer.transformNode?.(transformedChildren, context) ??
+    transformedChildren
+  );
 }
 
 function createDefinitionLookup(

@@ -586,11 +586,38 @@ export {
 } from "./factories.js";
 export { identifierName } from "./identifiers.js";
 export { areEquivalentSchemaNodes } from "./equivalence.js";
-export { walkSchemaDocument, walkSchemaNode } from "./traversal.js";
+export {
+  normalizeSchemaDefinitions,
+  normalizeSchemaDocument,
+  normalizeSchemaDocumentFromRoot,
+  normalizeSchemaDocumentStructure,
+  normalizeSchemaNode,
+} from "./normalize.js";
+export {
+  transformSchemaDocument,
+  transformSchemaDocumentFromRoot,
+  transformSchemaDocumentStructure,
+  transformSchemaDefinitions,
+  transformSchemaNode,
+} from "./transform.js";
+export type {
+  SchemaTransformContext,
+  SchemaTransformOptions,
+  SchemaTransformReferenceMode,
+  SchemaTransformer,
+} from "./transform.js";
+export {
+  walkSchemaDefinitions,
+  walkSchemaDocument,
+  walkSchemaDocumentFromRoot,
+  walkSchemaDocumentStructure,
+  walkSchemaNode,
+} from "./traversal.js";
 export type {
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
+  SchemaReferenceTraversalStatus,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,
@@ -630,11 +657,108 @@ export type {
 } from "./contracts.js";
 ```
 
+## packages/core/src/schema/normalize.d.ts
+
+```ts
+import type { SchemaDocument, SchemaNode } from "./types.js";
+import {
+  type SchemaTransformContext,
+  type SchemaTransformOptions,
+} from "./transform.js";
+export declare function normalizeSchemaDocument(
+  document: SchemaDocument,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function normalizeSchemaDocumentStructure(
+  document: SchemaDocument,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function normalizeSchemaDocumentFromRoot(
+  document: SchemaDocument,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function normalizeSchemaDefinitions(
+  document: SchemaDocument,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function normalizeSchemaNode(
+  node: SchemaNode,
+  context: SchemaTransformContext,
+): SchemaNode;
+```
+
+## packages/core/src/schema/transform.d.ts
+
+```ts
+import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
+import type { SchemaWalkVia } from "./traversal.js";
+export type SchemaTransformReferenceMode = "preserve" | "follow";
+export interface SchemaTransformContext {
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  parent?: SchemaNode;
+  containingDefinition?: SchemaDefinition;
+  via?: SchemaWalkVia;
+}
+export interface SchemaTransformOptions {
+  references?: SchemaTransformReferenceMode;
+}
+export interface SchemaTransformer {
+  transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
+}
+export declare function transformSchemaDocument(
+  document: SchemaDocument,
+  transformer: SchemaTransformer,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function transformSchemaDocumentStructure(
+  document: SchemaDocument,
+  transformer: SchemaTransformer,
+  _options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function transformSchemaDocumentFromRoot(
+  document: SchemaDocument,
+  transformer: SchemaTransformer,
+  options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function transformSchemaDefinitions(
+  document: SchemaDocument,
+  transformer: SchemaTransformer,
+  _options?: SchemaTransformOptions,
+): SchemaDocument;
+export declare function transformSchemaNode(
+  node: SchemaNode,
+  transformer: SchemaTransformer,
+  context: SchemaTransformContext,
+): SchemaNode;
+```
+
 ## packages/core/src/schema/traversal.d.ts
 
 ```ts
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 export type SchemaWalkReferenceMode = "preserve" | "follow";
+export type SchemaReferenceTraversalStatus =
+  | {
+      status: "not-followed";
+    }
+  | {
+      status: "resolved";
+      definition: SchemaDefinition;
+    }
+  | {
+      status: "missing";
+      name: string;
+    }
+  | {
+      status: "ambiguous";
+      name: string;
+      definitions: readonly SchemaDefinition[];
+    }
+  | {
+      status: "cycle";
+      name: string;
+    };
 export type SchemaWalkVia =
   | {
       kind: "root";
@@ -676,6 +800,7 @@ export interface SchemaWalkContext {
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
+  referenceResolution?: SchemaReferenceTraversalStatus;
 }
 export interface SchemaWalkNodeContext {
   document: SchemaDocument;
@@ -684,6 +809,7 @@ export interface SchemaWalkNodeContext {
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
+  referenceResolution?: SchemaReferenceTraversalStatus;
 }
 export interface SchemaWalkVisitor {
   enter?(context: SchemaWalkContext): void;
@@ -692,6 +818,21 @@ export interface SchemaWalkOptions {
   references?: SchemaWalkReferenceMode;
 }
 export declare function walkSchemaDocument(
+  document: SchemaDocument,
+  visitor: SchemaWalkVisitor,
+  options?: SchemaWalkOptions,
+): void;
+export declare function walkSchemaDocumentStructure(
+  document: SchemaDocument,
+  visitor: SchemaWalkVisitor,
+  options?: SchemaWalkOptions,
+): void;
+export declare function walkSchemaDocumentFromRoot(
+  document: SchemaDocument,
+  visitor: SchemaWalkVisitor,
+  options?: SchemaWalkOptions,
+): void;
+export declare function walkSchemaDefinitions(
   document: SchemaDocument,
   visitor: SchemaWalkVisitor,
   options?: SchemaWalkOptions,
@@ -898,9 +1039,16 @@ export type {
   SchemaUnknownNode as ShapeUnknownNode,
 } from "../schema/types.js";
 export type {
+  SchemaTransformContext as ShapeTransformContext,
+  SchemaTransformOptions as ShapeTransformOptions,
+  SchemaTransformReferenceMode as ShapeTransformReferenceMode,
+  SchemaTransformer as ShapeTransformer,
+} from "../schema/transform.js";
+export type {
   SchemaWalkContext as ShapeWalkContext,
   SchemaWalkNodeContext as ShapeWalkNodeContext,
   SchemaWalkOptions as ShapeWalkOptions,
+  SchemaReferenceTraversalStatus as ShapeReferenceTraversalStatus,
   SchemaWalkReferenceMode as ShapeWalkReferenceMode,
   SchemaWalkVia as ShapeWalkVia,
   SchemaWalkVisitor as ShapeWalkVisitor,
@@ -939,9 +1087,16 @@ export type {
   UnknownReason,
 } from "../schema/types.js";
 export type {
+  SchemaTransformContext,
+  SchemaTransformOptions,
+  SchemaTransformReferenceMode,
+  SchemaTransformer,
+} from "../schema/transform.js";
+export type {
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
+  SchemaReferenceTraversalStatus,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,
@@ -973,7 +1128,20 @@ export {
   schemaTupleNode,
   schemaUnionNode,
   schemaUnknownNode,
+  normalizeSchemaDefinitions,
+  normalizeSchemaDocument,
+  normalizeSchemaDocumentFromRoot,
+  normalizeSchemaDocumentStructure,
+  normalizeSchemaNode,
+  transformSchemaDocument,
+  transformSchemaDocumentFromRoot,
+  transformSchemaDocumentStructure,
+  transformSchemaDefinitions,
+  transformSchemaNode,
+  walkSchemaDefinitions,
   walkSchemaDocument,
+  walkSchemaDocumentFromRoot,
+  walkSchemaDocumentStructure,
   walkSchemaNode,
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,

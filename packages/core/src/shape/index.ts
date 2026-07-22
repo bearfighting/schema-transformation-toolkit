@@ -19,7 +19,18 @@ export type {
 } from "../schema/types.js";
 
 export type {
+  SchemaDefinitionIndex as ShapeDefinitionIndex,
+  SchemaReferenceResolution as ShapeReferenceResolution,
+} from "../schema/definitions.js";
+
+export type {
+  SchemaPath as ShapePath,
+  SchemaPathSegment as ShapePathSegment,
+} from "../schema/path.js";
+
+export type {
   SchemaTransformContext as ShapeTransformContext,
+  SchemaTransformReachabilityMode as ShapeTransformReachabilityMode,
   SchemaTransformOptions as ShapeTransformOptions,
   SchemaTransformReferenceMode as ShapeTransformReferenceMode,
   SchemaTransformer as ShapeTransformer,
@@ -70,7 +81,15 @@ export type {
 } from "../schema/types.js";
 
 export type {
+  SchemaDefinitionIndex,
+  SchemaReferenceResolution,
+} from "../schema/definitions.js";
+
+export type { SchemaPath, SchemaPathSegment } from "../schema/path.js";
+
+export type {
   SchemaTransformContext,
+  SchemaTransformReachabilityMode,
   SchemaTransformOptions,
   SchemaTransformReferenceMode,
   SchemaTransformer,
@@ -87,8 +106,14 @@ export type {
 } from "../schema/traversal.js";
 
 export {
+  appendSchemaPath,
   areEquivalentSchemaNodes,
+  createSchemaDefinitionIndex,
+  createSchemaDefinitionIndexFromLookup,
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
   identifierName,
+  resolveSchemaReference,
   isSchemaArrayNode,
   isSchemaLiteralNode,
   isSchemaNullNode,
@@ -108,6 +133,8 @@ export {
   schemaObjectNode,
   schemaRecordNode,
   schemaReferenceNode,
+  schemaPathSegmentToDiagnosticToken,
+  schemaPathToDiagnosticPath,
   schemaScalarNode,
   schemaTupleElement,
   schemaTupleNode,

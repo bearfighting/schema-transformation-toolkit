@@ -52,6 +52,18 @@ export {
 export { identifierName } from "./identifiers.js";
 
 export { areEquivalentSchemaNodes } from "./equivalence.js";
+export {
+  createSchemaDefinitionIndex,
+  createSchemaDefinitionIndexFromLookup,
+  resolveSchemaReference,
+} from "./definitions.js";
+export {
+  appendSchemaPath,
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
+  schemaPathSegmentToDiagnosticToken,
+  schemaPathToDiagnosticPath,
+} from "./path.js";
 
 export {
   normalizeSchemaDefinitions,
@@ -70,7 +82,15 @@ export {
 } from "./transform.js";
 
 export type {
+  SchemaDefinitionIndex,
+  SchemaReferenceResolution,
+} from "./definitions.js";
+
+export type { SchemaPath, SchemaPathSegment } from "./path.js";
+
+export type {
   SchemaTransformContext,
+  SchemaTransformReachabilityMode,
   SchemaTransformOptions,
   SchemaTransformReferenceMode,
   SchemaTransformer,

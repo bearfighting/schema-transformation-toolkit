@@ -194,7 +194,7 @@ Order.shippingUser -> User
 
 1. 遍历全部 definitions；
 2. 遍历 root；
-3. 在 `references: "follow"` 时，再从 reference occurrence 进入对应 definition。
+3. 在 traversal 的 `references: "follow"` 时，再从 reference occurrence 进入对应 definition。
 
 例如：
 

@@ -384,6 +384,40 @@ export interface SchemaGenerator<
 }
 ```
 
+## packages/core/src/schema/definitions.d.ts
+
+```ts
+import type { SchemaDefinition, SchemaDocument } from "./types.js";
+export interface SchemaDefinitionIndex {
+  all: ReadonlyMap<string, readonly SchemaDefinition[]>;
+  unique: ReadonlyMap<string, SchemaDefinition>;
+}
+export type SchemaReferenceResolution =
+  | {
+      status: "missing";
+      name: string;
+    }
+  | {
+      status: "ambiguous";
+      name: string;
+      definitions: readonly SchemaDefinition[];
+    }
+  | {
+      status: "resolved";
+      definition: SchemaDefinition;
+    };
+export declare function createSchemaDefinitionIndex(
+  document: Pick<SchemaDocument, "definitions">,
+): SchemaDefinitionIndex;
+export declare function createSchemaDefinitionIndexFromLookup(
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
+): SchemaDefinitionIndex;
+export declare function resolveSchemaReference(
+  definitionIndex: SchemaDefinitionIndex,
+  name: string,
+): SchemaReferenceResolution;
+```
+
 ## packages/core/src/schema/equivalence.d.ts
 
 ```ts
@@ -587,6 +621,18 @@ export {
 export { identifierName } from "./identifiers.js";
 export { areEquivalentSchemaNodes } from "./equivalence.js";
 export {
+  createSchemaDefinitionIndex,
+  createSchemaDefinitionIndexFromLookup,
+  resolveSchemaReference,
+} from "./definitions.js";
+export {
+  appendSchemaPath,
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
+  schemaPathSegmentToDiagnosticToken,
+  schemaPathToDiagnosticPath,
+} from "./path.js";
+export {
   normalizeSchemaDefinitions,
   normalizeSchemaDocument,
   normalizeSchemaDocumentFromRoot,
@@ -601,7 +647,13 @@ export {
   transformSchemaNode,
 } from "./transform.js";
 export type {
+  SchemaDefinitionIndex,
+  SchemaReferenceResolution,
+} from "./definitions.js";
+export type { SchemaPath, SchemaPathSegment } from "./path.js";
+export type {
   SchemaTransformContext,
+  SchemaTransformReachabilityMode,
   SchemaTransformOptions,
   SchemaTransformReferenceMode,
   SchemaTransformer,
@@ -687,13 +739,62 @@ export declare function normalizeSchemaNode(
 ): SchemaNode;
 ```
 
+## packages/core/src/schema/path.d.ts
+
+```ts
+export type SchemaPathSegment =
+  | {
+      kind: "root";
+    }
+  | {
+      kind: "definition";
+      name: string;
+    }
+  | {
+      kind: "elementType";
+    }
+  | {
+      kind: "tupleElement";
+      index: number;
+    }
+  | {
+      kind: "recordKey";
+    }
+  | {
+      kind: "recordValue";
+    }
+  | {
+      kind: "field";
+      name: string;
+    }
+  | {
+      kind: "unionMember";
+      index: number;
+    };
+export type SchemaPath = readonly SchemaPathSegment[];
+export declare function schemaPathToDiagnosticPath(path: SchemaPath): string[];
+export declare function appendSchemaPath(
+  path: SchemaPath,
+  segment: SchemaPathSegment,
+): SchemaPath;
+export declare function createRootSchemaPath(): SchemaPath;
+export declare function createDefinitionSchemaPath(name: string): SchemaPath;
+export declare function schemaPathSegmentToDiagnosticToken(
+  segment: SchemaPathSegment,
+): string;
+```
+
 ## packages/core/src/schema/transform.d.ts
 
 ```ts
+import { type SchemaPath } from "./path.js";
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 import type { SchemaWalkVia } from "./traversal.js";
 export type SchemaTransformReferenceMode = "preserve" | "follow";
+export type SchemaTransformReachabilityMode =
+  "selected-only" | "selected-and-root-reachable-definitions";
 export interface SchemaTransformContext {
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -701,6 +802,12 @@ export interface SchemaTransformContext {
   via?: SchemaWalkVia;
 }
 export interface SchemaTransformOptions {
+  reachability?: SchemaTransformReachabilityMode;
+  /**
+   * @deprecated Prefer `reachability`. `"preserve"` maps to
+   * `"selected-only"` and `"follow"` maps to
+   * `"selected-and-root-reachable-definitions"`.
+   */
   references?: SchemaTransformReferenceMode;
 }
 export interface SchemaTransformer {
@@ -737,6 +844,7 @@ export declare function transformSchemaNode(
 
 ```ts
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
+import { type SchemaPath } from "./path.js";
 export type SchemaWalkReferenceMode = "preserve" | "follow";
 export type SchemaReferenceTraversalStatus =
   | {
@@ -795,6 +903,7 @@ export type SchemaWalkVia =
 export interface SchemaWalkContext {
   document: SchemaDocument;
   node: SchemaNode;
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -804,6 +913,7 @@ export interface SchemaWalkContext {
 }
 export interface SchemaWalkNodeContext {
   document: SchemaDocument;
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -1039,7 +1149,16 @@ export type {
   SchemaUnknownNode as ShapeUnknownNode,
 } from "../schema/types.js";
 export type {
+  SchemaDefinitionIndex as ShapeDefinitionIndex,
+  SchemaReferenceResolution as ShapeReferenceResolution,
+} from "../schema/definitions.js";
+export type {
+  SchemaPath as ShapePath,
+  SchemaPathSegment as ShapePathSegment,
+} from "../schema/path.js";
+export type {
   SchemaTransformContext as ShapeTransformContext,
+  SchemaTransformReachabilityMode as ShapeTransformReachabilityMode,
   SchemaTransformOptions as ShapeTransformOptions,
   SchemaTransformReferenceMode as ShapeTransformReferenceMode,
   SchemaTransformer as ShapeTransformer,
@@ -1087,7 +1206,13 @@ export type {
   UnknownReason,
 } from "../schema/types.js";
 export type {
+  SchemaDefinitionIndex,
+  SchemaReferenceResolution,
+} from "../schema/definitions.js";
+export type { SchemaPath, SchemaPathSegment } from "../schema/path.js";
+export type {
   SchemaTransformContext,
+  SchemaTransformReachabilityMode,
   SchemaTransformOptions,
   SchemaTransformReferenceMode,
   SchemaTransformer,
@@ -1102,8 +1227,14 @@ export type {
   SchemaWalkVisitor,
 } from "../schema/traversal.js";
 export {
+  appendSchemaPath,
   areEquivalentSchemaNodes,
+  createSchemaDefinitionIndex,
+  createSchemaDefinitionIndexFromLookup,
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
   identifierName,
+  resolveSchemaReference,
   isSchemaArrayNode,
   isSchemaLiteralNode,
   isSchemaNullNode,
@@ -1123,6 +1254,8 @@ export {
   schemaObjectNode,
   schemaRecordNode,
   schemaReferenceNode,
+  schemaPathSegmentToDiagnosticToken,
+  schemaPathToDiagnosticPath,
   schemaScalarNode,
   schemaTupleElement,
   schemaTupleNode,

@@ -1,11 +1,22 @@
 import { mapSchemaNodeChildren, type SchemaNodeChild } from "./children.js";
+import { createSchemaDefinitionIndex } from "./definitions.js";
+import {
+  appendSchemaPath,
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
+  schemaPathToDiagnosticPath,
+  type SchemaPath,
+} from "./path.js";
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 import { walkSchemaDocumentFromRoot } from "./traversal.js";
 import type { SchemaWalkVia } from "./traversal.js";
 
 export type SchemaTransformReferenceMode = "preserve" | "follow";
+export type SchemaTransformReachabilityMode =
+  "selected-only" | "selected-and-root-reachable-definitions";
 
 export interface SchemaTransformContext {
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -14,6 +25,12 @@ export interface SchemaTransformContext {
 }
 
 export interface SchemaTransformOptions {
+  reachability?: SchemaTransformReachabilityMode;
+  /**
+   * @deprecated Prefer `reachability`. `"preserve"` maps to
+   * `"selected-only"` and `"follow"` maps to
+   * `"selected-and-root-reachable-definitions"`.
+   */
   references?: SchemaTransformReferenceMode;
 }
 
@@ -35,12 +52,13 @@ export function transformSchemaDocumentStructure(
   options?: SchemaTransformOptions,
 ): SchemaDocument {
   void options;
-  const definitionLookup = createDefinitionLookup(document.definitions);
+  const definitionLookup = createSchemaDefinitionIndex(document).unique;
 
   let definitionsChanged = false;
   const nextDefinitions = document.definitions.map((definition) => {
     const nextType = transformSchemaNode(definition.type, transformer, {
       path: ["definitions", definition.name.source],
+      typedPath: createDefinitionSchemaPath(definition.name.source),
       definitionLookup,
       containingDefinition: definition,
       via: {
@@ -62,6 +80,7 @@ export function transformSchemaDocumentStructure(
 
   const nextRoot = transformSchemaNode(document.root, transformer, {
     path: ["root"],
+    typedPath: createRootSchemaPath(),
     definitionLookup,
     via: { kind: "root" },
   });
@@ -82,13 +101,15 @@ export function transformSchemaDocumentFromRoot(
   transformer: SchemaTransformer,
   options?: SchemaTransformOptions,
 ): SchemaDocument {
-  const definitionLookup = createDefinitionLookup(document.definitions);
+  const definitionLookup = createSchemaDefinitionIndex(document).unique;
   const reachableDefinitions =
-    options?.references === "follow"
+    resolveSchemaTransformReachability(options) ===
+    "selected-and-root-reachable-definitions"
       ? collectReachableDefinitionNames(document)
       : undefined;
   const nextRoot = transformSchemaNode(document.root, transformer, {
     path: ["root"],
+    typedPath: createRootSchemaPath(),
     definitionLookup,
     via: { kind: "root" },
   });
@@ -104,6 +125,7 @@ export function transformSchemaDocumentFromRoot(
 
           const nextType = transformSchemaNode(definition.type, transformer, {
             path: ["definitions", definition.name.source],
+            typedPath: createDefinitionSchemaPath(definition.name.source),
             definitionLookup,
             containingDefinition: definition,
             via: {
@@ -140,12 +162,13 @@ export function transformSchemaDefinitions(
   options?: SchemaTransformOptions,
 ): SchemaDocument {
   void options;
-  const definitionLookup = createDefinitionLookup(document.definitions);
+  const definitionLookup = createSchemaDefinitionIndex(document).unique;
 
   let definitionsChanged = false;
   const nextDefinitions = document.definitions.map((definition) => {
     const nextType = transformSchemaNode(definition.type, transformer, {
       path: ["definitions", definition.name.source],
+      typedPath: createDefinitionSchemaPath(definition.name.source),
       definitionLookup,
       containingDefinition: definition,
       via: {
@@ -185,7 +208,13 @@ export function transformSchemaNode(
     node,
     (child, relationship: SchemaNodeChild) =>
       transformSchemaNode(child, transformer, {
-        path: [...context.path, relationship.pathSegment],
+        typedPath: appendSchemaPath(
+          context.typedPath,
+          relationship.pathSegment,
+        ),
+        path: schemaPathToDiagnosticPath(
+          appendSchemaPath(context.typedPath, relationship.pathSegment),
+        ),
         definitionLookup: context.definitionLookup,
         parent: node,
         ...(context.containingDefinition
@@ -198,14 +227,6 @@ export function transformSchemaNode(
   return (
     transformer.transformNode?.(transformedChildren, context) ??
     transformedChildren
-  );
-}
-
-function createDefinitionLookup(
-  definitions: readonly SchemaDefinition[],
-): ReadonlyMap<string, SchemaDefinition> {
-  return new Map(
-    definitions.map((definition) => [definition.name.source, definition]),
   );
 }
 
@@ -230,4 +251,16 @@ function collectReachableDefinitionNames(
   );
 
   return reachable;
+}
+
+function resolveSchemaTransformReachability(
+  options?: SchemaTransformOptions,
+): SchemaTransformReachabilityMode {
+  if (options?.reachability) {
+    return options.reachability;
+  }
+
+  return options?.references === "follow"
+    ? "selected-and-root-reachable-definitions"
+    : "selected-only";
 }

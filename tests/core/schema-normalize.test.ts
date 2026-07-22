@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createRootSchemaPath,
   normalizeSchemaDefinitions,
   normalizeSchemaDocument,
   normalizeSchemaDocumentFromRoot,
@@ -25,6 +26,7 @@ describe("schema normalize", () => {
     ]);
 
     const normalized = normalizeSchemaNode(node, {
+      typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
     });
@@ -45,6 +47,7 @@ describe("schema normalize", () => {
     };
 
     const normalized = normalizeSchemaNode(nestedUnion, {
+      typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
     });
@@ -61,6 +64,7 @@ describe("schema normalize", () => {
     };
 
     const normalized = normalizeSchemaNode(node, {
+      typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
     });
@@ -81,6 +85,7 @@ describe("schema normalize", () => {
     };
 
     const normalized = normalizeSchemaNode(node, {
+      typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
     });
@@ -227,11 +232,13 @@ describe("schema normalize", () => {
     );
   });
 
-  it("can normalize only root-reachable definitions when following references", () => {
+  it("can normalize only root-reachable definitions when configured for reachable definitions", () => {
     const document = createReachableDefinitionNormalizationDocument();
 
     expect(
-      normalizeSchemaDocumentFromRoot(document, { references: "follow" }),
+      normalizeSchemaDocumentFromRoot(document, {
+        reachability: "selected-and-root-reachable-definitions",
+      }),
     ).toEqual(
       schemaDocument(
         "Example",
@@ -274,6 +281,18 @@ describe("schema normalize", () => {
           ],
         },
       ),
+    );
+  });
+
+  it("keeps the legacy follow option working for normalization compatibility", () => {
+    const document = createReachableDefinitionNormalizationDocument();
+
+    expect(
+      normalizeSchemaDocumentFromRoot(document, { references: "follow" }),
+    ).toEqual(
+      normalizeSchemaDocumentFromRoot(document, {
+        reachability: "selected-and-root-reachable-definitions",
+      }),
     );
   });
 

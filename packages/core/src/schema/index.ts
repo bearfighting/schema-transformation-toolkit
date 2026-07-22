@@ -53,6 +53,17 @@ export { identifierName } from "./identifiers.js";
 
 export { areEquivalentSchemaNodes } from "./equivalence.js";
 
+export { walkSchemaDocument, walkSchemaNode } from "./traversal.js";
+
+export type {
+  SchemaWalkContext,
+  SchemaWalkNodeContext,
+  SchemaWalkOptions,
+  SchemaWalkReferenceMode,
+  SchemaWalkVia,
+  SchemaWalkVisitor,
+} from "./traversal.js";
+
 export {
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,

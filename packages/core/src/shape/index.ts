@@ -19,6 +19,15 @@ export type {
 } from "../schema/types.js";
 
 export type {
+  SchemaWalkContext as ShapeWalkContext,
+  SchemaWalkNodeContext as ShapeWalkNodeContext,
+  SchemaWalkOptions as ShapeWalkOptions,
+  SchemaWalkReferenceMode as ShapeWalkReferenceMode,
+  SchemaWalkVia as ShapeWalkVia,
+  SchemaWalkVisitor as ShapeWalkVisitor,
+} from "../schema/traversal.js";
+
+export type {
   IdentifierName,
   ScalarKind,
   SchemaArrayNode,
@@ -52,6 +61,15 @@ export type {
   UnknownReason,
 } from "../schema/types.js";
 
+export type {
+  SchemaWalkContext,
+  SchemaWalkNodeContext,
+  SchemaWalkOptions,
+  SchemaWalkReferenceMode,
+  SchemaWalkVia,
+  SchemaWalkVisitor,
+} from "../schema/traversal.js";
+
 export {
   areEquivalentSchemaNodes,
   identifierName,
@@ -79,6 +97,8 @@ export {
   schemaTupleNode,
   schemaUnionNode,
   schemaUnknownNode,
+  walkSchemaDocument,
+  walkSchemaNode,
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,
   validateSchemaDocument,

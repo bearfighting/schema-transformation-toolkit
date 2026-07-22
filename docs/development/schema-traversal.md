@@ -1,15 +1,21 @@
-# Schema IR Traversal Design
+# Schema IR Traversal And Transform Plan
 
-This document defines the first implemented shared `Shape IR` traversal helper and the design constraints that should continue to govern it.
+This document is the source of truth for the shared `Shape IR` traversal and transform helpers.
 
-It is meant to guide follow-on iteration now that the first refactor has landed.
+It serves two purposes:
+
+- record the design constraints that govern the current walker and immutable transformer
+- define the practical next-step plan for traversal work in the current repository phase
+
 It should stay smaller than a framework spec and more concrete than a vague direction note.
 
 ## Implementation Status
 
 The first traversal extraction is now implemented in `@aio/core`.
+The first immutable transform extraction is also now implemented there.
+The first dedicated shape-normalization exit is also now implemented there.
 
-The current helper is already used by:
+The current walker is already used by:
 
 - `packages/core/src/schema/validation.ts`
 - `packages/generators/typescript/src/diagnostics.ts`
@@ -17,7 +23,91 @@ The current helper is already used by:
 - `packages/generators/json-schema/src/diagnostics.ts`
 - `packages/generators/json-schema/src/validate.ts`
 
-The remaining purpose of this document is to preserve the intent and boundaries of that helper as future work builds on it.
+The current transform helper now has its first real upstream consumer through the dedicated normalization entry points in `packages/core/src/schema/normalize.ts`.
+
+The remaining purpose of this document is to preserve the intent and boundaries of these helpers as future work builds on them.
+
+## Current Execution Plan
+
+Traversal work should now be split into three buckets.
+
+### Do Now
+
+These items are worth implementing in the current repository phase because they directly reduce ambiguity in the existing walker and transformer contracts.
+
+1. keep traversal and transform entry semantics aligned across structure, root, and definitions modes
+2. keep reference-follow behavior explicit instead of silently mixing preserve and follow semantics
+3. keep shared child enumeration as the single source of structural descent order
+4. validate the next small transform-specific context additions only when another real transform consumer needs them
+
+### Do After The Next Round Of Consumers
+
+These items are likely useful, but should wait until more parser, generator, or analysis consumers prove the shape of the API.
+
+1. typed path segments plus shared path formatting
+2. richer visitor control such as `leave`, `skip-children`, and `stop`
+3. wrapper-level traversal hooks for definitions, fields, and tuple elements
+4. richer reference context such as lexical definition versus target definition stacks
+5. richer transform control such as `leave`, targeted skip rules, or wrapper-aware mutation helpers
+
+### Defer Until Scale Forces It
+
+These items should stay deferred until the repository has materially more IR consumers or larger schemas than it does today.
+
+1. iterative traversal instead of recursive descent
+2. a shared traversal base across `Value IR`, `Shape IR`, and `Constraint IR`
+3. a mutation-capable or rewrite-capable visitor
+4. a combined traversal and transformation framework
+
+## Current Priorities
+
+Recommended order for traversal and transform improvements:
+
+1. keep `walkSchemaDocument*()` and `transformSchemaDocument*()` semantics aligned
+2. keep traversal and transform reference policies explicit and narrow
+3. centralize all structural child descent through the shared child-enumeration helper
+4. revisit path representation only after the first three items are stable
+
+The repository should not treat all review findings as equal-priority work.
+The current bottleneck is semantic clarity, not feature richness.
+
+## Current Repository State
+
+The repository now has these concrete entry points in `@aio/core`:
+
+- traversal:
+  - `walkSchemaDocument()`
+  - `walkSchemaDocumentStructure()`
+  - `walkSchemaDocumentFromRoot()`
+  - `walkSchemaDefinitions()`
+  - `walkSchemaNode()`
+- transform:
+  - `transformSchemaDocument()`
+  - `transformSchemaDocumentStructure()`
+  - `transformSchemaDocumentFromRoot()`
+  - `transformSchemaDefinitions()`
+  - `transformSchemaNode()`
+
+The repository also now has:
+
+- explicit reference follow outcomes through `SchemaReferenceTraversalStatus`
+- shared child enumeration through `packages/core/src/schema/children.ts`
+- a small immutable transform layer that reuses the same child-enumeration logic as traversal
+- a dedicated normalization layer that uses transform as a shape-to-shape exit instead of hiding shared normalization inside generators
+
+So the current state is no longer “we should probably extract traversal”.
+The current state is “the extraction exists, and the next job is to keep its semantics disciplined as more consumers arrive”.
+
+## Current Maturity
+
+The current maturity level is best understood as:
+
+- walker: high confidence for current `Shape IR` analysis consumers
+- transform: usable and intentionally narrow
+- normalization: real and reusable, but still early enough that new rules should be added cautiously
+
+That means the repository is past the “prove the abstraction exists” phase.
+It is now in the “keep the abstraction small, truthful, and hard to misuse” phase.
 
 ## Original Goal
 
@@ -76,6 +166,11 @@ It intentionally did not first target:
 - parser internals
 - a full transform or rewrite framework
 
+That statement is still mostly true.
+
+What changed is that the repository now also has a small internal transform layer.
+That layer should still be treated as a focused shared utility, not as a broad rewrite framework.
+
 ## Current Repeated Patterns
 
 The current diagnostics and validation passes repeatedly implement the same descent rules:
@@ -125,28 +220,51 @@ Practical guidance:
 - treat the first version as a focused shared core utility, not as a broad framework promise
 - avoid coupling `sdk` route or report abstractions directly to traversal internals
 
-## First-Pass API Shape
+## Current API Shape
 
-The first useful abstraction should separate:
+The current abstraction now separates:
 
-- one helper that owns document setup and traversal state
-- one visitor contract for read-only node inspection
-- one explicit reference-resolution policy
+- document setup and traversal state
+- read-only node inspection through a visitor contract
+- immutable node rewriting through a transform contract
+- explicit reference-resolution and reference-follow policies
 
-Recommended surface:
+Current surface:
 
 ```ts
 walkSchemaDocument(document, visitor, options?)
+walkSchemaDocumentStructure(document, visitor, options?)
+walkSchemaDocumentFromRoot(document, visitor, options?)
+walkSchemaDefinitions(document, visitor, options?)
 walkSchemaNode(node, context, visitor)
+
+transformSchemaDocument(document, transformer, options?)
+transformSchemaDocumentStructure(document, transformer, options?)
+transformSchemaDocumentFromRoot(document, transformer, options?)
+transformSchemaDefinitions(document, transformer, options?)
+transformSchemaNode(node, transformer, context)
+
+normalizeSchemaDocument(document, options?)
+normalizeSchemaDocumentStructure(document, options?)
+normalizeSchemaDocumentFromRoot(document, options?)
+normalizeSchemaDefinitions(document, options?)
+normalizeSchemaNode(node, context)
 ```
 
-The exact names were allowed to change during implementation, but the responsibilities should stay distinct:
+Responsibilities:
 
-- `walkSchemaDocument(...)` builds definition lookup, enters root and definitions, and manages traversal state
+- `walkSchemaDocumentStructure(...)` enters document definitions and root
+- `walkSchemaDocumentFromRoot(...)` starts only from root
+- `walkSchemaDefinitions(...)` starts only from document definitions
 - `walkSchemaNode(...)` handles mechanical descent from a known node context
-- `options` control reference handling and traversal entry behavior
+- `transformSchemaDocumentStructure(...)` transforms definitions and root
+- `transformSchemaDocumentFromRoot(...)` transforms root and, when configured, root-reachable definitions
+- `transformSchemaDefinitions(...)` transforms only document definitions
+- `transformSchemaNode(...)` handles mechanical immutable descent from a known node context
+- `normalizeSchema...(...)` provides a dedicated shape-to-shape normalization exit built on top of the shared transform layer
+- `options` control reference handling and entry behavior
 
-The first version was expected to support:
+The current implementation supports:
 
 - document root traversal
 - definition traversal
@@ -155,8 +273,10 @@ The first version was expected to support:
 - optional local reference resolution
 - cycle-safe traversal state
 - pre-order callbacks
+- immutable node rewriting that preserves wrapper semantics when children change
+- a dedicated normalization pass for shared shape rewrites such as union flattening and deduplication
 
-It does not need post-order hooks, mutation hooks, or rewrite semantics.
+It still does not need post-order hooks, generalized mutation hooks, or a full rewrite framework.
 
 ## Context Shape
 
@@ -214,6 +334,76 @@ The first version should not include:
 
 If early adoption later shows a real need for `exit` or short-circuiting, that can be added in a second pass without changing the core read-only model.
 
+## Transform Contract
+
+The current transform contract intentionally mirrors the walker in spirit without turning into a heavier framework.
+
+```ts
+interface SchemaTransformer {
+  transformNode?(
+    node: SchemaNode,
+    context: SchemaTransformContext,
+  ): SchemaNode;
+}
+```
+
+Current transform context intentionally stays close to traversal context:
+
+```ts
+interface SchemaTransformContext {
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  parent?: SchemaNode;
+  containingDefinition?: SchemaDefinition;
+  via?: SchemaWalkVia;
+}
+```
+
+This is enough for the current repository phase because it supports:
+
+- local immutable rewrites
+- stable logical path propagation
+- reuse of shared child enumeration
+- future consumer migration away from handwritten recursive transforms
+
+It should not yet grow into:
+
+- a mutation visitor
+- a combined enter/leave rewrite pipeline
+- reference inlining
+- wrapper-node mutation hooks
+
+## Normalization Exit
+
+The repository now has a dedicated normalization exit on top of the shared transform layer.
+
+That exit currently exists as:
+
+```ts
+normalizeSchemaDocument(...)
+normalizeSchemaDocumentStructure(...)
+normalizeSchemaDocumentFromRoot(...)
+normalizeSchemaDefinitions(...)
+normalizeSchemaNode(...)
+```
+
+The purpose of these helpers is to keep shared shape normalization out of generators.
+
+That separation matters because:
+
+- generators should primarily consume IR and render targets
+- shared normalization should remain reusable across multiple generators or analysis passes
+- route planning can later express normalization as an explicit step instead of hiding it inside target-local output code
+
+The first implemented normalization rules are intentionally small:
+
+- union flattening and deduplication
+- single-member union collapse
+- unknown-evidence canonicalization
+- `IdentifierName.words` metadata canonicalization for documents, definitions, and fields
+
+That is enough to validate the architectural shape without prematurely committing to a large catalog of rewrite rules.
+
 ## Reference Policy
 
 Reference behavior must be explicit.
@@ -227,7 +417,7 @@ That matters because:
 - validation may only need to confirm that a reference resolves
 - future emitters may want to keep references as references
 
-The current version supports a policy object conceptually equivalent to:
+The current walker supports a policy object equivalent to:
 
 ```ts
 interface SchemaWalkOptions {
@@ -247,6 +437,24 @@ Cycle behavior:
 - cycles should be prevented mechanically, not delegated to each consumer
 
 The current version still does not need broader resolution policies such as cross-document references or user-supplied resolvers.
+
+The current transform layer now also supports a deliberately narrow reference policy:
+
+```ts
+interface SchemaTransformOptions {
+  references?: "preserve" | "follow";
+}
+```
+
+Current transform behavior:
+
+- `"preserve"` transforms only the nodes directly entered by the selected entry point
+- `"follow"` is currently only meaningful on `transformSchemaDocumentFromRoot(...)`
+- `"follow"` does not inline references into the tree
+- instead, it additionally transforms root-reachable definitions while preserving reference nodes as references
+
+This is intentionally narrower than a full reference-rewrite framework.
+It keeps transform semantics aligned with traversal semantics without pretending that the repository already has a complete reference-aware rewrite system.
 
 ## Path Contract
 
@@ -298,6 +506,19 @@ The first helper should not:
 - reinterpret target-local naming or rendering policy
 
 The callback should always receive the current `SchemaNode`, not a synthetic wrapper.
+
+## Shared Child Enumeration
+
+Traversal and transform now both rely on the same child-enumeration layer in `packages/core/src/schema/children.ts`.
+
+That helper is now the source of truth for:
+
+- which structural children a `SchemaNode` exposes
+- the stable order in which those children are visited
+- which `pathSegment` and `via` metadata each child edge carries
+
+This should remain centralized.
+If future traversal or transform changes need different child orderings or wrapper semantics, that should be treated as a deliberate design change rather than duplicated local logic.
 
 ## First Migration Targets
 
@@ -367,11 +588,19 @@ These questions remain intentionally deferred after the first helper landed:
 - whether `exit` hooks or short-circuiting add enough real value
 - whether a heavier visitor pattern is ever justified
 
+These questions should stay deferred until either:
+
+- more parser or generator surfaces start depending on traversal directly
+- a further real immutable transform consumer lands beyond normalization
+- route planning or capability analysis starts requiring richer traversal context
+
 ## Current Direction
 
 The repository should now continue with:
 
 - one lightweight shared traversal helper in `@aio/core`
+- one small immutable transform helper in `@aio/core`
+- one dedicated normalization exit in `@aio/core` built on top of transform
 - explicit path and reference conventions
 - a `Shape IR`-specific API instead of a speculative multi-IR abstraction
 - continued hardening through consumer adoption and focused traversal tests

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createRootSchemaPath,
   schemaArrayNode,
   schemaDefinition,
   schemaDocument,
@@ -29,6 +30,7 @@ describe("schema transform", () => {
       node,
       {},
       {
+        typedPath: createRootSchemaPath(),
         path: ["root"],
         definitionLookup: new Map(),
       },
@@ -65,6 +67,7 @@ describe("schema transform", () => {
         },
       },
       {
+        typedPath: createRootSchemaPath(),
         path: ["root"],
         definitionLookup: new Map(),
       },
@@ -257,7 +260,7 @@ describe("schema transform", () => {
     expect(transformed).toEqual(document);
   });
 
-  it("can transform root-reachable definitions when following references", () => {
+  it("can transform root-reachable definitions when configured for reachable definitions", () => {
     const document = schemaDocument(
       "Order",
       schemaObjectNode([schemaFieldNode("user", schemaReferenceNode("User"))]),
@@ -295,7 +298,7 @@ describe("schema transform", () => {
             : current;
         },
       },
-      { references: "follow" },
+      { reachability: "selected-and-root-reachable-definitions" },
     );
 
     expect(transformed).toEqual(
@@ -323,6 +326,54 @@ describe("schema transform", () => {
               "Unused",
               schemaObjectNode([
                 schemaFieldNode("count", schemaScalarNode("integer")),
+              ]),
+            ),
+          ],
+        },
+      ),
+    );
+  });
+
+  it("keeps the legacy follow option working for compatibility", () => {
+    const document = schemaDocument(
+      "Order",
+      schemaObjectNode([schemaFieldNode("user", schemaReferenceNode("User"))]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const transformed = transformSchemaDocumentFromRoot(
+      document,
+      {
+        transformNode(current) {
+          return current.kind === "scalar" && current.scalar === "integer"
+            ? schemaScalarNode("number")
+            : current;
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(transformed).toEqual(
+      schemaDocument(
+        "Order",
+        schemaObjectNode([
+          schemaFieldNode("user", schemaReferenceNode("User")),
+        ]),
+        {
+          definitions: [
+            schemaDefinition(
+              "User",
+              schemaObjectNode([
+                schemaFieldNode("id", schemaScalarNode("number")),
               ]),
             ),
           ],

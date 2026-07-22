@@ -1,5 +1,17 @@
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 import { createSchemaChildContext, getSchemaNodeChildren } from "./children.js";
+import {
+  createSchemaDefinitionIndex,
+  createSchemaDefinitionIndexFromLookup,
+  resolveSchemaReference,
+  type SchemaDefinitionIndex,
+} from "./definitions.js";
+import {
+  createDefinitionSchemaPath,
+  createRootSchemaPath,
+  schemaPathToDiagnosticPath,
+  type SchemaPath,
+} from "./path.js";
 
 export type SchemaWalkReferenceMode = "preserve" | "follow";
 
@@ -28,6 +40,7 @@ export type SchemaWalkVia =
 export interface SchemaWalkContext {
   document: SchemaDocument;
   node: SchemaNode;
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -38,6 +51,7 @@ export interface SchemaWalkContext {
 
 export interface SchemaWalkNodeContext {
   document: SchemaDocument;
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
   parent?: SchemaNode;
@@ -57,7 +71,7 @@ export interface SchemaWalkOptions {
 interface SchemaWalkState {
   referenceMode: SchemaWalkReferenceMode;
   seenReferences: ReadonlySet<string>;
-  definitionIndex: ReadonlyMap<string, readonly SchemaDefinition[]>;
+  definitionIndex: SchemaDefinitionIndex;
 }
 
 export function walkSchemaDocument(
@@ -73,8 +87,8 @@ export function walkSchemaDocumentStructure(
   visitor: SchemaWalkVisitor,
   options?: SchemaWalkOptions,
 ): void {
-  const { definitionIndex, definitionLookup } =
-    createDefinitionIndexes(document);
+  const definitionIndex = createSchemaDefinitionIndex(document);
+  const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
     seenReferences: new Set(),
@@ -86,7 +100,10 @@ export function walkSchemaDocumentStructure(
       definition.type,
       {
         document,
-        path: ["definitions", definition.name.source],
+        typedPath: createDefinitionSchemaPath(definition.name.source),
+        path: schemaPathToDiagnosticPath(
+          createDefinitionSchemaPath(definition.name.source),
+        ),
         definitionLookup,
         containingDefinition: definition,
         via: {
@@ -103,7 +120,8 @@ export function walkSchemaDocumentStructure(
     document.root,
     {
       document,
-      path: ["root"],
+      typedPath: createRootSchemaPath(),
+      path: schemaPathToDiagnosticPath(createRootSchemaPath()),
       definitionLookup,
       via: { kind: "root" },
     },
@@ -117,8 +135,8 @@ export function walkSchemaDocumentFromRoot(
   visitor: SchemaWalkVisitor,
   options?: SchemaWalkOptions,
 ): void {
-  const { definitionIndex, definitionLookup } =
-    createDefinitionIndexes(document);
+  const definitionIndex = createSchemaDefinitionIndex(document);
+  const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
     seenReferences: new Set(),
@@ -129,7 +147,8 @@ export function walkSchemaDocumentFromRoot(
     document.root,
     {
       document,
-      path: ["root"],
+      typedPath: createRootSchemaPath(),
+      path: schemaPathToDiagnosticPath(createRootSchemaPath()),
       definitionLookup,
       via: { kind: "root" },
     },
@@ -143,8 +162,8 @@ export function walkSchemaDefinitions(
   visitor: SchemaWalkVisitor,
   options?: SchemaWalkOptions,
 ): void {
-  const { definitionIndex, definitionLookup } =
-    createDefinitionIndexes(document);
+  const definitionIndex = createSchemaDefinitionIndex(document);
+  const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
     seenReferences: new Set(),
@@ -156,7 +175,10 @@ export function walkSchemaDefinitions(
       definition.type,
       {
         document,
-        path: ["definitions", definition.name.source],
+        typedPath: createDefinitionSchemaPath(definition.name.source),
+        path: schemaPathToDiagnosticPath(
+          createDefinitionSchemaPath(definition.name.source),
+        ),
         definitionLookup,
         containingDefinition: definition,
         via: {
@@ -179,7 +201,9 @@ export function walkSchemaNode(
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
     seenReferences: new Set(),
-    definitionIndex: createDefinitionIndexFromLookup(context.definitionLookup),
+    definitionIndex: createSchemaDefinitionIndexFromLookup(
+      context.definitionLookup,
+    ),
   };
 
   walkNode(node, context, visitor, state);
@@ -200,6 +224,7 @@ function walkNode(
   visitor.enter?.({
     document: context.document,
     node,
+    typedPath: context.typedPath,
     path: context.path,
     definitionLookup: context.definitionLookup,
     ...(context.parent ? { parent: context.parent } : {}),
@@ -261,6 +286,7 @@ function followReferenceIfConfigured(
     resolution.definition.type,
     {
       document: context.document,
+      typedPath: context.typedPath,
       path: context.path,
       definitionLookup: context.definitionLookup,
       parent: node,
@@ -278,58 +304,6 @@ function followReferenceIfConfigured(
   );
 }
 
-function createDefinitionIndexes(document: SchemaDocument): {
-  definitionIndex: ReadonlyMap<string, readonly SchemaDefinition[]>;
-  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
-} {
-  const definitionIndex = new Map<string, SchemaDefinition[]>();
-
-  for (const definition of document.definitions) {
-    const definitions = definitionIndex.get(definition.name.source);
-
-    if (definitions === undefined) {
-      definitionIndex.set(definition.name.source, [definition]);
-      continue;
-    }
-
-    definitions.push(definition);
-  }
-
-  return {
-    definitionIndex,
-    definitionLookup: createUniqueDefinitionLookup(definitionIndex),
-  };
-}
-
-function createDefinitionIndexFromLookup(
-  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
-): ReadonlyMap<string, readonly SchemaDefinition[]> {
-  return new Map(
-    Array.from(definitionLookup.entries(), ([name, definition]) => [
-      name,
-      [definition],
-    ]),
-  );
-}
-
-function createUniqueDefinitionLookup(
-  definitionIndex: ReadonlyMap<string, readonly SchemaDefinition[]>,
-): ReadonlyMap<string, SchemaDefinition> {
-  const definitionLookup = new Map<string, SchemaDefinition>();
-
-  for (const [name, definitions] of definitionIndex.entries()) {
-    if (definitions.length === 1) {
-      const definition = definitions[0];
-
-      if (definition !== undefined) {
-        definitionLookup.set(name, definition);
-      }
-    }
-  }
-
-  return definitionLookup;
-}
-
 function resolveReferenceTraversalStatus(
   node: Extract<SchemaNode, { kind: "reference" }>,
   context: SchemaWalkNodeContext,
@@ -339,29 +313,11 @@ function resolveReferenceTraversalStatus(
     return { status: "not-followed" };
   }
 
-  const definitions = state.definitionIndex.get(node.name);
-
-  if (definitions === undefined || definitions.length === 0) {
-    return { status: "missing", name: node.name };
-  }
-
-  if (definitions.length > 1) {
-    return {
-      status: "ambiguous",
-      name: node.name,
-      definitions,
-    };
-  }
+  const resolution = resolveSchemaReference(state.definitionIndex, node.name);
 
   if (state.seenReferences.has(node.name)) {
     return { status: "cycle", name: node.name };
   }
 
-  const definition = definitions[0];
-
-  if (definition === undefined) {
-    return { status: "missing", name: node.name };
-  }
-
-  return { status: "resolved", definition };
+  return resolution;
 }

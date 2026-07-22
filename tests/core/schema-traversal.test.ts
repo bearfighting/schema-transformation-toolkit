@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  schemaPathSegmentToDiagnosticToken,
   schemaArrayNode,
   schemaDefinition,
   schemaDocument,
@@ -696,31 +697,57 @@ describe("schema traversal", () => {
       members: [schemaScalarNode("string"), schemaScalarNode("integer")],
     });
 
-    expect(tupleChildren.map((child) => child.pathSegment)).toEqual(["0", "1"]);
+    expect(
+      tupleChildren.map((child) =>
+        schemaPathSegmentToDiagnosticToken(child.pathSegment),
+      ),
+    ).toEqual(["0", "1"]);
+    expect(tupleChildren.map((child) => child.pathSegment.kind)).toEqual([
+      "tupleElement",
+      "tupleElement",
+    ]);
     expect(tupleChildren.map((child) => child.via.kind)).toEqual([
       "tupleElement",
       "tupleElement",
     ]);
 
-    expect(recordChildren.map((child) => child.pathSegment)).toEqual([
-      "key",
-      "value",
+    expect(
+      recordChildren.map((child) =>
+        schemaPathSegmentToDiagnosticToken(child.pathSegment),
+      ),
+    ).toEqual(["key", "value"]);
+    expect(recordChildren.map((child) => child.pathSegment.kind)).toEqual([
+      "recordKey",
+      "recordValue",
     ]);
     expect(recordChildren.map((child) => child.via.kind)).toEqual([
       "recordKey",
       "recordValue",
     ]);
 
-    expect(objectChildren.map((child) => child.pathSegment)).toEqual([
-      "name",
-      "tags",
+    expect(
+      objectChildren.map((child) =>
+        schemaPathSegmentToDiagnosticToken(child.pathSegment),
+      ),
+    ).toEqual(["name", "tags"]);
+    expect(objectChildren.map((child) => child.pathSegment.kind)).toEqual([
+      "field",
+      "field",
     ]);
     expect(objectChildren.map((child) => child.via.kind)).toEqual([
       "field",
       "field",
     ]);
 
-    expect(unionChildren.map((child) => child.pathSegment)).toEqual(["0", "1"]);
+    expect(
+      unionChildren.map((child) =>
+        schemaPathSegmentToDiagnosticToken(child.pathSegment),
+      ),
+    ).toEqual(["0", "1"]);
+    expect(unionChildren.map((child) => child.pathSegment.kind)).toEqual([
+      "unionMember",
+      "unionMember",
+    ]);
     expect(unionChildren.map((child) => child.via.kind)).toEqual([
       "unionMember",
       "unionMember",

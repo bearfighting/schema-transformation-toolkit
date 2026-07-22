@@ -1,10 +1,11 @@
 import type { SchemaNode } from "./types.js";
 import type { SchemaFieldNode } from "./types.js";
+import { appendSchemaPath, schemaPathToDiagnosticPath, type SchemaPathSegment } from "./path.js";
 import type { SchemaWalkNodeContext, SchemaWalkVia } from "./traversal.js";
 
 export interface SchemaNodeChild {
   node: SchemaNode;
-  pathSegment: string;
+  pathSegment: SchemaPathSegment;
   via: SchemaWalkVia;
 }
 
@@ -22,39 +23,39 @@ export function getSchemaNodeChildren(
       return [
         {
           node: node.elementType,
-          pathSegment: "elementType",
+          pathSegment: { kind: "elementType" },
           via: { kind: "elementType" },
         },
       ];
     case "tuple":
       return node.elements.map((element, index) => ({
         node: element.type,
-        pathSegment: String(index),
+        pathSegment: { kind: "tupleElement", index },
         via: { kind: "tupleElement", index },
       }));
     case "record":
       return [
         {
           node: node.key,
-          pathSegment: "key",
+          pathSegment: { kind: "recordKey" },
           via: { kind: "recordKey" },
         },
         {
           node: node.value,
-          pathSegment: "value",
+          pathSegment: { kind: "recordValue" },
           via: { kind: "recordValue" },
         },
       ];
     case "union":
       return node.members.map((member, index) => ({
         node: member,
-        pathSegment: String(index),
+        pathSegment: { kind: "unionMember", index },
         via: { kind: "unionMember", index },
       }));
     case "object":
       return node.fields.map((field) => ({
         node: field.type,
-        pathSegment: field.name.source,
+        pathSegment: { kind: "field", name: field.name.source },
         via: { kind: "field", fieldName: field.name.source },
       }));
   }
@@ -67,7 +68,10 @@ export function createSchemaChildContext(
 ): SchemaWalkNodeContext {
   return {
     document: context.document,
-    path: [...context.path, child.pathSegment],
+    typedPath: appendSchemaPath(context.typedPath, child.pathSegment),
+    path: schemaPathToDiagnosticPath(
+      appendSchemaPath(context.typedPath, child.pathSegment),
+    ),
     definitionLookup: context.definitionLookup,
     parent,
     ...(context.containingDefinition
@@ -105,7 +109,7 @@ export function mapSchemaNodeChildren(
       const nextElements = node.elements.map((element, index) => {
         const relationship: SchemaNodeChild = {
           node: element.type,
-          pathSegment: String(index),
+          pathSegment: { kind: "tupleElement", index },
           via: { kind: "tupleElement", index },
         };
         const nextType = mapper(element.type, relationship);
@@ -150,7 +154,7 @@ export function mapSchemaNodeChildren(
       const nextMembers = node.members.map((member, index) => {
         const relationship: SchemaNodeChild = {
           node: member,
-          pathSegment: String(index),
+          pathSegment: { kind: "unionMember", index },
           via: { kind: "unionMember", index },
         };
         const nextMember = mapper(member, relationship);
@@ -174,7 +178,7 @@ export function mapSchemaNodeChildren(
       const nextFields = node.fields.map((field): SchemaFieldNode => {
         const relationship: SchemaNodeChild = {
           node: field.type,
-          pathSegment: field.name.source,
+          pathSegment: { kind: "field", name: field.name.source },
           via: { kind: "field", fieldName: field.name.source },
         };
         const nextType = mapper(field.type, relationship);

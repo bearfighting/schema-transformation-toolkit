@@ -49,7 +49,8 @@ export function normalizeSchemaDocumentForTest(
   document: SchemaDocument,
 ): SchemaDocument {
   const normalizedDocument = normalizeSchemaDocument(document);
-  const collapsedDocument = collapseSingleRootReferenceDocument(normalizedDocument);
+  const collapsedDocument =
+    collapseSingleRootReferenceDocument(normalizedDocument);
 
   return {
     ...collapsedDocument,

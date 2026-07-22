@@ -18,20 +18,14 @@ import { getSchemaNodeChildren } from "../../packages/core/src/schema/children.j
 
 describe("schema traversal", () => {
   it("walkSchemaDocumentStructure keeps the current definitions-plus-root traversal", () => {
-    const document = schemaDocument(
-      "UserList",
-      schemaReferenceNode("User"),
-      {
-        definitions: [
-          schemaDefinition(
-            "User",
-            schemaObjectNode([
-              schemaFieldNode("id", schemaScalarNode("string")),
-            ]),
-          ),
-        ],
-      },
-    );
+    const document = schemaDocument("UserList", schemaReferenceNode("User"), {
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+      ],
+    });
 
     const visited: string[] = [];
 
@@ -53,26 +47,20 @@ describe("schema traversal", () => {
   });
 
   it("walkSchemaDocumentFromRoot skips unreachable definitions", () => {
-    const document = schemaDocument(
-      "Entry",
-      schemaReferenceNode("User"),
-      {
-        definitions: [
-          schemaDefinition(
-            "User",
-            schemaObjectNode([
-              schemaFieldNode("id", schemaScalarNode("string")),
-            ]),
-          ),
-          schemaDefinition(
-            "Unused",
-            schemaObjectNode([
-              schemaFieldNode("code", schemaScalarNode("integer")),
-            ]),
-          ),
-        ],
-      },
-    );
+    const document = schemaDocument("Entry", schemaReferenceNode("User"), {
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+        schemaDefinition(
+          "Unused",
+          schemaObjectNode([
+            schemaFieldNode("code", schemaScalarNode("integer")),
+          ]),
+        ),
+      ],
+    });
 
     const visited: string[] = [];
 
@@ -695,10 +683,7 @@ describe("schema traversal", () => {
       ]),
     );
     const recordChildren = getSchemaNodeChildren(
-      schemaRecordNode(
-        schemaScalarNode("string"),
-        schemaReferenceNode("User"),
-      ),
+      schemaRecordNode(schemaScalarNode("string"), schemaReferenceNode("User")),
     );
     const objectChildren = getSchemaNodeChildren(
       schemaObjectNode([

@@ -143,9 +143,15 @@ Order.shippingUser -> User
 当前 traversal 通过类似下面的关系描述节点是如何被访问到的：
 
 ```ts
-{ kind: "field", fieldName }
-{ kind: "unionMember", index }
-{ kind: "referenceResolution", referenceName }
+{
+  kind: ("field", fieldName);
+}
+{
+  kind: ("unionMember", index);
+}
+{
+  kind: ("referenceResolution", referenceName);
+}
 ```
 
 这比单纯查看 path 的最后一个字符串更可靠。
@@ -301,8 +307,8 @@ walkSchemaDefinitions(document, visitor);
 短期应优先拆分：
 
 ```ts
-walkSchemaDocumentStructure()
-walkSchemaDocumentFromRoot()
+walkSchemaDocumentStructure();
+walkSchemaDocumentFromRoot();
 ```
 
 避免让一个函数承担冲突的语义。
@@ -495,13 +501,9 @@ interface SchemaWalkVisitor {
   enterField?(context: SchemaFieldWalkContext): SchemaWalkControl;
   leaveField?(context: SchemaFieldWalkContext): void;
 
-  enterTupleElement?(
-    context: SchemaTupleElementWalkContext,
-  ): SchemaWalkControl;
+  enterTupleElement?(context: SchemaTupleElementWalkContext): SchemaWalkControl;
 
-  leaveTupleElement?(
-    context: SchemaTupleElementWalkContext,
-  ): void;
+  leaveTupleElement?(context: SchemaTupleElementWalkContext): void;
 
   enterNode?(context: SchemaNodeWalkContext): SchemaWalkControl;
   leaveNode?(context: SchemaNodeWalkContext): void;
@@ -619,19 +621,14 @@ interface SchemaWalkContext {
 ### 建议控制类型
 
 ```ts
-type SchemaWalkControl =
-  | "continue"
-  | "skip-children"
-  | "stop";
+type SchemaWalkControl = "continue" | "skip-children" | "stop";
 ```
 
 Visitor：
 
 ```ts
 interface SchemaWalkVisitor {
-  enterNode?(
-    context: SchemaNodeWalkContext,
-  ): SchemaWalkControl | void;
+  enterNode?(context: SchemaNodeWalkContext): SchemaWalkControl | void;
 
   leaveNode?(context: SchemaNodeWalkContext): void;
 }
@@ -695,7 +692,7 @@ Definition index 不应静默丢失 ambiguity。
 可以使用：
 
 ```ts
-ReadonlyMap<string, readonly SchemaDefinition[]>
+ReadonlyMap<string, readonly SchemaDefinition[]>;
 ```
 
 Reference resolution 状态：
@@ -818,9 +815,9 @@ Visitor 当前可能拿到真实 IR 对象引用。
 调用者可以在 traversal 过程中修改：
 
 ```ts
-context.node
-context.document.definitions
-context.parent
+context.node;
+context.document.definitions;
+context.parent;
 ```
 
 这可能导致：
@@ -876,10 +873,7 @@ interface SchemaNodeWalkContext {
 
 ```ts
 interface SchemaTransformer {
-  transformNode?(
-    node: SchemaNode,
-    context: SchemaTransformContext,
-  ): SchemaNode;
+  transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 ```
 
@@ -898,15 +892,14 @@ function transformSchemaNode(
   node: SchemaNode,
   transformer: SchemaTransformer,
 ): SchemaNode {
-  const transformedChildren = mapSchemaNodeChildren(
-    node,
-    child => transformSchemaNode(child, transformer),
+  const transformedChildren = mapSchemaNodeChildren(node, (child) =>
+    transformSchemaNode(child, transformer),
   );
 
-  return transformer.transformNode?.(
-    transformedChildren,
-    context,
-  ) ?? transformedChildren;
+  return (
+    transformer.transformNode?.(transformedChildren, context) ??
+    transformedChildren
+  );
 }
 ```
 
@@ -964,9 +957,7 @@ interface SchemaChild {
 ```
 
 ```ts
-function getSchemaNodeChildren(
-  node: SchemaNode,
-): readonly SchemaChild[];
+function getSchemaNodeChildren(node: SchemaNode): readonly SchemaChild[];
 ```
 
 供以下功能使用：
@@ -1013,7 +1004,7 @@ function mapSchemaNodeChildren(
 不建议现在创建一个巨大统一 visitor：
 
 ```ts
-walkAnyIrDocument()
+walkAnyIrDocument();
 ```
 
 三类 IR 的 child relationship、reference 语义和使用场景可能差异很大。
@@ -1033,18 +1024,15 @@ walkAnyIrDocument()
 分别保留：
 
 ```ts
-walkValueDocument()
-walkSchemaDocument()
-walkConstraintDocument()
+walkValueDocument();
+walkSchemaDocument();
+walkConstraintDocument();
 ```
 
 ### 推荐基础接口
 
 ```ts
-type IrWalkControl =
-  | "continue"
-  | "skip-children"
-  | "stop";
+type IrWalkControl = "continue" | "skip-children" | "stop";
 
 interface IrWalkCommonContext<TPathSegment> {
   readonly depth: number;
@@ -1260,22 +1248,16 @@ Traversal 应能够分析 invalid document，而不是依赖 input 必须先完�
 以下设计用于表达方向，不要求一次性完整实现。
 
 ```ts
-export type SchemaWalkControl =
-  | "continue"
-  | "skip-children"
-  | "stop";
+export type SchemaWalkControl = "continue" | "skip-children" | "stop";
 ```
 
 ```ts
-export type SchemaReferenceVisitMode =
-  | "preserve"
-  | "follow";
+export type SchemaReferenceVisitMode = "preserve" | "follow";
 ```
 
 ```ts
 export type SchemaReferenceRepeatMode =
-  | "per-occurrence"
-  | "once-per-definition";
+  "per-occurrence" | "once-per-definition";
 ```
 
 ```ts
@@ -1314,45 +1296,29 @@ export interface SchemaNodeWalkContext {
 
 ```ts
 export interface SchemaWalkVisitor {
-  enterDocument?(
-    context: SchemaDocumentWalkContext,
-  ): SchemaWalkControl | void;
+  enterDocument?(context: SchemaDocumentWalkContext): SchemaWalkControl | void;
 
-  leaveDocument?(
-    context: SchemaDocumentWalkContext,
-  ): void;
+  leaveDocument?(context: SchemaDocumentWalkContext): void;
 
   enterDefinition?(
     context: SchemaDefinitionWalkContext,
   ): SchemaWalkControl | void;
 
-  leaveDefinition?(
-    context: SchemaDefinitionWalkContext,
-  ): void;
+  leaveDefinition?(context: SchemaDefinitionWalkContext): void;
 
-  enterField?(
-    context: SchemaFieldWalkContext,
-  ): SchemaWalkControl | void;
+  enterField?(context: SchemaFieldWalkContext): SchemaWalkControl | void;
 
-  leaveField?(
-    context: SchemaFieldWalkContext,
-  ): void;
+  leaveField?(context: SchemaFieldWalkContext): void;
 
   enterTupleElement?(
     context: SchemaTupleElementWalkContext,
   ): SchemaWalkControl | void;
 
-  leaveTupleElement?(
-    context: SchemaTupleElementWalkContext,
-  ): void;
+  leaveTupleElement?(context: SchemaTupleElementWalkContext): void;
 
-  enterNode?(
-    context: SchemaNodeWalkContext,
-  ): SchemaWalkControl | void;
+  enterNode?(context: SchemaNodeWalkContext): SchemaWalkControl | void;
 
-  leaveNode?(
-    context: SchemaNodeWalkContext,
-  ): void;
+  leaveNode?(context: SchemaNodeWalkContext): void;
 
   unresolvedReference?(
     context: SchemaUnresolvedReferenceContext,

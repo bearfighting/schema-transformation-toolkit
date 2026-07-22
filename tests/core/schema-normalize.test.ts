@@ -39,10 +39,7 @@ describe("schema normalize", () => {
         schemaScalarNode("string"),
         {
           kind: "union",
-          members: [
-            schemaScalarNode("number"),
-            schemaScalarNode("string"),
-          ],
+          members: [schemaScalarNode("number"), schemaScalarNode("string")],
         },
       ],
     };
@@ -53,10 +50,7 @@ describe("schema normalize", () => {
     });
 
     expect(normalized).toEqual(
-      schemaUnionNode([
-        schemaScalarNode("string"),
-        schemaScalarNode("number"),
-      ]),
+      schemaUnionNode([schemaScalarNode("string"), schemaScalarNode("number")]),
     );
   });
 
@@ -274,10 +268,7 @@ describe("schema normalize", () => {
             schemaDefinition(
               "Unused",
               schemaObjectNode([
-                schemaFieldNode(
-                  "count",
-                  createUnnormalizedUnionNode(),
-                ),
+                schemaFieldNode("count", createUnnormalizedUnionNode()),
               ]),
             ),
           ],
@@ -363,7 +354,9 @@ function createReachableDefinitionNormalizationDocument(): SchemaDocument {
         ),
         schemaDefinition(
           "Address",
-          schemaObjectNode([schemaFieldNode("zip", schemaScalarNode("string"))]),
+          schemaObjectNode([
+            schemaFieldNode("zip", schemaScalarNode("string")),
+          ]),
         ),
         schemaDefinition(
           "Unused",

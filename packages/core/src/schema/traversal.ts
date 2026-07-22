@@ -1,8 +1,5 @@
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
-import {
-  createSchemaChildContext,
-  getSchemaNodeChildren,
-} from "./children.js";
+import { createSchemaChildContext, getSchemaNodeChildren } from "./children.js";
 
 export type SchemaWalkReferenceMode = "preserve" | "follow";
 
@@ -225,7 +222,8 @@ function walkNode(
         context,
         visitor,
         state,
-        referenceResolution ?? resolveReferenceTraversalStatus(node, context, state),
+        referenceResolution ??
+          resolveReferenceTraversalStatus(node, context, state),
       );
       return;
     case "array":

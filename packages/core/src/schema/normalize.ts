@@ -1,6 +1,9 @@
 import { identifierName } from "./identifiers.js";
 import { schemaUnionNode } from "./factories.js";
-import { normalizeUnionMembers, normalizeUnknownEvidence } from "./normalization.js";
+import {
+  normalizeUnionMembers,
+  normalizeUnknownEvidence,
+} from "./normalization.js";
 import type {
   SchemaDefinition,
   SchemaDocument,
@@ -58,11 +61,7 @@ export function normalizeSchemaDefinitions(
   options?: SchemaTransformOptions,
 ): SchemaDocument {
   return normalizeSchemaDocumentWrappers(
-    transformSchemaDefinitions(
-      document,
-      NORMALIZE_SCHEMA_TRANSFORMER,
-      options,
-    ),
+    transformSchemaDefinitions(document, NORMALIZE_SCHEMA_TRANSFORMER, options),
   );
 }
 
@@ -84,7 +83,9 @@ const NORMALIZE_SCHEMA_TRANSFORMER = {
 
       const changed =
         normalizedMembers.length !== node.members.length ||
-        normalizedMembers.some((member, index) => member !== node.members[index]);
+        normalizedMembers.some(
+          (member, index) => member !== node.members[index],
+        );
 
       return changed ? schemaUnionNode(node.members) : node;
     }
@@ -93,10 +94,7 @@ const NORMALIZE_SCHEMA_TRANSFORMER = {
       const normalizedEvidence = normalizeUnknownEvidence(node.evidence);
       const evidenceChanged =
         normalizedEvidence !== node.evidence &&
-        !(
-          normalizedEvidence === undefined &&
-          node.evidence === undefined
-        );
+        !(normalizedEvidence === undefined && node.evidence === undefined);
 
       return evidenceChanged
         ? {
@@ -120,7 +118,9 @@ function normalizeSchemaDocumentWrappers(
   document: SchemaDocument,
 ): SchemaDocument {
   const normalizedName = identifierName(document.name);
-  const nextDefinitions = document.definitions.map(normalizeDefinitionNameWords);
+  const nextDefinitions = document.definitions.map(
+    normalizeDefinitionNameWords,
+  );
   const definitionsChanged = nextDefinitions.some(
     (definition, index) => definition !== document.definitions[index],
   );
@@ -128,7 +128,9 @@ function normalizeSchemaDocumentWrappers(
   const nameChanged =
     normalizedName.source !== document.name.source ||
     normalizedName.words.length !== document.name.words.length ||
-    normalizedName.words.some((word, index) => word !== document.name.words[index]);
+    normalizedName.words.some(
+      (word, index) => word !== document.name.words[index],
+    );
 
   return !nameChanged && !definitionsChanged
     ? document
@@ -145,8 +147,10 @@ function normalizeDefinitionNameWords(
   const normalizedName = identifierName(definition.name);
 
   return normalizedName.source === definition.name.source &&
-      normalizedName.words.length === definition.name.words.length &&
-      normalizedName.words.every((word, index) => word === definition.name.words[index])
+    normalizedName.words.length === definition.name.words.length &&
+    normalizedName.words.every(
+      (word, index) => word === definition.name.words[index],
+    )
     ? definition
     : {
         ...definition,
@@ -154,14 +158,18 @@ function normalizeDefinitionNameWords(
       };
 }
 
-function normalizeObjectFieldNameWords(node: SchemaObjectNode): SchemaObjectNode {
+function normalizeObjectFieldNameWords(
+  node: SchemaObjectNode,
+): SchemaObjectNode {
   let changed = false;
   const nextFields = node.fields.map((field): SchemaFieldNode => {
     const normalizedName = identifierName(field.name);
     const sameName =
       normalizedName.source === field.name.source &&
       normalizedName.words.length === field.name.words.length &&
-      normalizedName.words.every((word, index) => word === field.name.words[index]);
+      normalizedName.words.every(
+        (word, index) => word === field.name.words[index],
+      );
 
     if (sameName) {
       return field;

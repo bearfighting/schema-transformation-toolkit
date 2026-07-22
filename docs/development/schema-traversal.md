@@ -340,10 +340,7 @@ The current transform contract intentionally mirrors the walker in spirit withou
 
 ```ts
 interface SchemaTransformer {
-  transformNode?(
-    node: SchemaNode,
-    context: SchemaTransformContext,
-  ): SchemaNode;
+  transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 ```
 

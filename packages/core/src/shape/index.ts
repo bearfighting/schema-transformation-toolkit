@@ -19,9 +19,17 @@ export type {
 } from "../schema/types.js";
 
 export type {
+  SchemaTransformContext as ShapeTransformContext,
+  SchemaTransformOptions as ShapeTransformOptions,
+  SchemaTransformReferenceMode as ShapeTransformReferenceMode,
+  SchemaTransformer as ShapeTransformer,
+} from "../schema/transform.js";
+
+export type {
   SchemaWalkContext as ShapeWalkContext,
   SchemaWalkNodeContext as ShapeWalkNodeContext,
   SchemaWalkOptions as ShapeWalkOptions,
+  SchemaReferenceTraversalStatus as ShapeReferenceTraversalStatus,
   SchemaWalkReferenceMode as ShapeWalkReferenceMode,
   SchemaWalkVia as ShapeWalkVia,
   SchemaWalkVisitor as ShapeWalkVisitor,
@@ -62,9 +70,17 @@ export type {
 } from "../schema/types.js";
 
 export type {
+  SchemaTransformContext,
+  SchemaTransformOptions,
+  SchemaTransformReferenceMode,
+  SchemaTransformer,
+} from "../schema/transform.js";
+
+export type {
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
+  SchemaReferenceTraversalStatus,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,
@@ -97,7 +113,20 @@ export {
   schemaTupleNode,
   schemaUnionNode,
   schemaUnknownNode,
+  normalizeSchemaDefinitions,
+  normalizeSchemaDocument,
+  normalizeSchemaDocumentFromRoot,
+  normalizeSchemaDocumentStructure,
+  normalizeSchemaNode,
+  transformSchemaDocument,
+  transformSchemaDocumentFromRoot,
+  transformSchemaDocumentStructure,
+  transformSchemaDefinitions,
+  transformSchemaNode,
+  walkSchemaDefinitions,
   walkSchemaDocument,
+  walkSchemaDocumentFromRoot,
+  walkSchemaDocumentStructure,
   walkSchemaNode,
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,

@@ -439,16 +439,18 @@ The current transform layer now also supports a deliberately narrow reference po
 
 ```ts
 interface SchemaTransformOptions {
+  reachability?: "selected-only" | "selected-and-root-reachable-definitions";
   references?: "preserve" | "follow";
 }
 ```
 
 Current transform behavior:
 
-- `"preserve"` transforms only the nodes directly entered by the selected entry point
-- `"follow"` is currently only meaningful on `transformSchemaDocumentFromRoot(...)`
-- `"follow"` does not inline references into the tree
+- `reachability: "selected-only"` transforms only the nodes directly entered by the selected entry point
+- `reachability: "selected-and-root-reachable-definitions"` is currently only meaningful on `transformSchemaDocumentFromRoot(...)`
+- reachable-definition transform does not inline references into the tree
 - instead, it additionally transforms root-reachable definitions while preserving reference nodes as references
+- legacy `references: "follow"` remains a compatibility alias for reachable-definition transform semantics
 
 This is intentionally narrower than a full reference-rewrite framework.
 It keeps transform semantics aligned with traversal semantics without pretending that the repository already has a complete reference-aware rewrite system.

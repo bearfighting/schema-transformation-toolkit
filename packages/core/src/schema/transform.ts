@@ -13,8 +13,7 @@ import type { SchemaWalkVia } from "./traversal.js";
 
 export type SchemaTransformReferenceMode = "preserve" | "follow";
 export type SchemaTransformReachabilityMode =
-  | "selected-only"
-  | "selected-and-root-reachable-definitions";
+  "selected-only" | "selected-and-root-reachable-definitions";
 
 export interface SchemaTransformContext {
   typedPath: SchemaPath;
@@ -209,7 +208,10 @@ export function transformSchemaNode(
     node,
     (child, relationship: SchemaNodeChild) =>
       transformSchemaNode(child, transformer, {
-        typedPath: appendSchemaPath(context.typedPath, relationship.pathSegment),
+        typedPath: appendSchemaPath(
+          context.typedPath,
+          relationship.pathSegment,
+        ),
         path: schemaPathToDiagnosticPath(
           appendSchemaPath(context.typedPath, relationship.pathSegment),
         ),

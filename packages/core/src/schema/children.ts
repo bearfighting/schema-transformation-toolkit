@@ -1,6 +1,10 @@
 import type { SchemaNode } from "./types.js";
 import type { SchemaFieldNode } from "./types.js";
-import { appendSchemaPath, schemaPathToDiagnosticPath, type SchemaPathSegment } from "./path.js";
+import {
+  appendSchemaPath,
+  schemaPathToDiagnosticPath,
+  type SchemaPathSegment,
+} from "./path.js";
 import type { SchemaWalkNodeContext, SchemaWalkVia } from "./traversal.js";
 
 export interface SchemaNodeChild {

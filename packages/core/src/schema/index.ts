@@ -86,10 +86,7 @@ export type {
   SchemaReferenceResolution,
 } from "./definitions.js";
 
-export type {
-  SchemaPath,
-  SchemaPathSegment,
-} from "./path.js";
+export type { SchemaPath, SchemaPathSegment } from "./path.js";
 
 export type {
   SchemaTransformContext,

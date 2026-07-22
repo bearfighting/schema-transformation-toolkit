@@ -220,3 +220,7 @@ pnpm build
 ```
 
 CI currently runs on Node 24, and the workspace declares `node >=24`.
+
+## License
+
+Licensed under the Apache License, Version 2.0.

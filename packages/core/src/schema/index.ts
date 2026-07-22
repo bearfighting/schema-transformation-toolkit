@@ -53,12 +53,42 @@ export { identifierName } from "./identifiers.js";
 
 export { areEquivalentSchemaNodes } from "./equivalence.js";
 
-export { walkSchemaDocument, walkSchemaNode } from "./traversal.js";
+export {
+  normalizeSchemaDefinitions,
+  normalizeSchemaDocument,
+  normalizeSchemaDocumentFromRoot,
+  normalizeSchemaDocumentStructure,
+  normalizeSchemaNode,
+} from "./normalize.js";
+
+export {
+  transformSchemaDocument,
+  transformSchemaDocumentFromRoot,
+  transformSchemaDocumentStructure,
+  transformSchemaDefinitions,
+  transformSchemaNode,
+} from "./transform.js";
+
+export type {
+  SchemaTransformContext,
+  SchemaTransformOptions,
+  SchemaTransformReferenceMode,
+  SchemaTransformer,
+} from "./transform.js";
+
+export {
+  walkSchemaDefinitions,
+  walkSchemaDocument,
+  walkSchemaDocumentFromRoot,
+  walkSchemaDocumentStructure,
+  walkSchemaNode,
+} from "./traversal.js";
 
 export type {
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
+  SchemaReferenceTraversalStatus,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,

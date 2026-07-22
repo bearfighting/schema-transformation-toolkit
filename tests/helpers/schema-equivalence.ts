@@ -1,5 +1,6 @@
 import {
   areEquivalentSchemaNodes,
+  normalizeSchemaDocument,
   tryValidateSchemaDocument,
   type SchemaDefinition,
   type SchemaDocument,
@@ -47,7 +48,9 @@ export function expectIrEquivalent(
 export function normalizeSchemaDocumentForTest(
   document: SchemaDocument,
 ): SchemaDocument {
-  const collapsedDocument = collapseSingleRootReferenceDocument(document);
+  const normalizedDocument = normalizeSchemaDocument(document);
+  const collapsedDocument =
+    collapseSingleRootReferenceDocument(normalizedDocument);
 
   return {
     ...collapsedDocument,

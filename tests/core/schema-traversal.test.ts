@@ -10,10 +10,77 @@ import {
   schemaScalarNode,
   schemaTupleNode,
   tryValidateSchemaDocument,
+  walkSchemaDocumentFromRoot,
+  walkSchemaDocumentStructure,
   walkSchemaDocument,
 } from "../../packages/core/src/index.js";
+import { getSchemaNodeChildren } from "../../packages/core/src/schema/children.js";
 
 describe("schema traversal", () => {
+  it("walkSchemaDocumentStructure keeps the current definitions-plus-root traversal", () => {
+    const document = schemaDocument("UserList", schemaReferenceNode("User"), {
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+      ],
+    });
+
+    const visited: string[] = [];
+
+    walkSchemaDocumentStructure(
+      document,
+      {
+        enter(context) {
+          visited.push(`${context.path.join(".")}::${context.node.kind}`);
+        },
+      },
+      { references: "preserve" },
+    );
+
+    expect(visited).toEqual([
+      "definitions.User::object",
+      "definitions.User.id::scalar",
+      "root::reference",
+    ]);
+  });
+
+  it("walkSchemaDocumentFromRoot skips unreachable definitions", () => {
+    const document = schemaDocument("Entry", schemaReferenceNode("User"), {
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+        schemaDefinition(
+          "Unused",
+          schemaObjectNode([
+            schemaFieldNode("code", schemaScalarNode("integer")),
+          ]),
+        ),
+      ],
+    });
+
+    const visited: string[] = [];
+
+    walkSchemaDocumentFromRoot(
+      document,
+      {
+        enter(context) {
+          visited.push(`${context.path.join(".")}::${context.node.kind}`);
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(visited).toEqual([
+      "root::reference",
+      "root::object",
+      "root.id::scalar",
+    ]);
+  });
+
   it("walks canonical logical paths in preserve mode", () => {
     const document = schemaDocument(
       "UserList",
@@ -320,6 +387,7 @@ describe("schema traversal", () => {
       kind: string;
       path: string[];
       via?: string;
+      referenceResolution?: string;
     }> = [];
 
     walkSchemaDocument(
@@ -330,6 +398,9 @@ describe("schema traversal", () => {
             kind: context.node.kind,
             path: context.path,
             ...(context.via ? { via: context.via.kind } : {}),
+            ...(context.referenceResolution
+              ? { referenceResolution: context.referenceResolution.status }
+              : {}),
           });
         },
       },
@@ -341,6 +412,108 @@ describe("schema traversal", () => {
         kind: "reference",
         path: ["root"],
         via: "root",
+        referenceResolution: "missing",
+      },
+    ]);
+  });
+
+  it("reports ambiguous references in follow mode without expanding them", () => {
+    const document = {
+      version: "0.1" as const,
+      kind: "document" as const,
+      name: { source: "AmbiguousReference", words: ["Ambiguous", "Reference"] },
+      definitions: [
+        schemaDefinition("User", schemaScalarNode("string")),
+        schemaDefinition("User", schemaScalarNode("integer")),
+      ],
+      root: schemaReferenceNode("User"),
+    };
+
+    const visits: Array<{
+      kind: string;
+      path: string[];
+      referenceResolution?: string;
+    }> = [];
+
+    walkSchemaDocumentFromRoot(
+      document,
+      {
+        enter(context) {
+          visits.push({
+            kind: context.node.kind,
+            path: context.path,
+            ...(context.referenceResolution
+              ? { referenceResolution: context.referenceResolution.status }
+              : {}),
+          });
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(visits).toEqual([
+      {
+        kind: "reference",
+        path: ["root"],
+        referenceResolution: "ambiguous",
+      },
+    ]);
+  });
+
+  it("reports cycle status on references that stop expansion", () => {
+    const document = schemaDocument("LoopStart", schemaReferenceNode("LoopA"), {
+      definitions: [
+        schemaDefinition(
+          "LoopA",
+          schemaObjectNode([
+            schemaFieldNode("next", schemaReferenceNode("LoopB")),
+          ]),
+        ),
+        schemaDefinition(
+          "LoopB",
+          schemaObjectNode([
+            schemaFieldNode("next", schemaReferenceNode("LoopA")),
+          ]),
+        ),
+      ],
+    });
+
+    const referenceVisits: Array<{
+      path: string[];
+      referenceResolution?: string;
+    }> = [];
+
+    walkSchemaDocumentFromRoot(
+      document,
+      {
+        enter(context) {
+          if (context.node.kind !== "reference") {
+            return;
+          }
+
+          referenceVisits.push({
+            path: context.path,
+            ...(context.referenceResolution
+              ? { referenceResolution: context.referenceResolution.status }
+              : {}),
+          });
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(referenceVisits).toEqual([
+      {
+        path: ["root"],
+        referenceResolution: "resolved",
+      },
+      {
+        path: ["root", "next"],
+        referenceResolution: "resolved",
+      },
+      {
+        path: ["root", "next", "next"],
+        referenceResolution: "cycle",
       },
     ]);
   });
@@ -500,6 +673,58 @@ describe("schema traversal", () => {
     expect(visits.get("root.profile.id::scalar")).toBe("User");
     expect(visits.get("root.tags::array")).toBeNull();
     expect(visits.get("root.tags.elementType::scalar")).toBeNull();
+  });
+
+  it("uses a stable shared child-enumeration order", () => {
+    const tupleChildren = getSchemaNodeChildren(
+      schemaTupleNode([
+        schemaScalarNode("string"),
+        schemaScalarNode("integer"),
+      ]),
+    );
+    const recordChildren = getSchemaNodeChildren(
+      schemaRecordNode(schemaScalarNode("string"), schemaReferenceNode("User")),
+    );
+    const objectChildren = getSchemaNodeChildren(
+      schemaObjectNode([
+        schemaFieldNode("name", schemaScalarNode("string")),
+        schemaFieldNode("tags", schemaArrayNode(schemaScalarNode("string"))),
+      ]),
+    );
+    const unionChildren = getSchemaNodeChildren({
+      kind: "union",
+      members: [schemaScalarNode("string"), schemaScalarNode("integer")],
+    });
+
+    expect(tupleChildren.map((child) => child.pathSegment)).toEqual(["0", "1"]);
+    expect(tupleChildren.map((child) => child.via.kind)).toEqual([
+      "tupleElement",
+      "tupleElement",
+    ]);
+
+    expect(recordChildren.map((child) => child.pathSegment)).toEqual([
+      "key",
+      "value",
+    ]);
+    expect(recordChildren.map((child) => child.via.kind)).toEqual([
+      "recordKey",
+      "recordValue",
+    ]);
+
+    expect(objectChildren.map((child) => child.pathSegment)).toEqual([
+      "name",
+      "tags",
+    ]);
+    expect(objectChildren.map((child) => child.via.kind)).toEqual([
+      "field",
+      "field",
+    ]);
+
+    expect(unionChildren.map((child) => child.pathSegment)).toEqual(["0", "1"]);
+    expect(unionChildren.map((child) => child.via.kind)).toEqual([
+      "unionMember",
+      "unionMember",
+    ]);
   });
 
   it("uses canonical tuple and union-style member paths in schema validation", () => {

@@ -32,8 +32,9 @@ export function transformSchemaDocument(
 export function transformSchemaDocumentStructure(
   document: SchemaDocument,
   transformer: SchemaTransformer,
-  _options?: SchemaTransformOptions,
+  options?: SchemaTransformOptions,
 ): SchemaDocument {
+  void options;
   const definitionLookup = createDefinitionLookup(document.definitions);
 
   let definitionsChanged = false;
@@ -136,8 +137,9 @@ export function transformSchemaDocumentFromRoot(
 export function transformSchemaDefinitions(
   document: SchemaDocument,
   transformer: SchemaTransformer,
-  _options?: SchemaTransformOptions,
+  options?: SchemaTransformOptions,
 ): SchemaDocument {
+  void options;
   const definitionLookup = createDefinitionLookup(document.definitions);
 
   let definitionsChanged = false;

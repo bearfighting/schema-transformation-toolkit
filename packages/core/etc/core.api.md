@@ -714,7 +714,7 @@ export declare function transformSchemaDocument(
 export declare function transformSchemaDocumentStructure(
   document: SchemaDocument,
   transformer: SchemaTransformer,
-  _options?: SchemaTransformOptions,
+  options?: SchemaTransformOptions,
 ): SchemaDocument;
 export declare function transformSchemaDocumentFromRoot(
   document: SchemaDocument,
@@ -724,7 +724,7 @@ export declare function transformSchemaDocumentFromRoot(
 export declare function transformSchemaDefinitions(
   document: SchemaDocument,
   transformer: SchemaTransformer,
-  _options?: SchemaTransformOptions,
+  options?: SchemaTransformOptions,
 ): SchemaDocument;
 export declare function transformSchemaNode(
   node: SchemaNode,

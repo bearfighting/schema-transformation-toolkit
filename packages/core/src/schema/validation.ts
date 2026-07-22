@@ -5,6 +5,7 @@ import type {
   SchemaNode,
   SchemaValidationResult,
 } from "./types.js";
+import { walkSchemaDocument } from "./traversal.js";
 
 export function validateSchemaDocument(document: SchemaDocument): void {
   const result = tryValidateSchemaDocument(document);
@@ -89,20 +90,32 @@ function collectSchemaDocumentValidationDiagnostics(
     definitionMap.set(definition.name.source, definition);
   }
 
-  for (const definition of document.definitions) {
-    collectSchemaNodeReferenceDiagnostics(
-      definition.type,
-      definitionMap,
-      diagnostics,
-      ["definitions", definition.name.source],
-    );
-  }
+  walkSchemaDocument(
+    document,
+    {
+      enter(context) {
+        if (context.node.kind !== "reference") {
+          return;
+        }
 
-  collectSchemaNodeReferenceDiagnostics(
-    document.root,
-    definitionMap,
-    diagnostics,
-    ["root"],
+        if (definitionMap.has(context.node.name)) {
+          return;
+        }
+
+        diagnostics.push({
+          severity: "error",
+          code: "unknown-reference",
+          message: `Invalid schema document: reference "${context.node.name}" does not match a known definition.`,
+          path: context.path,
+          nodeKind: "reference",
+          source: "core",
+          evidence: {
+            referenceName: context.node.name,
+          },
+        });
+      },
+    },
+    { references: "preserve" },
   );
 
   return diagnostics;
@@ -125,88 +138,6 @@ function collectSchemaFieldNullabilityDiagnostics(
       source: "core",
     },
   ];
-}
-
-function collectSchemaNodeReferenceDiagnostics(
-  node: SchemaNode,
-  definitions: ReadonlyMap<string, SchemaDefinition>,
-  diagnostics: SchemaDiagnostic[],
-  path: string[],
-): void {
-  switch (node.kind) {
-    case "scalar":
-    case "literal":
-    case "null":
-    case "unknown":
-      return;
-    case "reference":
-      if (!definitions.has(node.name)) {
-        diagnostics.push({
-          severity: "error",
-          code: "unknown-reference",
-          message: `Invalid schema document: reference "${node.name}" does not match a known definition.`,
-          path,
-          nodeKind: "reference",
-          source: "core",
-          evidence: {
-            referenceName: node.name,
-          },
-        });
-      }
-      return;
-    case "array":
-      collectSchemaNodeReferenceDiagnostics(
-        node.elementType,
-        definitions,
-        diagnostics,
-        [...path, "elementType"],
-      );
-      return;
-    case "tuple":
-      for (const [index, element] of node.elements.entries()) {
-        collectSchemaNodeReferenceDiagnostics(
-          element.type,
-          definitions,
-          diagnostics,
-          [...path, "elements", String(index)],
-        );
-      }
-      return;
-    case "record":
-      collectSchemaNodeReferenceDiagnostics(
-        node.key,
-        definitions,
-        diagnostics,
-        [...path, "key"],
-      );
-      collectSchemaNodeReferenceDiagnostics(
-        node.value,
-        definitions,
-        diagnostics,
-        [...path, "value"],
-      );
-      return;
-    case "union":
-      for (const [index, member] of node.members.entries()) {
-        collectSchemaNodeReferenceDiagnostics(
-          member,
-          definitions,
-          diagnostics,
-          [...path, "members", String(index)],
-        );
-      }
-      return;
-    case "object":
-      for (const field of node.fields) {
-        collectSchemaNodeReferenceDiagnostics(
-          field.type,
-          definitions,
-          diagnostics,
-          [...path, field.name.source],
-        );
-      }
-      return;
-  }
 }
 
 function schemaNodeIncludesNull(type: SchemaNode): boolean {

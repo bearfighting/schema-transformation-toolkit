@@ -125,7 +125,7 @@ Avoid reintroducing route-local copies of the same semantic scenario unless a ro
 
 Recommended order for the next testing work:
 
-1. keep the current fixture, contract, equivalence, integration, and corpus suite green while the shared traversal refactor lands
+1. keep the current fixture, contract, equivalence, integration, and corpus suite green as the shared traversal contract settles
 2. continue migrating repeated parser, generator, and SDK truthfulness assertions into shared fixtures and helpers
 3. keep trimming only the integration cases that merely restate shared semantic behavior
 4. expand the corpus only when it adds new traversal pressure, definition-graph pressure, or target truthfulness pressure
@@ -137,7 +137,7 @@ The test suite should avoid:
 - rebuilding huge integration snapshots as the main source of confidence
 - proving the same widening or loss case separately in parser, generator, SDK, and route tests when one shared fixture can drive them
 - using exact string equality where semantic or structural equivalence is the real contract
-- adding new parser or generator families before the current suite is being used to protect the shared traversal refactor
+- adding new parser or generator families before the current suite has fully absorbed the shared traversal contract
 - letting corpus tests replace focused semantic fixtures
 
 ## Refactor Acceptance
@@ -154,14 +154,15 @@ The current suite is already strong enough to serve as that acceptance harness.
 
 ## Current Highest-Value Next Step
 
-The most valuable next testing use is to protect the lightweight shared `Shape IR` traversal extraction.
+The most valuable next testing use is to keep protecting the lightweight shared `Shape IR` traversal contract now that extraction has landed.
 
 That means:
 
-- do not broaden semantics while extracting traversal helpers
+- do not broaden semantics casually while traversal consumers accumulate
 - keep fixture-driven truthfulness checks as the first line of defense
 - keep integration tests focused on route-specific behavior only
 - use corpus additions sparingly and only when they add real traversal or composition pressure
+- keep a focused walker test file covering path rules, reference modes, cycle guards, and traversal context metadata
 
 ## Verification Baseline
 
@@ -181,9 +182,10 @@ pnpm lint
 pnpm check:public-api
 ```
 
-The latest full regression pass on July 21, 2026 was green with:
+The latest full regression pass on July 22, 2026 was green with:
 
-- `pnpm exec tsc --noEmit`
+- `pnpm check:api`
+- `pnpm typecheck`
 - `pnpm test`
-- `38` test files
-- `513` passing tests
+- `39` test files
+- `520` passing tests

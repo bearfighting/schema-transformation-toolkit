@@ -17,9 +17,14 @@ The repository is past architecture validation and has a stable-enough conversio
 - structured diagnostics, semantic notes, capability declarations, and semantic-loss reporting
 - an SDK planner that derives routes and route summaries from registries
 - shared semantic fixtures, generator contract helpers, cross-parser equivalence smoke, and a real-world corpus
+- a shared `Shape IR` traversal helper in `@aio/core` that now backs core schema validation plus generator diagnostics and validation passes
 
-The main structural risk is no longer missing tests or an obvious parser/generator correctness bug.
-It is duplicated `Shape IR` traversal logic spread across diagnostics, validation, and other analysis-style consumers.
+The main structural risk is no longer missing tests, obvious parser or generator correctness bugs, or duplicated first-pass `Shape IR` traversal mechanics.
+The sharper next risks are:
+
+- keeping the new traversal contract stable while the IR evolves
+- deciding whether emitters or future IR layers should reuse part of the traversal surface
+- continuing to expand shared semantics only when pressure is truly cross-format
 
 ## Supported Routes
 
@@ -58,11 +63,11 @@ Shared constraint and annotation coverage currently includes:
 
 Recommended order for near-term work:
 
-1. extract a lightweight shared `Shape IR` traversal layer for diagnostics, validation, and future generators
-2. keep capability, diagnostic, semantic-note, and semantic-loss reporting truthful while that refactor lands
+1. keep the new shared `Shape IR` traversal contract stable while consumer usage and tests harden around it
+2. keep capability, diagnostic, semantic-note, and semantic-loss reporting truthful as more consumers rely on the shared walker
 3. keep the shared fixture, equivalence, integration, and corpus layers as regression guardrails instead of adding many more route-local tests
 4. expand shared IR only when pressure appears across multiple formats, not because one source format wants a local convenience
-5. defer broader parser or generator expansion until traversal duplication is no longer the sharper risk
+5. evaluate targeted next slices, likely a generator-facing improvement, only after traversal usage settles
 
 ## What Is Deferred
 
@@ -70,7 +75,7 @@ The repository should not prioritize these yet:
 
 - broad new parser families
 - many new generators in parallel
-- property-based expansion before the current shared traversal layer exists
+- property-based expansion before the current shared traversal layer has settled
 - TypeScript type-system ambition beyond the current schema-oriented subset
 - format-local options that weaken the shared semantic contract
 
@@ -78,7 +83,7 @@ The next new format slice, once the core refactor settles, should still be a gen
 
 ## Recent Completed Work
 
-As of July 21, 2026, the latest completed slice includes:
+As of July 22, 2026, the latest completed slice includes:
 
 - shared semantic fixtures and helpers for diagnostics, generator contracts, capability coverage, and corpus execution
 - first `typescript <-> json-schema` cross-parser equivalence smoke
@@ -86,18 +91,23 @@ As of July 21, 2026, the latest completed slice includes:
 - generator truthfulness assertions for `integer`, `unknown`, and `unknown`-absorbing unions
 - route-local integration shrinkage away from duplicate full payload snapshots
 - real-world corpus expansion from 6 to 10 cases
+- first shared `Shape IR` traversal extraction in `@aio/core`
+- migration of core schema validation and both generator diagnostics and validation passes onto the shared walker
+- focused traversal contract tests for path rules, reference-follow behavior, cycle guards, and traversal context metadata
+- public API snapshot updates for the new traversal exports
 
-This consolidation did not expose a blocking parser, IR, or generator correctness defect.
-It did expose shared traversal extraction as the next highest-leverage refactor.
+This slice did not expose a blocking parser, IR, generator, or public-surface regression.
+It moved shared traversal extraction from the next refactor into implemented repository infrastructure.
 
 ## Verification
 
-The latest local verification pass completed on July 21, 2026 and included:
+The latest local verification pass completed on July 22, 2026 and included:
 
-- `pnpm exec tsc --noEmit`
+- `pnpm check:api`
+- `pnpm typecheck`
 - `pnpm test`
 
-That pass was green with `38` test files and `513` passing tests.
+That pass was green with `39` test files and `520` passing tests.
 
 ## Reading Order
 

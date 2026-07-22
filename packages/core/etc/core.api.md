@@ -586,6 +586,15 @@ export {
 } from "./factories.js";
 export { identifierName } from "./identifiers.js";
 export { areEquivalentSchemaNodes } from "./equivalence.js";
+export { walkSchemaDocument, walkSchemaNode } from "./traversal.js";
+export type {
+  SchemaWalkContext,
+  SchemaWalkNodeContext,
+  SchemaWalkOptions,
+  SchemaWalkReferenceMode,
+  SchemaWalkVia,
+  SchemaWalkVisitor,
+} from "./traversal.js";
 export {
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,
@@ -619,6 +628,80 @@ export type {
   SchemaGenerator,
   SchemaParser,
 } from "./contracts.js";
+```
+
+## packages/core/src/schema/traversal.d.ts
+
+```ts
+import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
+export type SchemaWalkReferenceMode = "preserve" | "follow";
+export type SchemaWalkVia =
+  | {
+      kind: "root";
+    }
+  | {
+      kind: "definition";
+      definitionName: string;
+    }
+  | {
+      kind: "elementType";
+    }
+  | {
+      kind: "tupleElement";
+      index: number;
+    }
+  | {
+      kind: "recordKey";
+    }
+  | {
+      kind: "recordValue";
+    }
+  | {
+      kind: "field";
+      fieldName: string;
+    }
+  | {
+      kind: "unionMember";
+      index: number;
+    }
+  | {
+      kind: "referenceResolution";
+      referenceName: string;
+    };
+export interface SchemaWalkContext {
+  document: SchemaDocument;
+  node: SchemaNode;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  parent?: SchemaNode;
+  containingDefinition?: SchemaDefinition;
+  via?: SchemaWalkVia;
+}
+export interface SchemaWalkNodeContext {
+  document: SchemaDocument;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  parent?: SchemaNode;
+  containingDefinition?: SchemaDefinition;
+  via?: SchemaWalkVia;
+}
+export interface SchemaWalkVisitor {
+  enter?(context: SchemaWalkContext): void;
+}
+export interface SchemaWalkOptions {
+  references?: SchemaWalkReferenceMode;
+}
+export declare function walkSchemaDocument(
+  document: SchemaDocument,
+  visitor: SchemaWalkVisitor,
+  options?: SchemaWalkOptions,
+): void;
+export declare function walkSchemaNode(
+  node: SchemaNode,
+  context: SchemaWalkNodeContext,
+  visitor: SchemaWalkVisitor,
+  options?: SchemaWalkOptions,
+): void;
 ```
 
 ## packages/core/src/schema/types.d.ts
@@ -815,6 +898,14 @@ export type {
   SchemaUnknownNode as ShapeUnknownNode,
 } from "../schema/types.js";
 export type {
+  SchemaWalkContext as ShapeWalkContext,
+  SchemaWalkNodeContext as ShapeWalkNodeContext,
+  SchemaWalkOptions as ShapeWalkOptions,
+  SchemaWalkReferenceMode as ShapeWalkReferenceMode,
+  SchemaWalkVia as ShapeWalkVia,
+  SchemaWalkVisitor as ShapeWalkVisitor,
+} from "../schema/traversal.js";
+export type {
   IdentifierName,
   ScalarKind,
   SchemaArrayNode,
@@ -847,6 +938,14 @@ export type {
   SchemaValidationSuccessResult,
   UnknownReason,
 } from "../schema/types.js";
+export type {
+  SchemaWalkContext,
+  SchemaWalkNodeContext,
+  SchemaWalkOptions,
+  SchemaWalkReferenceMode,
+  SchemaWalkVia,
+  SchemaWalkVisitor,
+} from "../schema/traversal.js";
 export {
   areEquivalentSchemaNodes,
   identifierName,
@@ -874,6 +973,8 @@ export {
   schemaTupleNode,
   schemaUnionNode,
   schemaUnknownNode,
+  walkSchemaDocument,
+  walkSchemaNode,
   tryValidateSchemaDocument,
   tryValidateSchemaFieldNullability,
   validateSchemaDocument,

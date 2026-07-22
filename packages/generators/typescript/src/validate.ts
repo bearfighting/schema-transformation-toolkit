@@ -1,3 +1,4 @@
+import { walkSchemaDocument } from "@aio/core";
 import type {
   IdentifierName,
   SchemaDiagnostic,
@@ -79,20 +80,86 @@ export function validateRenderableDocument(
     if (duplicateRenderedNameFailure !== null) {
       return duplicateRenderedNameFailure;
     }
-
-    const definitionFailure = validateRenderableTypeNode(
-      definition.type,
-      options,
-      doc,
-      ["definitions", definition.name.source],
-    );
-
-    if (definitionFailure !== null) {
-      return definitionFailure;
-    }
   }
 
-  return validateRenderableTypeNode(doc.root, options, doc, ["root"]);
+  let failure: TypeScriptGenerateFailureResult | null = null;
+
+  walkSchemaDocument(
+    doc,
+    {
+      enter(context) {
+        if (failure !== null) {
+          return;
+        }
+
+        switch (context.node.kind) {
+          case "scalar":
+          case "literal":
+          case "null":
+          case "unknown":
+          case "array":
+          case "tuple":
+          case "union":
+            return;
+          case "reference": {
+            const definition = context.definitionLookup.get(context.node.name);
+
+            if (definition === undefined) {
+              failure = createValidationFailure(
+                "invalid-reference-name",
+                `The schema reference "${context.node.name}" does not match a renderable definition.`,
+                context.path,
+                "reference",
+                {
+                  referenceName: context.node.name,
+                },
+              );
+              return;
+            }
+
+            const renderedReferenceName = renderTypeName(
+              definition.name,
+              options,
+            );
+
+            if (!isValidTypeName(renderedReferenceName)) {
+              failure = createValidationFailure(
+                "invalid-reference-name",
+                `The rendered reference name "${renderedReferenceName}" for schema reference "${context.node.name}" is not a valid TypeScript identifier.`,
+                context.path,
+                "reference",
+                {
+                  referenceName: context.node.name,
+                  renderedName: renderedReferenceName,
+                },
+              );
+            }
+            return;
+          }
+          case "record":
+            if (!isRenderableRecordKeyNode(context.node.key)) {
+              failure = createValidationFailure(
+                "invalid-record-key",
+                "TypeScript record keys must currently render from string scalar keys.",
+                [...context.path, "key"],
+                "record",
+              );
+            }
+            return;
+          case "object":
+            failure = validateRenderableObjectType(
+              context.node,
+              options,
+              context.path,
+            );
+            return;
+        }
+      },
+    },
+    { references: "preserve" },
+  );
+
+  return failure;
 }
 
 function registerRenderedTypeName(
@@ -136,121 +203,6 @@ function registerRenderedTypeName(
   );
 }
 
-function validateRenderableTypeNode(
-  node: SchemaNode,
-  options: ResolvedTypeScriptGeneratorOptions,
-  doc: SchemaDocument,
-  path: string[],
-): TypeScriptGenerateFailureResult | null {
-  const runtimeNodeKind: string = node.kind;
-
-  switch (node.kind) {
-    case "scalar":
-    case "literal":
-    case "null":
-    case "unknown":
-      return null;
-    case "reference": {
-      const definition = doc.definitions.find(
-        (candidate) => candidate.name.source === node.name,
-      );
-
-      if (definition === undefined) {
-        return createValidationFailure(
-          "invalid-reference-name",
-          `The schema reference "${node.name}" does not match a renderable definition.`,
-          path,
-          "reference",
-          {
-            referenceName: node.name,
-          },
-        );
-      }
-
-      const renderedReferenceName = renderTypeName(definition.name, options);
-
-      if (!isValidTypeName(renderedReferenceName)) {
-        return createValidationFailure(
-          "invalid-reference-name",
-          `The rendered reference name "${renderedReferenceName}" for schema reference "${node.name}" is not a valid TypeScript identifier.`,
-          path,
-          "reference",
-          {
-            referenceName: node.name,
-            renderedName: renderedReferenceName,
-          },
-        );
-      }
-
-      return null;
-    }
-    case "array":
-      return validateRenderableTypeNode(node.elementType, options, doc, [
-        ...path,
-        "elementType",
-      ]);
-    case "tuple":
-      for (const [index, element] of node.elements.entries()) {
-        const elementFailure = validateRenderableTypeNode(
-          element.type,
-          options,
-          doc,
-          [...path, String(index)],
-        );
-
-        if (elementFailure !== null) {
-          return elementFailure;
-        }
-      }
-      return null;
-    case "record": {
-      if (!isRenderableRecordKeyNode(node.key)) {
-        return createValidationFailure(
-          "invalid-record-key",
-          "TypeScript record keys must currently render from string scalar keys.",
-          [...path, "key"],
-          "record",
-        );
-      }
-
-      const keyFailure = validateRenderableTypeNode(node.key, options, doc, [
-        ...path,
-        "key",
-      ]);
-
-      if (keyFailure !== null) {
-        return keyFailure;
-      }
-
-      return validateRenderableTypeNode(node.value, options, doc, [
-        ...path,
-        "value",
-      ]);
-    }
-    case "union":
-      for (const [index, member] of node.members.entries()) {
-        const memberFailure = validateRenderableTypeNode(member, options, doc, [
-          ...path,
-          String(index),
-        ]);
-
-        if (memberFailure !== null) {
-          return memberFailure;
-        }
-      }
-      return null;
-    case "object":
-      return validateRenderableObjectType(node, options, doc, path);
-    default:
-      return createValidationFailure(
-        "unsupported-node-kind",
-        `The TypeScript generator does not support node kind "${runtimeNodeKind}".`,
-        path,
-        toSchemaDiagnosticNodeKind(runtimeNodeKind),
-      );
-  }
-}
-
 function validateRenderableDefinitionName(
   definition: SchemaDefinition,
   options: ResolvedTypeScriptGeneratorOptions,
@@ -277,7 +229,6 @@ function validateRenderableDefinitionName(
 function validateRenderableObjectType(
   node: SchemaObjectNode,
   options: ResolvedTypeScriptGeneratorOptions,
-  doc: SchemaDocument,
   path: string[],
 ): TypeScriptGenerateFailureResult | null {
   const renderedFieldNameEntries = new Map<string, string[]>();
@@ -308,17 +259,6 @@ function validateRenderableObjectType(
 
     if (duplicateRenderedFieldNameFailure !== null) {
       return duplicateRenderedFieldNameFailure;
-    }
-
-    const nestedFailure = validateRenderableTypeNode(
-      field.type,
-      options,
-      doc,
-      fieldPath,
-    );
-
-    if (nestedFailure !== null) {
-      return nestedFailure;
     }
   }
 
@@ -396,34 +336,6 @@ function createValidationFailure(
     message,
     diagnostics: [diagnostic],
   };
-}
-
-function toSchemaDiagnosticNodeKind(
-  value: string,
-): SchemaDiagnosticNodeKind | undefined {
-  switch (value) {
-    case "scalar":
-    case "literal":
-    case "reference":
-    case "union":
-    case "tuple":
-    case "record":
-    case "null":
-    case "unknown":
-    case "field":
-    case "object":
-    case "array":
-    case "document":
-    case "definition":
-    case "entry":
-    case "type":
-    case "type-member":
-    case "property-name":
-    case "type-reference":
-      return value;
-    default:
-      return undefined;
-  }
 }
 
 function renderTypeName(

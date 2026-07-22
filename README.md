@@ -1,6 +1,8 @@
-# type-schema-converter
+# Schema Transformation Toolkit
 
-A TypeScript-first toolkit for parsing structured input into a shared schema IR and generating typed output from that IR.
+Preserve semantics, not just syntax.
+
+Schema Transformation Toolkit is an open-source toolkit for deterministic schema transformation across programming languages and schema formats. It provides parsers, generators, a shared intermediate representation, semantic analysis, diagnostics, and transformation utilities for building reliable schema transformation pipelines.
 
 ## What It Is
 

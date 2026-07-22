@@ -1,6 +1,6 @@
 # IR Traversal Review Notes
 
-> 项目：Universal Data Model Converter  
+> 项目：Schema Transformation Toolkit  
 > 评审范围：Schema IR traversal、reference traversal、visitor context、path、测试与未来 transformation 支撑  
 > 文档目标：保留 traversal 评审结论，并为主计划文档提供背景材料
 
@@ -1593,4 +1593,4 @@ Traversal 是以下功能的基础：
 
 > 暂时不要继续横向扩展 traversal 使用范围，先稳定 traversal contract，再让 capability analysis、loss report、transformation 和多层 IR 能力建立在它之上。
 
-一旦这套 traversal 协议稳定，它将不仅服务于 validation，还会成为整个 Universal Data Model Converter 中连接 IR、诊断、解释性转换和未来工具生态的重要基础。
+一旦这套 traversal 协议稳定，它将不仅服务于 validation，还会成为整个 Schema Transformation Toolkit 中连接 IR、诊断、解释性转换和未来工具生态的重要基础。

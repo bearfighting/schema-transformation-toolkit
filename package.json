@@ -2,7 +2,7 @@
   "name": "schema-transformation-toolkit",
   "version": "0.1.0",
   "private": false,
-  "description": "Transform schemas across languages and formats with a common intermediate representation.",
+  "description": "Deterministic schema transformation across programming languages and schema formats.",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "engines": {

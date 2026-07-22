@@ -1,4 +1,4 @@
-# Universal Data Model Converter Test Plan
+# Schema Transformation Toolkit Test Plan
 
 This file is the active testing strategy page.
 It should describe the current test architecture, the next worthwhile testing work, and the rules for using tests to guard refactors.

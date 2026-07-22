@@ -1,8 +1,8 @@
 {
-  "name": "type-schema-converter",
+  "name": "schema-transformation-toolkit",
   "version": "0.1.0",
-  "private": true,
-  "description": "A schema and data model conversion toolkit for structured data formats and typed languages.",
+  "private": false,
+  "description": "Transform schemas across languages and formats with a common intermediate representation.",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "engines": {

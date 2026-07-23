@@ -77,6 +77,10 @@ export function createSchemaChildContext(
       appendSchemaPath(context.typedPath, child.pathSegment),
     ),
     definitionLookup: context.definitionLookup,
+    ...(context.lexicalDefinition
+      ? { lexicalDefinition: context.lexicalDefinition }
+      : {}),
+    referenceStack: context.referenceStack,
     parent,
     ...(context.containingDefinition
       ? { containingDefinition: context.containingDefinition }

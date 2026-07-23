@@ -9,7 +9,7 @@ import {
 } from "./path.js";
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
 import { walkSchemaDocumentFromRoot } from "./traversal.js";
-import type { SchemaWalkVia } from "./traversal.js";
+import type { SchemaReferenceFrame, SchemaWalkVia } from "./traversal.js";
 
 export type SchemaTransformReferenceMode = "preserve" | "follow";
 export type SchemaTransformReachabilityMode =
@@ -19,6 +19,8 @@ export interface SchemaTransformContext {
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
@@ -35,7 +37,12 @@ export interface SchemaTransformOptions {
 }
 
 export interface SchemaTransformer {
+  shouldTransformChildren?(
+    node: SchemaNode,
+    context: SchemaTransformContext,
+  ): boolean;
   transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
+  leaveNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 
 export function transformSchemaDocument(
@@ -60,6 +67,8 @@ export function transformSchemaDocumentStructure(
       path: ["definitions", definition.name.source],
       typedPath: createDefinitionSchemaPath(definition.name.source),
       definitionLookup,
+      lexicalDefinition: definition,
+      referenceStack: [],
       containingDefinition: definition,
       via: {
         kind: "definition",
@@ -82,6 +91,7 @@ export function transformSchemaDocumentStructure(
     path: ["root"],
     typedPath: createRootSchemaPath(),
     definitionLookup,
+    referenceStack: [],
     via: { kind: "root" },
   });
 
@@ -111,6 +121,7 @@ export function transformSchemaDocumentFromRoot(
     path: ["root"],
     typedPath: createRootSchemaPath(),
     definitionLookup,
+    referenceStack: [],
     via: { kind: "root" },
   });
 
@@ -127,6 +138,8 @@ export function transformSchemaDocumentFromRoot(
             path: ["definitions", definition.name.source],
             typedPath: createDefinitionSchemaPath(definition.name.source),
             definitionLookup,
+            lexicalDefinition: definition,
+            referenceStack: [],
             containingDefinition: definition,
             via: {
               kind: "definition",
@@ -170,6 +183,8 @@ export function transformSchemaDefinitions(
       path: ["definitions", definition.name.source],
       typedPath: createDefinitionSchemaPath(definition.name.source),
       definitionLookup,
+      lexicalDefinition: definition,
+      referenceStack: [],
       containingDefinition: definition,
       via: {
         kind: "definition",
@@ -204,30 +219,36 @@ export function transformSchemaNode(
   transformer: SchemaTransformer,
   context: SchemaTransformContext,
 ): SchemaNode {
-  const transformedChildren = mapSchemaNodeChildren(
-    node,
-    (child, relationship: SchemaNodeChild) =>
-      transformSchemaNode(child, transformer, {
-        typedPath: appendSchemaPath(
-          context.typedPath,
-          relationship.pathSegment,
-        ),
-        path: schemaPathToDiagnosticPath(
-          appendSchemaPath(context.typedPath, relationship.pathSegment),
-        ),
-        definitionLookup: context.definitionLookup,
-        parent: node,
-        ...(context.containingDefinition
-          ? { containingDefinition: context.containingDefinition }
-          : {}),
-        via: relationship.via,
-      }),
-  );
+  const transformedChildren =
+    transformer.shouldTransformChildren?.(node, context) === false
+      ? node
+      : mapSchemaNodeChildren(node, (child, relationship: SchemaNodeChild) =>
+          transformSchemaNode(child, transformer, {
+            typedPath: appendSchemaPath(
+              context.typedPath,
+              relationship.pathSegment,
+            ),
+            path: schemaPathToDiagnosticPath(
+              appendSchemaPath(context.typedPath, relationship.pathSegment),
+            ),
+            definitionLookup: context.definitionLookup,
+            ...(context.lexicalDefinition
+              ? { lexicalDefinition: context.lexicalDefinition }
+              : {}),
+            referenceStack: context.referenceStack,
+            parent: node,
+            ...(context.containingDefinition
+              ? { containingDefinition: context.containingDefinition }
+              : {}),
+            via: relationship.via,
+          }),
+        );
 
-  return (
+  const transformedNode =
     transformer.transformNode?.(transformedChildren, context) ??
-    transformedChildren
-  );
+    transformedChildren;
+
+  return transformer.leaveNode?.(transformedNode, context) ?? transformedNode;
 }
 
 function collectReachableDefinitionNames(

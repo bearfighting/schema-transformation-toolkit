@@ -76,9 +76,12 @@ Shared constraint and annotation coverage currently includes:
 
 Recommended order for the next repository slice:
 
-1. complete the consumer-surface blockers in [consumer-surface-checklist.md](consumer-surface-checklist.md)
+1. complete the true pre-Web blockers in [consumer-surface-checklist.md](consumer-surface-checklist.md):
+   - freeze the Stage 1 `@aio/sdk` consumer contract
+   - add the small product-scenario matrix
+   - finish the machine-readable route and format surface
 2. keep traversal, transform, normalization, and reporting stable while downstream consumer surfaces start depending on `@aio/sdk`
-3. fill in the support matrix and curated golden examples alongside the first downstream integrations
+3. treat release notes, richer diagnostic-location guidance, and Worker-oriented integration notes as urgent follow-up work, but not reasons to block the first downstream Web iteration
 4. keep the public SDK contract and UI-friendly diagnostic model small and stable
 5. continue expanding shared IR only when pressure appears across multiple formats, not because one source format wants a local convenience
 

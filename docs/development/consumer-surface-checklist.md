@@ -16,6 +16,39 @@ As of July 23, 2026:
 The goal is to clear the minimum library-level blockers and then let downstream consumer surfaces move.
 The goal is not to wait for the core to become "fully complete."
 
+## Web Readiness Triage
+
+If a downstream Web surface started now, the library is already usable.
+But not every remaining improvement has the same urgency.
+
+Treat the remaining work in three buckets:
+
+### Must Finish Before Starting Serious Web Product Work
+
+These are the true library-facing blockers before a downstream Web app should rely on the current surface as its stable base.
+
+1. freeze a clearly documented Stage 1 consumer contract in `@aio/sdk`
+2. add a small product-scenario matrix that tests end-user conversion flows rather than only parser or generator internals
+3. ensure the Web-facing format and route availability surface is machine-readable and does not require hard-coded format lists
+
+### Should Land Soon, But Should Not Block Web Start
+
+These are important near-term improvements, but a downstream Web prototype or early product integration does not need to wait for them.
+
+1. establish a first release and versioning baseline such as an alpha tag and release notes
+2. make the diagnostic location contract more explicit for editor and code-highlighting integrations
+3. decide whether a stable UI-summary layer belongs in `@aio/sdk` or should stay in the downstream presentation layer
+4. reserve a Worker-friendly integration path without forcing async execution into the core SDK immediately
+
+### Can Wait Until After The First Web Iteration
+
+These are legitimate future improvements, but they should not delay the first downstream product surface.
+
+1. broader failure-phase taxonomy beyond the current public `parse | generate` split
+2. package-scope or public naming migration
+3. broader capability ontologies or more generalized consumer summary layers
+4. more parser families or target families just to make the eventual Web surface look larger on day one
+
 ## Must Finish Before Treating The Library Surface As Stable For Consumers
 
 These are the highest-value library-facing gaps.
@@ -39,16 +72,39 @@ Minimum acceptance:
 - define and test the public success and failure result shapes as explicit contract data, not only through TypeScript compilation
 - keep result handling as stable discriminated unions
 - ensure consumers do not need thrown exception strings for ordinary flow control
+- document which report and diagnostic fields are part of the Stage 1 consumer contract rather than accidental current output
 
 Current repository status:
 
 - this is now partially in place through `publicConvertResultSchema` and companion schemas in `@aio/sdk`
+- current stable consumer entry points are already centered on:
+  - `convert()`
+  - `planConversion()`
+  - `listConversionRoutes()`
+  - `describeConversionRouteCapabilities()`
 - remaining work is mostly to treat that contract as the default downstream boundary and keep its semantics documented
 
 Important current note:
 
 - current failure `phase` values are intentionally narrow
 - that is acceptable as long as the public meaning is documented and tested
+- the current public failure contract is still `parse | generate`
+- a broader future taxonomy such as `planning | parsing | analysis | generation` is reasonable, but it is not required before the first Web-facing consumer starts
+
+Fields that should be treated as especially important to freeze before serious Web work:
+
+- `Diagnostic.severity`
+- `Diagnostic.code`
+- `Diagnostic.path`
+- `Diagnostic.message`
+- `report.semanticCaveats`
+- `report.losses`
+- `report.capabilityRequirements`
+- `report.lossHotspots`
+- `referenceStack`
+
+Those fields are already close to a real product model.
+The remaining work is to document them as an explicit consumer contract instead of leaving them implied by current implementation.
 
 ### 2. Add A UI-Friendly Diagnostic Normalization Layer
 
@@ -82,6 +138,11 @@ Current repository status:
 - this is now partially in place through `collectUserFacingDiagnostics(...)` in `@aio/sdk`
 - remaining work is mostly around choosing how much of that normalized model should be considered part of the long-term public contract
 
+Important current note:
+
+- this normalization layer already exposes `sourceRange` when structured parser evidence includes source locations
+- downstream Web consumers should not need to infer their own user-facing diagnostic shape from raw parser, generator, or semantic-loss payloads
+
 ### 3. Publish Honest Machine-Readable Capability Summaries
 
 Why it matters:
@@ -94,10 +155,13 @@ Current strength already exists in:
 - `describeConversionRouteCapabilities(...)`
 - `planConversion(...)`
 - `listConversionRoutes()`
+- `describeFormatSupport(...)`
+- `listFormatSupports()`
 
 Current gap:
 
 - there is still no stable consumer-facing description of supported format subsets and known unsupported semantic families
+- there is still no tiny consumer helper for format pickers if a downstream app wants to avoid deriving source and target format lists itself from route data
 
 Current repository status:
 
@@ -107,6 +171,45 @@ Current repository status:
 First useful target:
 
 - a small format and route description model that can drive badges, route availability, and honest limitation copy
+- a downstream Web surface should be able to build:
+  - source-format pickers
+  - target-format pickers
+  - route availability states
+  - capability or limitation summaries
+    without hard-coding format names like `["json", "json-schema", "typescript"]`
+
+### 4. Add A Small Product-Scenario Matrix
+
+Why it matters:
+
+- the repository already has strong parser, generator, IR, and integration coverage
+- those tests do not fully replace the flows a downstream Web user actually experiences
+
+Downstream product users do not think in terms of parser or generator internals.
+They:
+
+- choose an input format
+- paste or edit content
+- choose a target format
+- run a conversion
+- inspect output, warnings, or failures
+
+Minimum acceptance:
+
+- add a small scenario matrix that protects stable success, caveat, unsupported, and invalid-input behavior from the SDK entry point
+- keep the matrix intentionally small and product-shaped rather than turning it into a second full integration suite
+
+Suggested first buckets:
+
+- `success`
+- `caveat`
+- `unsupported`
+- `invalid-input`
+
+Current repository status:
+
+- this is not yet fully represented as a dedicated product-facing scenario layer
+- current curated examples and consumer-facing fixtures provide strong candidate inputs for this matrix
 
 ## Should Land Soon After
 
@@ -138,7 +241,9 @@ These should serve:
 
 Current repository status:
 
-- this is now partially in place through [../../examples/consumer-golden-examples.md](../../examples/consumer-golden-examples.md)
+- this is now materially in place through:
+  - [../../examples/consumer-golden-examples.md](../../examples/consumer-golden-examples.md)
+  - [../../examples/fixtures/consumer-golden-examples.ts](../../examples/fixtures/consumer-golden-examples.ts)
 - remaining work is mostly to keep the curated set aligned with real supported behavior as route coverage grows
 
 ### 5. Consumer Runtime Notes
@@ -156,6 +261,53 @@ This repository should:
 
 This repository does not need to host a full browser demo just to stay a healthy Node library.
 
+### 6. Release And Version Baseline
+
+Why it matters:
+
+- downstream product surfaces eventually need a stable engine baseline rather than an implicit dependency on `main`
+- even if a Web surface starts inside a larger workspace, it is useful to know which engine snapshot it is exercising
+
+Minimum useful target:
+
+- first alpha tag
+- brief release notes
+- package versioning discipline
+- at least one `pnpm pack` smoke check
+
+Current repository status:
+
+- important, but not a blocker for the first downstream Web prototype
+- should land before treating the engine as a publicly consumable stable baseline
+
+### 7. Diagnostic Location Contract
+
+Why it matters:
+
+- syntax and parser failures benefit from line, column, and offset-oriented highlighting
+- semantic caveats and losses often need logical schema paths instead of source text ranges
+
+Current repository status:
+
+- `collectUserFacingDiagnostics(...)` already surfaces `sourceRange` when structured source-location evidence exists
+- remaining work is mostly to document when consumers should expect:
+  - source-oriented ranges
+  - semantic paths
+  - both
+
+This should improve editor integrations, but it should not block the first Web UI from shipping a simpler diagnostics list.
+
+### 8. Worker-Friendly Integration Path
+
+Why it matters:
+
+- TypeScript parsing, reference-heavy analysis, and larger inputs may eventually be better off the main UI thread
+
+Current repository status:
+
+- worth planning for, but not a reason to force async execution into the current SDK before a downstream Web surface exists
+- the first Web integration can keep the core SDK synchronous and isolate execution in a Worker at the product layer if needed
+
 ## Explicitly Not A Blocker
 
 These items should not delay consumer-surface work now:
@@ -166,16 +318,18 @@ These items should not delay consumer-surface work now:
 - new parser families
 - deeper multi-file TypeScript support
 - a fully generalized capability ontology across every target
+- a broader failure-phase taxonomy before product pressure proves it is needed
+- package-scope renaming before a clearer public release plan exists
 
 They may matter later, but they are not the reason downstream product work should wait.
 
 ## Recommended Start Order
 
-1. freeze and test the small public SDK contract
-2. add one UI-friendly diagnostic normalization layer
-3. publish a small consumer-facing capability summary model
+1. freeze and document the Stage 1 consumer contract already implied by `@aio/sdk`
+2. add the small product-scenario matrix from the SDK entry point
+3. finish the machine-readable route and format surface needed by downstream consumers
 4. let downstream consumer surfaces iterate on top of that contract
-5. then fill in curated golden examples and runtime notes alongside downstream integration work
+5. then land release notes, richer location-contract notes, and any Worker-oriented integration guidance alongside early downstream product work
 
 ## Relationship To Other Docs
 

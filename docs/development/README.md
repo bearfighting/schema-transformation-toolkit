@@ -21,6 +21,7 @@ Use it in this order:
 - [ir-boundaries.md](ir-boundaries.md): boundary between Value IR, Shape IR, and Constraint IR
 - [ir-contract.md](ir-contract.md): shared result, diagnostic, and IR conventions
 - [capabilities-and-loss.md](capabilities-and-loss.md): truthfulness, capability, and semantic-loss rules
+- [sdk-report-analysis.md](sdk-report-analysis.md): how to interpret higher-level `sdk` report fields such as `capabilityRequirements` and `lossHotspots`
 - [schema-traversal.md](schema-traversal.md): implemented shared traversal and small immutable transform infrastructure for `Shape IR`, plus the current execution plan
 - [IR_TRAVERSAL_REVIEW_AND_IMPROVEMENT_PLAN.md](IR_TRAVERSAL_REVIEW_AND_IMPROVEMENT_PLAN.md): traversal review notes and longer-term improvement backlog
 - [decisions.md](decisions.md): durable design guardrails

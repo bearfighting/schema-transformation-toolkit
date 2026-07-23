@@ -91,6 +91,9 @@ The repository now has these concrete entry points in `@aio/core`:
 The repository also now has:
 
 - explicit reference follow outcomes through `SchemaReferenceTraversalStatus`
+- richer reference follow context through `lexicalDefinition` and `referenceStack`
+- visitor control through `leave`, `skip-children`, and `stop`
+- wrapper-level traversal hooks for definitions, fields, and tuple elements
 - shared child enumeration through `packages/core/src/schema/children.ts`
 - a small immutable transform layer that reuses the same child-enumeration logic as traversal
 - a dedicated normalization layer that uses transform as a shape-to-shape exit instead of hiding shared normalization inside generators
@@ -272,7 +275,10 @@ The current implementation supports:
 - access to document-level definition lookup
 - optional local reference resolution
 - cycle-safe traversal state
-- pre-order callbacks
+- pre-order and post-order callbacks
+- traversal short-circuiting through `skip-children` and `stop`
+- wrapper-level hooks for definitions, fields, and tuple elements
+- richer reference context through `lexicalDefinition` and `referenceStack`
 - immutable node rewriting that preserves wrapper semantics when children change
 - a dedicated normalization pass for shared shape rewrites such as union flattening and deduplication
 
@@ -289,6 +295,8 @@ interface SchemaWalkContext {
   node: SchemaNode;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?:
@@ -308,31 +316,43 @@ Notes:
 
 - `path` is the primary contract for diagnostics and semantic notes
 - `via` is metadata for consumers that need structured edge information without reparsing `path`
-- `containingDefinition` is more useful than a generic `definition` field name because it states what the value means
+- `containingDefinition` represents the current definition that owns the visited node semantics
+- `lexicalDefinition` represents the definition that owns the current occurrence path, if any
+- `referenceStack` records how follow-mode expansion reached the current node without rewriting the original occurrence path
 
 ## Visitor Contract
 
 The first version intentionally prefers one small callback contract instead of a large per-kind visitor interface.
 
-Recommended shape:
+Current shape:
 
 ```ts
 interface SchemaWalkVisitor {
-  enter?(context: SchemaWalkContext): void;
+  enterDefinition?(
+    context: SchemaDefinitionWalkContext,
+  ): SchemaWalkControl | void;
+  leaveDefinition?(context: SchemaDefinitionWalkContext): void;
+  enterField?(context: SchemaFieldWalkContext): SchemaWalkControl | void;
+  leaveField?(context: SchemaFieldWalkContext): void;
+  enterTupleElement?(
+    context: SchemaTupleElementWalkContext,
+  ): SchemaWalkControl | void;
+  leaveTupleElement?(context: SchemaTupleElementWalkContext): void;
+  enter?(context: SchemaWalkContext): SchemaWalkControl | void;
+  leave?(context: SchemaWalkContext): void;
 }
 ```
 
-This is intentionally minimal.
-The early consumers only need read-only pre-order inspection.
+This is still intentionally small.
+The current repository now has enough real consumers to justify one post-order hook, short-circuit controls, and a narrow set of wrapper-level hooks without turning the walker into a larger framework.
 
-The first version should not include:
+It still should not include:
 
 - one method per node kind
-- `exit` hooks
-- traversal cancellation rules unless a concrete consumer needs them
 - mutation return values
 
-If early adoption later shows a real need for `exit` or short-circuiting, that can be added in a second pass without changing the core read-only model.
+The current contract is still read-only and callback-based.
+It should remain smaller than a full visitor hierarchy.
 
 ## Transform Contract
 
@@ -340,7 +360,12 @@ The current transform contract intentionally mirrors the walker in spirit withou
 
 ```ts
 interface SchemaTransformer {
+  shouldTransformChildren?(
+    node: SchemaNode,
+    context: SchemaTransformContext,
+  ): boolean;
   transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
+  leaveNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 ```
 
@@ -348,8 +373,11 @@ Current transform context intentionally stays close to traversal context:
 
 ```ts
 interface SchemaTransformContext {
+  typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
@@ -360,13 +388,16 @@ This is enough for the current repository phase because it supports:
 
 - local immutable rewrites
 - stable logical path propagation
+- alignment with traversal context on lexical ownership and follow-chain metadata
+- targeted subtree skipping without introducing a heavier enter/leave rewrite pipeline
+- an explicit post-order rewrite hook through `leaveNode`
 - reuse of shared child enumeration
 - future consumer migration away from handwritten recursive transforms
 
 It should not yet grow into:
 
 - a mutation visitor
-- a combined enter/leave rewrite pipeline
+- a full combined enter/leave rewrite pipeline
 - reference inlining
 - wrapper-node mutation hooks
 
@@ -419,6 +450,7 @@ The current walker supports a policy object equivalent to:
 ```ts
 interface SchemaWalkOptions {
   references?: "preserve" | "follow";
+  referenceVisits?: "per-occurrence" | "once-per-definition";
 }
 ```
 
@@ -426,6 +458,15 @@ Behavior:
 
 - `"preserve"` visits reference nodes as reference nodes and does not descend into resolved definitions
 - `"follow"` visits the reference node and then optionally visits the resolved definition through a separate `referenceResolution` edge
+- `referenceVisits: "per-occurrence"` keeps the current occurrence-sensitive expansion behavior
+- `referenceVisits: "once-per-definition"` follows each resolved definition at most once per traversal run
+
+The two `referenceVisits` modes now have real repository consumers with intentionally different goals:
+
+- `packages/generators/typescript/src/analysis.ts` uses `follow + per-occurrence` for target loss hotspots, because widening risk is often use-site-sensitive
+- the same file uses `follow + once-per-definition` for capability requirements, because feature support questions usually care about reachable semantics, not how many times one definition was referenced
+
+That split is the practical reason to keep `referenceVisits` explicit instead of collapsing everything into one follow policy.
 
 Cycle behavior:
 
@@ -434,6 +475,13 @@ Cycle behavior:
 - cycles should be prevented mechanically, not delegated to each consumer
 
 The current version still does not need broader resolution policies such as cross-document references or user-supplied resolvers.
+
+The current walker also exposes richer follow-mode context:
+
+- `lexicalDefinition` keeps occurrence ownership separate from the resolved target definition
+- `referenceStack` preserves the follow chain as explicit data instead of forcing consumers to reconstruct it from `path`, `parent`, and `containingDefinition`
+
+This is intentionally still narrower than a full source-mapping or dependency-graph framework.
 
 The current transform layer now also supports a deliberately narrow reference policy:
 
@@ -571,6 +619,10 @@ It validates:
 - reference preserve mode
 - reference follow mode
 - cycle-safe reference expansion
+- `per-occurrence` versus `once-per-definition` follow behavior
+- visitor control through `leave`, `skip-children`, and `stop`
+- wrapper-level traversal hooks
+- richer reference context through `lexicalDefinition` and `referenceStack`
 
 The key question during rollout was not whether the helper looked elegant.
 It was whether current truthfulness-sensitive diagnostics, semantic notes, and failures stayed stable.
@@ -583,8 +635,6 @@ These questions remain intentionally deferred after the first helper landed:
 - whether `Value IR` should get a similar helper
 - whether `Constraint IR` should use the same traversal API shape
 - whether a later transform API should be built on top of the walker
-- whether `field` should become a first-class traversed entity
-- whether `exit` hooks or short-circuiting add enough real value
 - whether a heavier visitor pattern is ever justified
 
 These questions should stay deferred until either:

@@ -142,6 +142,31 @@ The stable Stage 1 SDK option surface is also intentionally small:
 
 `advanced` exists for parser-specific or generator-specific overrides, but it is not the default path.
 
+For most successful conversions, the most useful way to read `result.report` is:
+
+1. start with `semanticCaveats` and `losses`
+2. then inspect `capabilityRequirements` for reachable shape features
+3. then inspect `lossHotspots` for concrete widening-sensitive use sites
+
+```ts
+if (result.ok) {
+  for (const caveat of result.report?.semanticCaveats ?? []) {
+    console.log("caveat", caveat.code, caveat.path);
+  }
+
+  for (const requirement of result.report?.capabilityRequirements ?? []) {
+    console.log("feature", requirement.feature, requirement.path);
+  }
+
+  for (const hotspot of result.report?.lossHotspots ?? []) {
+    console.log("hotspot", hotspot.code, hotspot.path, hotspot.referenceStack);
+  }
+}
+```
+
+Use [packages/sdk/README.md](packages/sdk/README.md) for the package-local quick start and [docs/development/sdk-report-analysis.md](docs/development/sdk-report-analysis.md) for the deeper interpretation model.
+After `pnpm build`, you can also run [examples/sdk-report-analysis.mjs](examples/sdk-report-analysis.mjs) to inspect a real `result.report` payload.
+
 ```ts
 import { convert } from "@aio/sdk";
 
@@ -181,6 +206,7 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 
 - [README.md](README.md): project overview, package map, and current validated flows
 - [docs/development/progress.md](docs/development/progress.md): current repository state and next highest-leverage work
+- [packages/sdk/README.md](packages/sdk/README.md): high-level pipeline entry point and report-reading quick start
 - [packages/core/README.md](packages/core/README.md): shared IR model, invariants, and cross-package semantic boundary
 - [examples/README.md](examples/README.md): quick tour of current end-to-end examples
 
@@ -196,6 +222,7 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 - [examples/json-schema-to-typescript.md](examples/json-schema-to-typescript.md): representative `json-schema -> shape -> typescript` examples
 - [examples/json-schema-to-json-schema.md](examples/json-schema-to-json-schema.md): representative `json-schema -> shape + constraint -> json-schema` examples
 - [examples/typescript-to-json-schema.md](examples/typescript-to-json-schema.md): representative `typescript -> schema ir -> json-schema` examples
+- [examples/sdk-report-analysis.md](examples/sdk-report-analysis.md): representative walkthrough of higher-level `@aio/sdk` report interpretation
 
 ### Deep Dive
 
@@ -204,6 +231,7 @@ The SDK is meant to be the product-facing pipeline layer, not a re-export umbrel
 - [docs/development/architecture-layering.md](docs/development/architecture-layering.md): IR layering and capability-aware orchestration direction
 - [docs/development/ir-contract.md](docs/development/ir-contract.md): canonical shared IR contract
 - [docs/development/capabilities-and-loss.md](docs/development/capabilities-and-loss.md): conversion-result truthfulness and semantic-loss contract
+- [docs/development/sdk-report-analysis.md](docs/development/sdk-report-analysis.md): how to interpret `sdk` report fields such as `semanticCaveats`, `capabilityRequirements`, and `lossHotspots`
 - [docs/development/json-schema-shape-gap.md](docs/development/json-schema-shape-gap.md): JSON Schema semantic gap inventory against the shared IR
 - [docs/development/typescript-parser-cases.md](docs/development/typescript-parser-cases.md): TypeScript parser support and failure cases
 

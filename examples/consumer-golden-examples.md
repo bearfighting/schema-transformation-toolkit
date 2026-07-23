@@ -2,6 +2,9 @@
 
 This document collects a smaller curated set of examples for downstream consumer surfaces.
 
+The canonical machine-readable source for this set now lives in [fixtures/consumer-golden-examples.ts](fixtures/consumer-golden-examples.ts).
+This Markdown file should be treated as the human-readable companion view, not the primary source that downstream apps parse.
+
 Use it when you need:
 
 - default sample content for a Web app, CLI, or docs page

@@ -14,6 +14,7 @@ If you are starting from the higher-level pipeline API instead of individual par
 - [../packages/sdk/README.md](../packages/sdk/README.md): quick `convert(...)` usage and report-reading entry point
 - [../docs/development/sdk-report-analysis.md](../docs/development/sdk-report-analysis.md): deeper interpretation of `semanticCaveats`, `capabilityRequirements`, and `lossHotspots`
 - [consumer-golden-examples.md](consumer-golden-examples.md): smaller curated sample set for downstream consumer surfaces
+- [fixtures/consumer-golden-examples.ts](fixtures/consumer-golden-examples.ts): machine-readable consumer example data for sample pickers, smoke tests, and downstream apps
 
 ## Start Here
 

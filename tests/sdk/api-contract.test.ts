@@ -145,6 +145,24 @@ describe("sdk api contract", () => {
       "value-ir",
       "shape-ir",
     ]);
+    expect(result.report?.capabilityRequirements).toEqual([
+      {
+        feature: "object",
+        path: ["root"],
+        referenceStack: [],
+      },
+    ]);
+    expect(result.report?.lossHotspots).toEqual([
+      {
+        code: "integer-widening",
+        path: ["root", "id"],
+        referenceStack: [],
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+    ]);
   });
 
   it("surfaces generator semantic caveats in the higher-level report", () => {
@@ -171,6 +189,24 @@ describe("sdk api contract", () => {
         source: "generator-typescript",
         path: ["root", "id"],
         layer: "target",
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+    ]);
+    expect(result.report?.capabilityRequirements).toEqual([
+      {
+        feature: "object",
+        path: ["root"],
+        referenceStack: [],
+      },
+    ]);
+    expect(result.report?.lossHotspots).toEqual([
+      {
+        code: "integer-widening",
+        path: ["root", "id"],
+        referenceStack: [],
         evidence: {
           sourceScalar: "integer",
           renderedScalar: "number",
@@ -285,6 +321,216 @@ describe("sdk api contract", () => {
         evidence: {
           unknownMemberIndexes: [1],
           memberKinds: ["literal", "reference"],
+        },
+      },
+    ]);
+    expect(result.report?.capabilityRequirements).toEqual([
+      {
+        feature: "local-reference",
+        path: ["root"],
+        referenceStack: [],
+        evidence: {
+          targetDefinition: "WideValues",
+        },
+      },
+      {
+        feature: "union",
+        path: ["root"],
+        referenceStack: ["WideValues"],
+        containingDefinitionName: "WideValues",
+      },
+      {
+        feature: "local-reference",
+        path: ["root", "1"],
+        referenceStack: ["WideValues"],
+        containingDefinitionName: "WideValues",
+        evidence: {
+          targetDefinition: "FallbackValue",
+        },
+      },
+    ]);
+    expect(result.report?.lossHotspots).toEqual([
+      {
+        code: "unknown-union-absorption",
+        path: ["root"],
+        referenceStack: ["WideValues"],
+        containingDefinitionName: "WideValues",
+        evidence: {
+          unknownMemberIndexes: [1],
+          memberKinds: ["literal", "reference"],
+        },
+      },
+      {
+        code: "wide-unknown",
+        path: ["root", "1"],
+        referenceStack: ["WideValues", "FallbackValue"],
+        containingDefinitionName: "FallbackValue",
+        evidence: {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("keeps the sdk report analysis example aligned with real report output", () => {
+    const result = sdkModule.convert({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      input: JSON.stringify({
+        title: "ExampleDocument",
+        $defs: {
+          Count: {
+            type: "integer",
+          },
+          FallbackValue: true,
+          FlexibleValue: {
+            anyOf: [{ const: "open" }, { $ref: "#/$defs/FallbackValue" }],
+          },
+        },
+        type: "object",
+        properties: {
+          id: { $ref: "#/$defs/Count" },
+          value: { $ref: "#/$defs/FlexibleValue" },
+        },
+        required: ["id", "value"],
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.report?.semanticCaveats).toEqual([
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "integer-widened-to-number",
+        message:
+          "TypeScript output widens integer semantics to number because the target language has no distinct integer type.",
+        source: "generator-typescript",
+        path: ["definitions", "Count"],
+        layer: "target",
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "wide-unknown-type",
+        message:
+          "This schema node renders as TypeScript unknown and may accept values more broadly than the source evidence suggests.",
+        source: "generator-typescript",
+        path: ["definitions", "FallbackValue"],
+        layer: "target",
+        evidence: {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
+        },
+      },
+      {
+        phase: "generate",
+        kind: "widening",
+        code: "unknown-union-member-absorbs-union",
+        message:
+          "This union includes an unknown member, so the rendered TypeScript union may accept values more broadly than the non-unknown branches suggest.",
+        source: "generator-typescript",
+        path: ["definitions", "FlexibleValue"],
+        layer: "target",
+        evidence: {
+          unknownMemberIndexes: [1],
+          memberKinds: ["literal", "reference"],
+        },
+      },
+    ]);
+
+    expect(result.report?.capabilityRequirements).toEqual([
+      {
+        feature: "object",
+        path: ["root"],
+        referenceStack: [],
+      },
+      {
+        feature: "local-reference",
+        path: ["root", "id"],
+        referenceStack: [],
+        evidence: {
+          targetDefinition: "Count",
+        },
+      },
+      {
+        feature: "local-reference",
+        path: ["root", "value"],
+        referenceStack: [],
+        evidence: {
+          targetDefinition: "FlexibleValue",
+        },
+      },
+      {
+        feature: "union",
+        path: ["root", "value"],
+        referenceStack: ["FlexibleValue"],
+        containingDefinitionName: "FlexibleValue",
+      },
+      {
+        feature: "local-reference",
+        path: ["root", "value", "1"],
+        referenceStack: ["FlexibleValue"],
+        containingDefinitionName: "FlexibleValue",
+        evidence: {
+          targetDefinition: "FallbackValue",
+        },
+      },
+    ]);
+
+    expect(result.report?.lossHotspots).toEqual([
+      {
+        code: "integer-widening",
+        path: ["root", "id"],
+        referenceStack: ["Count"],
+        containingDefinitionName: "Count",
+        evidence: {
+          sourceScalar: "integer",
+          renderedScalar: "number",
+        },
+      },
+      {
+        code: "unknown-union-absorption",
+        path: ["root", "value"],
+        referenceStack: ["FlexibleValue"],
+        containingDefinitionName: "FlexibleValue",
+        evidence: {
+          unknownMemberIndexes: [1],
+          memberKinds: ["literal", "reference"],
+        },
+      },
+      {
+        code: "wide-unknown",
+        path: ["root", "value", "1"],
+        referenceStack: ["FlexibleValue", "FallbackValue"],
+        containingDefinitionName: "FallbackValue",
+        evidence: {
+          reason: "no-evidence",
+          nullable: false,
+          renderedForm: "unknown",
+          sourceEvidence: {
+            source: "parser-json",
+            detail: "JSON Schema boolean true was lowered to unknown.",
+          },
         },
       },
     ]);
@@ -451,6 +697,13 @@ describe("sdk api contract", () => {
       },
     ]);
     expect(result.report).toEqual({
+      capabilityRequirements: [
+        {
+          feature: "object",
+          path: ["root"],
+          referenceStack: [],
+        },
+      ],
       losses: result.losses,
       preservedCapabilities: ["shape-ir"],
       semanticNotes: {

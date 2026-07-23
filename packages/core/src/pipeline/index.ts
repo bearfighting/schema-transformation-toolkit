@@ -1,5 +1,7 @@
 export type {
+  ConversionCapabilityRequirement,
   ConversionEntrySelection,
+  ConversionLossHotspot,
   ConversionPolicyDecision,
   ConversionReport,
   ConversionSemanticCaveat,

@@ -232,6 +232,22 @@ export interface ConversionSemanticCaveat {
   layer?: SchemaSemanticNote["layer"];
   evidence?: unknown;
 }
+export interface ConversionCapabilityRequirement {
+  feature: string;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence?: unknown;
+}
+export interface ConversionLossHotspot {
+  code: string;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence?: unknown;
+}
 export interface ParserCapabilities {
   format: string;
   producesIr: IrKind[];
@@ -248,6 +264,8 @@ export interface ConversionReport {
   preservedCapabilities?: ConversionCapability[];
   semanticNotes?: ConversionReportStage<SchemaSemanticNote>;
   semanticCaveats?: ConversionSemanticCaveat[];
+  capabilityRequirements?: ConversionCapabilityRequirement[];
+  lossHotspots?: ConversionLossHotspot[];
   policyDecisions?: ConversionPolicyDecision[];
   entrySelection?: ConversionEntrySelection;
 }
@@ -284,7 +302,9 @@ export interface ConversionRouteCapabilities {
 
 ```ts
 export type {
+  ConversionCapabilityRequirement,
   ConversionEntrySelection,
+  ConversionLossHotspot,
   ConversionPolicyDecision,
   ConversionReport,
   ConversionSemanticCaveat,
@@ -666,10 +686,16 @@ export {
   walkSchemaNode,
 } from "./traversal.js";
 export type {
+  SchemaReferenceVisitMode,
+  SchemaReferenceFrame,
+  SchemaWalkControl,
+  SchemaDefinitionWalkContext,
+  SchemaFieldWalkContext,
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
   SchemaReferenceTraversalStatus,
+  SchemaTupleElementWalkContext,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,
@@ -789,7 +815,7 @@ export declare function schemaPathSegmentToDiagnosticToken(
 ```ts
 import { type SchemaPath } from "./path.js";
 import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
-import type { SchemaWalkVia } from "./traversal.js";
+import type { SchemaReferenceFrame, SchemaWalkVia } from "./traversal.js";
 export type SchemaTransformReferenceMode = "preserve" | "follow";
 export type SchemaTransformReachabilityMode =
   "selected-only" | "selected-and-root-reachable-definitions";
@@ -797,6 +823,8 @@ export interface SchemaTransformContext {
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
@@ -811,7 +839,12 @@ export interface SchemaTransformOptions {
   references?: SchemaTransformReferenceMode;
 }
 export interface SchemaTransformer {
+  shouldTransformChildren?(
+    node: SchemaNode,
+    context: SchemaTransformContext,
+  ): boolean;
   transformNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
+  leaveNode?(node: SchemaNode, context: SchemaTransformContext): SchemaNode;
 }
 export declare function transformSchemaDocument(
   document: SchemaDocument,
@@ -843,9 +876,30 @@ export declare function transformSchemaNode(
 ## packages/core/src/schema/traversal.d.ts
 
 ```ts
-import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
+import type {
+  SchemaDefinition,
+  SchemaDocument,
+  SchemaFieldNode,
+  SchemaNode,
+  SchemaObjectNode,
+  SchemaTupleElement,
+  SchemaTupleNode,
+} from "./types.js";
 import { type SchemaPath } from "./path.js";
 export type SchemaWalkReferenceMode = "preserve" | "follow";
+export type SchemaWalkControl = "continue" | "skip-children" | "stop";
+export type SchemaReferenceVisitMode = "per-occurrence" | "once-per-definition";
+export interface SchemaReferenceFrame {
+  reference: Extract<
+    SchemaNode,
+    {
+      kind: "reference";
+    }
+  >;
+  sourcePath: SchemaPath;
+  sourceDefinition?: SchemaDefinition;
+  targetDefinition: SchemaDefinition;
+}
 export type SchemaReferenceTraversalStatus =
   | {
       status: "not-followed";
@@ -906,26 +960,74 @@ export interface SchemaWalkContext {
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
   referenceResolution?: SchemaReferenceTraversalStatus;
+}
+export interface SchemaDefinitionWalkContext {
+  document: SchemaDocument;
+  definition: SchemaDefinition;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+}
+export interface SchemaFieldWalkContext {
+  document: SchemaDocument;
+  field: SchemaFieldNode;
+  parent: SchemaObjectNode;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+  containingDefinition?: SchemaDefinition;
+}
+export interface SchemaTupleElementWalkContext {
+  document: SchemaDocument;
+  element: SchemaTupleElement;
+  index: number;
+  parent: SchemaTupleNode;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+  containingDefinition?: SchemaDefinition;
 }
 export interface SchemaWalkNodeContext {
   document: SchemaDocument;
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
   referenceResolution?: SchemaReferenceTraversalStatus;
 }
 export interface SchemaWalkVisitor {
-  enter?(context: SchemaWalkContext): void;
+  enterDefinition?(
+    context: SchemaDefinitionWalkContext,
+  ): SchemaWalkControl | void;
+  leaveDefinition?(context: SchemaDefinitionWalkContext): void;
+  enterField?(context: SchemaFieldWalkContext): SchemaWalkControl | void;
+  leaveField?(context: SchemaFieldWalkContext): void;
+  enterTupleElement?(
+    context: SchemaTupleElementWalkContext,
+  ): SchemaWalkControl | void;
+  leaveTupleElement?(context: SchemaTupleElementWalkContext): void;
+  enter?(context: SchemaWalkContext): SchemaWalkControl | void;
+  leave?(context: SchemaWalkContext): void;
 }
 export interface SchemaWalkOptions {
   references?: SchemaWalkReferenceMode;
+  referenceVisits?: SchemaReferenceVisitMode;
 }
 export declare function walkSchemaDocument(
   document: SchemaDocument,
@@ -1164,10 +1266,16 @@ export type {
   SchemaTransformer as ShapeTransformer,
 } from "../schema/transform.js";
 export type {
+  SchemaReferenceVisitMode as ShapeReferenceVisitMode,
+  SchemaReferenceFrame as ShapeReferenceFrame,
+  SchemaWalkControl as ShapeWalkControl,
+  SchemaDefinitionWalkContext as ShapeDefinitionWalkContext,
+  SchemaFieldWalkContext as ShapeFieldWalkContext,
   SchemaWalkContext as ShapeWalkContext,
   SchemaWalkNodeContext as ShapeWalkNodeContext,
   SchemaWalkOptions as ShapeWalkOptions,
   SchemaReferenceTraversalStatus as ShapeReferenceTraversalStatus,
+  SchemaTupleElementWalkContext as ShapeTupleElementWalkContext,
   SchemaWalkReferenceMode as ShapeWalkReferenceMode,
   SchemaWalkVia as ShapeWalkVia,
   SchemaWalkVisitor as ShapeWalkVisitor,
@@ -1218,10 +1326,16 @@ export type {
   SchemaTransformer,
 } from "../schema/transform.js";
 export type {
+  SchemaReferenceVisitMode,
+  SchemaReferenceFrame,
+  SchemaWalkControl,
+  SchemaDefinitionWalkContext,
+  SchemaFieldWalkContext,
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
   SchemaReferenceTraversalStatus,
+  SchemaTupleElementWalkContext,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,

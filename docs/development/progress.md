@@ -36,6 +36,8 @@ The sharper next risks are:
 - keeping transform and normalization semantics just as disciplined as traversal semantics
 - deciding which future shared shape rewrites belong in normalization rather than in parsers or generators
 - continuing to expand shared semantics only when pressure is truly cross-format
+- freezing a small consumer-facing SDK contract and presentation layer without coupling downstream product layers to internals
+- publishing stable consumer-facing capability summaries instead of forcing downstream surfaces to scrape prose docs
 
 ## Supported Routes
 
@@ -72,13 +74,13 @@ Shared constraint and annotation coverage currently includes:
 
 ## Current Priorities
 
-Recommended order for near-term work:
+Recommended order for the next repository slice:
 
-1. keep the new shared `Shape IR` traversal contract stable while consumer usage and tests harden around it
-2. keep the new shared transform and normalization exits narrow, truthful, and clearly separate from generator output policy
-3. keep capability, diagnostic, semantic-note, and semantic-loss reporting truthful as more consumers rely on the shared walker
-4. keep the shared fixture, equivalence, integration, and corpus layers as regression guardrails instead of adding many more route-local tests
-5. expand shared IR only when pressure appears across multiple formats, not because one source format wants a local convenience
+1. complete the consumer-surface blockers in [consumer-surface-checklist.md](consumer-surface-checklist.md)
+2. keep traversal, transform, normalization, and reporting stable while downstream consumer surfaces start depending on `@aio/sdk`
+3. fill in the support matrix and curated golden examples alongside the first downstream integrations
+4. keep the public SDK contract and UI-friendly diagnostic model small and stable
+5. continue expanding shared IR only when pressure appears across multiple formats, not because one source format wants a local convenience
 
 ## What Is Deferred
 
@@ -86,15 +88,15 @@ The repository should not prioritize these yet:
 
 - broad new parser families
 - many new generators in parallel
-- property-based expansion before the current shared traversal layer has settled
+- property-based expansion before the current shared traversal layer and first consumer-facing contract have settled
 - TypeScript type-system ambition beyond the current schema-oriented subset
 - format-local options that weaken the shared semantic contract
 
-The next new format slice, once the core refactor settles, should still be a generator rather than another parser family.
+The next new format slice, once the current consumer-surface blockers are cleared, should still be a generator rather than another parser family.
 
 ## Recent Completed Work
 
-As of July 22, 2026, the latest completed slice includes:
+As of July 23, 2026, the latest completed slice includes:
 
 - shared semantic fixtures and helpers for diagnostics, generator contracts, capability coverage, and corpus execution
 - first `typescript <-> json-schema` cross-parser equivalence smoke
@@ -115,6 +117,8 @@ As of July 22, 2026, the latest completed slice includes:
 - development documentation for interpreting higher-level `sdk` report analysis
 - a package-local `@aio/sdk` README with `convert(...)` and report-reading guidance
 - a report-contract test that keeps the documented `sdk` analysis example aligned with real output
+- an examples walkthrough and runnable script for higher-level `@aio/sdk` report interpretation
+- public `@aio/sdk` contract schemas and a UI-friendly diagnostic normalization helper for downstream consumers
 
 The resulting maturity is now:
 
@@ -147,6 +151,7 @@ That targeted pass was green and covered the new `sdk` report-analysis surfaces 
 For active implementation work:
 
 - read [test_plan.md](test_plan.md) for the current testing strategy
+- read [consumer-surface-checklist.md](consumer-surface-checklist.md) before deciding whether more core work should block downstream product integration
 - read [schema-traversal.md](schema-traversal.md) before changing shared IR traversal, transform, or normalization behavior
 - read [sdk-report-analysis.md](sdk-report-analysis.md) or [../../packages/sdk/README.md](../../packages/sdk/README.md) when changing higher-level `sdk` report interpretation or examples
 - read [typescript-parser-cases.md](typescript-parser-cases.md) and [typescript-parser-preprocess.md](typescript-parser-preprocess.md) only when touching the TypeScript parser boundary

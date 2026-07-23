@@ -5,8 +5,9 @@ This directory should stay small, durable, and easy to scan.
 Use it in this order:
 
 1. read [progress.md](progress.md) for the current repository state and next priority
-2. read [test_plan.md](test_plan.md) only when you are changing tests or using tests to guard a refactor
-3. open deeper reference notes only when you need a semantic boundary or design rule
+2. read [consumer-surface-checklist.md](consumer-surface-checklist.md) when deciding what still blocks downstream product or integration work
+3. read [test_plan.md](test_plan.md) only when you are changing tests or using tests to guard a refactor
+4. open deeper reference notes only when you need a semantic boundary or design rule
 
 ## Start Here
 
@@ -14,6 +15,7 @@ Use it in this order:
 - [scope.md](scope.md): project boundary and non-goals
 - [workflow.md](workflow.md): default implementation and validation loop
 - [acceptance.md](acceptance.md): definition of done
+- [consumer-surface-checklist.md](consumer-surface-checklist.md): current blockers and near-term tasks before treating the library surface as stable for downstream consumers
 
 ## Core Reference
 

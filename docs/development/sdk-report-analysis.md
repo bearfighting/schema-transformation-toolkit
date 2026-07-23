@@ -9,6 +9,12 @@ It is intentionally narrower than the full traversal design.
 Use [schema-traversal.md](schema-traversal.md) for walker semantics and [capabilities-and-loss.md](capabilities-and-loss.md) for truthfulness rules.
 Use [../../packages/sdk/README.md](../../packages/sdk/README.md) for the package-local quick-start view.
 
+The `@aio/sdk` surface now also exposes:
+
+- runtime-validated public contract schemas such as `publicConvertResultSchema`
+- `collectUserFacingDiagnostics(...)` for a stable presentation-oriented diagnostic layer
+- `describeFormatSupport(...)` and `listFormatSupports()` for small consumer-facing capability summaries
+
 ## Why These Fields Exist
 
 The existing report already had several useful layers:

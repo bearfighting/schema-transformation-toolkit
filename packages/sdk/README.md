@@ -7,6 +7,8 @@ Use it when you want to:
 - convert between supported source and target formats
 - inspect route planning at a higher level
 - read aggregated diagnostics, semantic caveats, losses, and report analysis
+- validate the public conversion result shape at runtime
+- normalize raw diagnostics and caveats into a UI-facing model
 
 ## Main Entry Point
 
@@ -70,6 +72,95 @@ if (result.ok) {
 }
 ```
 
+## Consumer-Facing Helpers
+
+`@aio/sdk` now also exposes two small consumer-facing helper layers.
+
+### Public Contract Schemas
+
+Use these when a downstream app or boundary layer wants runtime validation of the public `convert(...)` result shape rather than trusting TypeScript types alone.
+
+Most important exports:
+
+- `publicConvertResultSchema`
+- `convertSuccessResultSchema`
+- `convertFailureResultSchema`
+- `conversionReportSchema`
+
+Example:
+
+```ts
+import { convert, publicConvertResultSchema } from "@aio/sdk";
+
+const result = convert({
+  sourceFormat: "json",
+  targetFormat: "typescript",
+  input: '{"id":1}',
+});
+
+publicConvertResultSchema.parse(result);
+```
+
+### UI-Facing Diagnostics
+
+Use `collectUserFacingDiagnostics(...)` when a downstream consumer should not need to understand the raw differences between:
+
+- failure results
+- `diagnostics`
+- `semanticCaveats`
+- `losses`
+
+Example:
+
+```ts
+import { collectUserFacingDiagnostics, convert } from "@aio/sdk";
+
+const result = convert({
+  sourceFormat: "json-schema",
+  targetFormat: "typescript",
+  input: '{"type":"object"}',
+});
+
+const diagnostics = collectUserFacingDiagnostics(result);
+```
+
+Each returned item follows one stable presentation-oriented shape:
+
+- `severity`
+- `code`
+- `title`
+- `message`
+- optional `path`
+- optional `source`
+- optional `sourceRange`
+- optional `suggestion`
+- optional `technicalDetails`
+
+### Capability Summaries
+
+Use `describeFormatSupport(...)` or `listFormatSupports()` when a downstream app needs a small machine-readable support summary instead of scraping README prose.
+
+Example:
+
+```ts
+import { describeFormatSupport, listFormatSupports } from "@aio/sdk";
+
+const typeScriptSupport = describeFormatSupport("typescript");
+const allSupports = listFormatSupports();
+```
+
+Each summary includes:
+
+- optional parser support details
+- optional generator support details
+- shared shape kinds
+- constraint families
+- notable limitations
+- experimental areas
+
+This layer is intentionally small.
+It is meant to power honest badges, route copy, or help text, not to expose every internal capability rule directly.
+
 ## Supported High-Level Routes
 
 Current public route planning covers:
@@ -89,3 +180,4 @@ For deeper report interpretation, see:
 
 - [../../docs/development/sdk-report-analysis.md](../../docs/development/sdk-report-analysis.md)
 - [../../docs/development/capabilities-and-loss.md](../../docs/development/capabilities-and-loss.md)
+- [../../docs/development/consumer-surface-checklist.md](../../docs/development/consumer-surface-checklist.md)

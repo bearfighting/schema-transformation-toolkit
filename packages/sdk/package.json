@@ -18,7 +18,8 @@
     "@aio/generator-typescript": "workspace:*",
     "@aio/parser-json": "workspace:*",
     "@aio/parser-json-schema": "workspace:*",
-    "@aio/parser-typescript": "workspace:*"
+    "@aio/parser-typescript": "workspace:*",
+    "zod": "^4.4.3"
   },
   "scripts": {
     "build": "tsup --config ../../tsup.config.ts",

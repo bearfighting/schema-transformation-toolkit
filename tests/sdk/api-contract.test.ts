@@ -51,11 +51,27 @@ function getFixtureRouteInput(
 describe("sdk api contract", () => {
   it("exposes only the stage 1 pipeline runtime surface", () => {
     expect(Object.keys(sdkModule).sort()).toEqual([
+      "collectUserFacingDiagnostics",
+      "conversionArtifactsSchema",
+      "conversionCapabilityRequirementSchema",
+      "conversionEntrySelectionSchema",
+      "conversionLossHotspotSchema",
+      "conversionPolicyDecisionSchema",
+      "conversionReportSchema",
+      "conversionRouteSchema",
+      "conversionSemanticCaveatSchema",
       "convert",
+      "convertFailureResultSchema",
+      "convertSuccessResultSchema",
       "describeConversionRouteCapabilities",
+      "describeFormatSupport",
       "inspectTypeScriptImplicitEntry",
       "listConversionRoutes",
+      "listFormatSupports",
       "planConversion",
+      "publicConvertResultSchema",
+      "schemaDiagnosticSchema",
+      "semanticLossSchema",
     ]);
   });
 

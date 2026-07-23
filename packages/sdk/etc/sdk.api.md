@@ -89,18 +89,34 @@ export type {
 } from "./support-matrix.js";
 ```
 
+## packages/sdk/src/inspect.d.ts
+
+```ts
+import {
+  type TypeScriptImplicitEntryAmbiguityReason,
+  type TypeScriptImplicitEntryAnalysis,
+} from "@aio/parser-typescript";
+export type {
+  TypeScriptImplicitEntryAmbiguityReason,
+  TypeScriptImplicitEntryAnalysis,
+};
+export declare function inspectTypeScriptImplicitEntry(
+  input: string,
+): TypeScriptImplicitEntryAnalysis;
+```
+
 ## packages/sdk/src/public-contract.d.ts
 
 ```ts
 import { z } from "zod";
 export declare const conversionSourceFormatSchema: z.ZodEnum<{
-  json: "json";
-  "json-schema": "json-schema";
   typescript: "typescript";
+  "json-schema": "json-schema";
+  json: "json";
 }>;
 export declare const conversionTargetFormatSchema: z.ZodEnum<{
-  "json-schema": "json-schema";
   typescript: "typescript";
+  "json-schema": "json-schema";
 }>;
 export declare const schemaDiagnosticSchema: z.ZodObject<
   {
@@ -542,7 +558,11 @@ export declare const convertSuccessResultSchema: z.ZodObject<
   {
     ok: z.ZodLiteral<true>;
     output: z.ZodUnion<
-      [z.ZodString, z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodBoolean]
+      readonly [
+        z.ZodString,
+        z.ZodRecord<z.ZodString, z.ZodUnknown>,
+        z.ZodBoolean,
+      ]
     >;
     plan: z.ZodObject<
       {
@@ -1026,7 +1046,11 @@ export declare const publicConvertResultSchema: z.ZodDiscriminatedUnion<
       {
         ok: z.ZodLiteral<true>;
         output: z.ZodUnion<
-          [z.ZodString, z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodBoolean]
+          readonly [
+            z.ZodString,
+            z.ZodRecord<z.ZodString, z.ZodUnknown>,
+            z.ZodBoolean,
+          ]
         >;
         plan: z.ZodObject<
           {
@@ -1509,22 +1533,6 @@ export declare const publicConvertResultSchema: z.ZodDiscriminatedUnion<
 >;
 ```
 
-## packages/sdk/src/inspect.d.ts
-
-```ts
-import {
-  type TypeScriptImplicitEntryAmbiguityReason,
-  type TypeScriptImplicitEntryAnalysis,
-} from "@aio/parser-typescript";
-export type {
-  TypeScriptImplicitEntryAmbiguityReason,
-  TypeScriptImplicitEntryAnalysis,
-};
-export declare function inspectTypeScriptImplicitEntry(
-  input: string,
-): TypeScriptImplicitEntryAnalysis;
-```
-
 ## packages/sdk/src/registry.d.ts
 
 ```ts
@@ -1560,6 +1568,43 @@ export declare function resolveParserCapabilities(
 export declare function resolveGeneratorCapabilities(
   targetFormat: ConversionTargetFormat,
 ): GeneratorCapabilities;
+```
+
+## packages/sdk/src/support-matrix.d.ts
+
+```ts
+import type {
+  ConversionCapability,
+  GeneratorCapabilities,
+  ParserCapabilities,
+} from "@aio/core";
+import type {
+  ConversionSourceFormat,
+  ConversionTargetFormat,
+} from "./types.js";
+export type ConsumerSurfaceFormat =
+  ConversionSourceFormat | ConversionTargetFormat;
+export interface ParserSupportSummary {
+  producesIr: ParserCapabilities["producesIr"];
+  capabilities: ConversionCapability[];
+}
+export interface GeneratorSupportSummary {
+  consumesIr: GeneratorCapabilities["consumesIr"];
+  capabilities: ConversionCapability[];
+}
+export interface FormatSupportSummary {
+  format: ConsumerSurfaceFormat;
+  parser?: ParserSupportSummary;
+  generator?: GeneratorSupportSummary;
+  sharedShapeKinds: string[];
+  constraintFamilies: string[];
+  notableLimitations: string[];
+  experimentalAreas: string[];
+}
+export declare function describeFormatSupport(
+  format: ConsumerSurfaceFormat,
+): FormatSupportSummary;
+export declare function listFormatSupports(): FormatSupportSummary[];
 ```
 
 ## packages/sdk/src/types.d.ts
@@ -1636,7 +1681,7 @@ export type ConvertResult<TOutput = string | JsonSchemaOutput> =
 ## packages/sdk/src/ui-diagnostics.d.ts
 
 ```ts
-import type { ConvertFailureResult, ConvertResult } from "./types.js";
+import type { ConvertResult } from "./types.js";
 export interface UserFacingSourcePosition {
   offset: number;
   line: number;
@@ -1661,41 +1706,4 @@ export interface UserFacingDiagnostic {
 export declare function collectUserFacingDiagnostics(
   result: ConvertResult,
 ): UserFacingDiagnostic[];
-```
-
-## packages/sdk/src/support-matrix.d.ts
-
-```ts
-import type {
-  ConversionCapability,
-  GeneratorCapabilities,
-  ParserCapabilities,
-} from "@aio/core";
-import type {
-  ConversionSourceFormat,
-  ConversionTargetFormat,
-} from "./types.js";
-export type ConsumerSurfaceFormat =
-  ConversionSourceFormat | ConversionTargetFormat;
-export interface ParserSupportSummary {
-  producesIr: ParserCapabilities["producesIr"];
-  capabilities: ConversionCapability[];
-}
-export interface GeneratorSupportSummary {
-  consumesIr: GeneratorCapabilities["consumesIr"];
-  capabilities: ConversionCapability[];
-}
-export interface FormatSupportSummary {
-  format: ConsumerSurfaceFormat;
-  parser?: ParserSupportSummary;
-  generator?: GeneratorSupportSummary;
-  sharedShapeKinds: string[];
-  constraintFamilies: string[];
-  notableLimitations: string[];
-  experimentalAreas: string[];
-}
-export declare function describeFormatSupport(
-  format: ConsumerSurfaceFormat,
-): FormatSupportSummary;
-export declare function listFormatSupports(): FormatSupportSummary[];
 ```

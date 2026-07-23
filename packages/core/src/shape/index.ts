@@ -37,10 +37,16 @@ export type {
 } from "../schema/transform.js";
 
 export type {
+  SchemaReferenceVisitMode as ShapeReferenceVisitMode,
+  SchemaReferenceFrame as ShapeReferenceFrame,
+  SchemaWalkControl as ShapeWalkControl,
+  SchemaDefinitionWalkContext as ShapeDefinitionWalkContext,
+  SchemaFieldWalkContext as ShapeFieldWalkContext,
   SchemaWalkContext as ShapeWalkContext,
   SchemaWalkNodeContext as ShapeWalkNodeContext,
   SchemaWalkOptions as ShapeWalkOptions,
   SchemaReferenceTraversalStatus as ShapeReferenceTraversalStatus,
+  SchemaTupleElementWalkContext as ShapeTupleElementWalkContext,
   SchemaWalkReferenceMode as ShapeWalkReferenceMode,
   SchemaWalkVia as ShapeWalkVia,
   SchemaWalkVisitor as ShapeWalkVisitor,
@@ -96,10 +102,16 @@ export type {
 } from "../schema/transform.js";
 
 export type {
+  SchemaReferenceVisitMode,
+  SchemaReferenceFrame,
+  SchemaWalkControl,
+  SchemaDefinitionWalkContext,
+  SchemaFieldWalkContext,
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
   SchemaReferenceTraversalStatus,
+  SchemaTupleElementWalkContext,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,

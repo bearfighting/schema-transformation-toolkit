@@ -29,6 +29,7 @@ describe("schema normalize", () => {
       typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
+      referenceStack: [],
     });
 
     expect(normalized).toBe(node);
@@ -50,6 +51,7 @@ describe("schema normalize", () => {
       typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
+      referenceStack: [],
     });
 
     expect(normalized).toEqual(
@@ -67,6 +69,7 @@ describe("schema normalize", () => {
       typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
+      referenceStack: [],
     });
 
     expect(normalized).toEqual(schemaScalarNode("string"));
@@ -88,6 +91,7 @@ describe("schema normalize", () => {
       typedPath: createRootSchemaPath(),
       path: ["root"],
       definitionLookup: new Map(),
+      referenceStack: [],
     });
 
     expect(normalized).toEqual(

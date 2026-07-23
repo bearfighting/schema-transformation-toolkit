@@ -136,6 +136,28 @@ They should not:
 - carry oversized raw parser traces
 - hide truthfulness-sensitive widening behind silent success
 
+## Traversal Policy For Analysis
+
+Capability analysis and loss analysis do not always want the same reference-follow behavior.
+
+When an analysis is asking "what reachable semantics must this target support?", it should usually use:
+
+- `references: "follow"`
+- `referenceVisits: "once-per-definition"`
+
+When an analysis is asking "where can widening or loss happen for this concrete usage site?", it should usually use:
+
+- `references: "follow"`
+- `referenceVisits: "per-occurrence"`
+
+The repository now has a small concrete example of this split in `packages/generators/typescript/src/analysis.ts`:
+
+- capability requirements use once-per-definition
+- target loss hotspots use per-occurrence
+
+That does not mean every diagnostic must follow references.
+Declaration-oriented generator diagnostics may still prefer structural or preserve-mode traversal when the target output is emitted once per definition rather than once per use site.
+
 ## Layer Rules
 
 ### Parser

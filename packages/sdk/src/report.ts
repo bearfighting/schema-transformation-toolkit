@@ -1,5 +1,7 @@
 import type {
+  ConversionCapabilityRequirement,
   ConversionEntrySelection,
+  ConversionLossHotspot,
   ConversionPolicyDecision,
   ConversionSemanticCaveat,
   ConstraintDocument,
@@ -30,6 +32,8 @@ export function buildConversionReport(
   preservedCapabilities: ConversionCapability[],
   parseSemanticNotes: SchemaSemanticNote[],
   generateSemanticNotes: SchemaSemanticNote[],
+  capabilityRequirements: ConversionCapabilityRequirement[] = [],
+  lossHotspots: ConversionLossHotspot[] = [],
 ): ConversionReport | undefined {
   const allDiagnostics = [...parseDiagnostics, ...generateDiagnostics];
   const allSemanticNotes = [...parseSemanticNotes, ...generateSemanticNotes];
@@ -49,6 +53,8 @@ export function buildConversionReport(
     preservedCapabilities.length === 0 &&
     allSemanticNotes.length === 0 &&
     semanticCaveats.length === 0 &&
+    capabilityRequirements.length === 0 &&
+    lossHotspots.length === 0 &&
     policyDecisions.length === 0 &&
     !entrySelection
   ) {
@@ -83,6 +89,8 @@ export function buildConversionReport(
         }
       : {}),
     ...(semanticCaveats.length > 0 ? { semanticCaveats } : {}),
+    ...(capabilityRequirements.length > 0 ? { capabilityRequirements } : {}),
+    ...(lossHotspots.length > 0 ? { lossHotspots } : {}),
     ...(policyDecisions.length > 0 ? { policyDecisions } : {}),
     ...(entrySelection ? { entrySelection } : {}),
   };

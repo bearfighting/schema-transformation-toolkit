@@ -26,11 +26,15 @@
 
 这份评审文档里的问题并不都属于当前阶段的同一优先级。
 
-按当前仓库状态，应这样理解：
+按 2026-07-23 的当前仓库状态，应这样理解：
 
-- `document traversal` 语义拆分、reference follow 状态显式化、child enumeration 抽取，属于近期应推进事项
-- traversal / transform 入口语义对齐、transform reference policy 显式化，也属于近期已经开始落地的事项
-- typed path、wrapper-level hooks、reference stack、visitor control，属于下一阶段候选项
+- `document traversal` 语义拆分、reference follow 状态显式化、child enumeration 抽取，已经落地
+- traversal / transform 入口语义对齐、transform reference policy 显式化，也已经落地
+- visitor control、wrapper-level hooks、lexical/source/target 区分与 reference stack，已经有了第一轮实现
+- `referenceVisits: "per-occurrence" | "once-per-definition"` 也已经有了第一轮实现，并且已经有了第一批真实 consumer：
+  - `packages/generators/typescript/src/analysis.ts` 用 `per-occurrence` 做 loss hotspot 收集
+  - `packages/generators/typescript/src/analysis.ts` 用 `once-per-definition` 做 capability requirement 收集
+- typed path 的进一步扩展与更强的 visit-policy 组合语义，仍属于下一阶段候选项
 - iterative traversal、跨 IR 统一 walker、mutation-capable traversal，属于明显更晚的工作
 
 如果这份文档中的某条建议与 `schema-traversal.md` 的当前计划冲突，应以 `schema-traversal.md` 为准。
@@ -47,14 +51,14 @@
 - `preserve` 与 `follow` 两种 reference 策略；
 - definition lookup；
 - reference cycle protection；
-- `parent`、`containingDefinition`、`via`、`path` 等访问上下文；
+- `parent`、`containingDefinition`、`lexicalDefinition`、`referenceStack`、`via`、`path` 等访问上下文；
 - validation 对 traversal 的实际复用。
 
 这些设计证明 traversal 抽象已经开始产生真实价值，尤其是 validation 不再需要为每种 SchemaNode 重写递归逻辑。
 
 不过，当前实现更适合被定义为：
 
-> 一个同步、只读、前序遍历的 SchemaNode walker。
+> 一个同步、只读、以 SchemaNode 为中心的 walker，并带有小范围 wrapper hooks、post-order hook、short-circuit control 与 richer reference context。
 
 它暂时还不应被视为完整、稳定的 IR traversal framework，也尚不足以直接支撑未来的：
 

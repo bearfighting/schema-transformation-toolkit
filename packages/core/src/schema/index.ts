@@ -105,10 +105,16 @@ export {
 } from "./traversal.js";
 
 export type {
+  SchemaReferenceVisitMode,
+  SchemaReferenceFrame,
+  SchemaWalkControl,
+  SchemaDefinitionWalkContext,
+  SchemaFieldWalkContext,
   SchemaWalkContext,
   SchemaWalkNodeContext,
   SchemaWalkOptions,
   SchemaReferenceTraversalStatus,
+  SchemaTupleElementWalkContext,
   SchemaWalkReferenceMode,
   SchemaWalkVia,
   SchemaWalkVisitor,

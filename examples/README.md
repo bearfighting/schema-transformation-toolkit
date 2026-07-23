@@ -9,11 +9,17 @@ They are best read as:
 - a way to compare how the same IR semantics render into different targets
 - a companion to the package READMEs, not a replacement for support or failure matrices
 
+If you are starting from the higher-level pipeline API instead of individual parser or generator packages, also read:
+
+- [../packages/sdk/README.md](../packages/sdk/README.md): quick `convert(...)` usage and report-reading entry point
+- [../docs/development/sdk-report-analysis.md](../docs/development/sdk-report-analysis.md): deeper interpretation of `semanticCaveats`, `capabilityRequirements`, and `lossHotspots`
+
 ## Start Here
 
 - [json-to-typescript.md](json-to-typescript.md): the most familiar current flow and a good first pass through the shared IR semantics
 - [json-schema-to-typescript.md](json-schema-to-typescript.md): the newest parser-to-generator flow and the best entry point for the current JSON Schema subset
 - [json-schema-to-json-schema.md](json-schema-to-json-schema.md): the best entry point for understanding the current JSON Schema round-trip boundary
+- [sdk-report-analysis.md](sdk-report-analysis.md): the best entry point for understanding how to read `@aio/sdk` report output after a successful conversion
 
 ## By Source Input
 
@@ -22,6 +28,7 @@ They are best read as:
 - [json-schema-to-typescript.md](json-schema-to-typescript.md): examples starting from the current supported JSON Schema subset
 - [json-schema-to-json-schema.md](json-schema-to-json-schema.md): examples starting from the current supported JSON Schema subset
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): examples starting from supported TypeScript schema declarations
+- [sdk-report-analysis.md](sdk-report-analysis.md): examples centered on reading higher-level `sdk` report output
 
 ## By Output Target
 
@@ -30,6 +37,7 @@ They are best read as:
 - [json-to-json-schema.md](json-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
 - [json-schema-to-json-schema.md](json-schema-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): examples ending in JSON Schema Draft 2020-12
+- [sdk-report-analysis.md](sdk-report-analysis.md): examples ending in higher-level `sdk` report interpretation rather than only generated target syntax
 
 ## By Complexity
 
@@ -38,8 +46,10 @@ They are best read as:
 - [json-schema-to-json-schema.md](json-schema-to-json-schema.md): best for seeing where the current JSON Schema parser is exact, where it is normalized, and where it still fails explicitly
 - [json-to-json-schema.md](json-to-json-schema.md): best for seeing how JSON-oriented IR semantics render structurally in JSON Schema
 - [typescript-to-json-schema.md](typescript-to-json-schema.md): best for reusable definitions, references, enum-like literals, and richer type composition
+- [sdk-report-analysis.md](sdk-report-analysis.md): best for understanding how `semanticCaveats`, `capabilityRequirements`, and `lossHotspots` fit together
 
 ## Notes
 
 - these documents show current supported behavior, not aspirational future behavior
 - they focus on successful end-to-end flows, while tests and development docs track failure matrices and design tradeoffs
+- `sdk-report-analysis.mjs` is a runnable example after `pnpm build` when you want to inspect real higher-level `@aio/sdk` report output

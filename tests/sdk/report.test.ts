@@ -113,6 +113,26 @@ describe("sdk reporting helpers", () => {
       ["shape-ir"],
       parseSemanticNotes,
       generateSemanticNotes,
+      [
+        {
+          feature: "tuple",
+          path: ["root", "item"],
+          referenceStack: ["Pair"],
+          containingDefinitionName: "Pair",
+        },
+      ],
+      [
+        {
+          code: "integer-widening",
+          path: ["root", "item", "count"],
+          referenceStack: ["Pair"],
+          containingDefinitionName: "Pair",
+          evidence: {
+            sourceScalar: "integer",
+            renderedScalar: "number",
+          },
+        },
+      ],
     );
 
     expect(report).toEqual({
@@ -155,6 +175,26 @@ describe("sdk reporting helpers", () => {
           source: "generator-typescript",
           path: ["root", "id"],
           layer: "target",
+          evidence: {
+            sourceScalar: "integer",
+            renderedScalar: "number",
+          },
+        },
+      ],
+      capabilityRequirements: [
+        {
+          feature: "tuple",
+          path: ["root", "item"],
+          referenceStack: ["Pair"],
+          containingDefinitionName: "Pair",
+        },
+      ],
+      lossHotspots: [
+        {
+          code: "integer-widening",
+          path: ["root", "item", "count"],
+          referenceStack: ["Pair"],
+          containingDefinitionName: "Pair",
           evidence: {
             sourceScalar: "integer",
             renderedScalar: "number",

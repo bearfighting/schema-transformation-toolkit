@@ -2,6 +2,46 @@
 
 Entry: packages/generators/typescript/src/index.ts
 
+## packages/generators/typescript/src/analysis.d.ts
+
+```ts
+import { type SchemaDocument } from "@aio/core";
+export type TypeScriptLossHotspotCode =
+  "integer-widening" | "wide-unknown" | "unknown-union-absorption";
+export interface TypeScriptLossHotspot {
+  code: TypeScriptLossHotspotCode;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence: Record<string, unknown>;
+}
+export type TypeScriptSchemaFeature =
+  | "object"
+  | "array"
+  | "tuple"
+  | "record"
+  | "union"
+  | "optional-field"
+  | "nullable-field"
+  | "local-reference"
+  | "recursive-reference";
+export interface TypeScriptCapabilityRequirement {
+  feature: TypeScriptSchemaFeature;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence?: Record<string, unknown>;
+}
+export declare function collectTypeScriptTargetLossHotspots(
+  document: SchemaDocument,
+): TypeScriptLossHotspot[];
+export declare function collectTypeScriptCapabilityRequirements(
+  document: SchemaDocument,
+): TypeScriptCapabilityRequirement[];
+```
+
 ## packages/generators/typescript/src/api.d.ts
 
 ```ts
@@ -83,7 +123,17 @@ export {
   tryGenerateTypeScript,
   typeScriptGenerator,
 } from "./api.js";
+export {
+  collectTypeScriptCapabilityRequirements,
+  collectTypeScriptTargetLossHotspots,
+} from "./analysis.js";
 export { typeScriptGeneratorCapabilities } from "./capabilities.js";
+export type {
+  TypeScriptCapabilityRequirement,
+  TypeScriptLossHotspot,
+  TypeScriptLossHotspotCode,
+  TypeScriptSchemaFeature,
+} from "./analysis.js";
 export {
   prepareTypeScriptGeneratorOptions,
   resolveTypeScriptGeneratorOptions,

@@ -58,6 +58,24 @@ export interface ConversionSemanticCaveat {
   evidence?: unknown;
 }
 
+export interface ConversionCapabilityRequirement {
+  feature: string;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence?: unknown;
+}
+
+export interface ConversionLossHotspot {
+  code: string;
+  path: string[];
+  lexicalDefinitionName?: string;
+  containingDefinitionName?: string;
+  referenceStack: string[];
+  evidence?: unknown;
+}
+
 export interface ParserCapabilities {
   format: string;
   producesIr: IrKind[];
@@ -76,6 +94,8 @@ export interface ConversionReport {
   preservedCapabilities?: ConversionCapability[];
   semanticNotes?: ConversionReportStage<SchemaSemanticNote>;
   semanticCaveats?: ConversionSemanticCaveat[];
+  capabilityRequirements?: ConversionCapabilityRequirement[];
+  lossHotspots?: ConversionLossHotspot[];
   policyDecisions?: ConversionPolicyDecision[];
   entrySelection?: ConversionEntrySelection;
 }

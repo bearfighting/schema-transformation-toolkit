@@ -16,6 +16,7 @@ The repository is past architecture validation and has a stable-enough conversio
 - parser and generator packages for JSON, JSON Schema, and TypeScript
 - structured diagnostics, semantic notes, capability declarations, and semantic-loss reporting
 - an SDK planner that derives routes and route summaries from registries
+- an SDK report layer that now includes higher-level `capabilityRequirements` and `lossHotspots` analysis for `typescript` targets
 - shared semantic fixtures, generator contract helpers, cross-parser equivalence smoke, and a real-world corpus
 - a shared `Shape IR` traversal helper in `@aio/core` that now backs core schema validation plus generator diagnostics and validation passes
 - a shared immutable `Shape IR` transform layer in `@aio/core`
@@ -110,6 +111,10 @@ As of July 22, 2026, the latest completed slice includes:
 - explicit transform reference policy for root-reachable definition rewriting
 - first dedicated `normalizeSchema...` exit built on top of transform, currently covering union flattening, union deduplication, single-member union collapse, unknown-evidence canonicalization, and identifier-word metadata canonicalization
 - focused normalization tests covering structure-wide, root-reachable, and definitions-only normalization behavior
+- first traversal-policy-backed `sdk` report analysis fields for `capabilityRequirements` and `lossHotspots`
+- development documentation for interpreting higher-level `sdk` report analysis
+- a package-local `@aio/sdk` README with `convert(...)` and report-reading guidance
+- a report-contract test that keeps the documented `sdk` analysis example aligned with real output
 
 The resulting maturity is now:
 
@@ -122,7 +127,7 @@ It moved shared traversal extraction from the next refactor into implemented rep
 
 ## Verification
 
-The latest local verification pass completed on July 22, 2026 and included:
+The latest full local verification pass completed on July 22, 2026 and included:
 
 - `pnpm check:api`
 - `pnpm typecheck`
@@ -130,10 +135,18 @@ The latest local verification pass completed on July 22, 2026 and included:
 
 That pass was green with `39` test files and `520` passing tests.
 
+A newer targeted verification pass completed on July 23, 2026 and included:
+
+- `./node_modules/.bin/vitest run tests/sdk/report.test.ts tests/sdk/api-contract.test.ts tests/generators/typescript/analysis.test.ts`
+- `./node_modules/.bin/tsc --noEmit`
+
+That targeted pass was green and covered the new `sdk` report-analysis surfaces plus their public examples.
+
 ## Reading Order
 
 For active implementation work:
 
 - read [test_plan.md](test_plan.md) for the current testing strategy
 - read [schema-traversal.md](schema-traversal.md) before changing shared IR traversal, transform, or normalization behavior
+- read [sdk-report-analysis.md](sdk-report-analysis.md) or [../../packages/sdk/README.md](../../packages/sdk/README.md) when changing higher-level `sdk` report interpretation or examples
 - read [typescript-parser-cases.md](typescript-parser-cases.md) and [typescript-parser-preprocess.md](typescript-parser-preprocess.md) only when touching the TypeScript parser boundary

@@ -1,4 +1,12 @@
-import type { SchemaDefinition, SchemaDocument, SchemaNode } from "./types.js";
+import type {
+  SchemaDefinition,
+  SchemaDocument,
+  SchemaFieldNode,
+  SchemaNode,
+  SchemaObjectNode,
+  SchemaTupleElement,
+  SchemaTupleNode,
+} from "./types.js";
 import { createSchemaChildContext, getSchemaNodeChildren } from "./children.js";
 import {
   createSchemaDefinitionIndex,
@@ -14,6 +22,14 @@ import {
 } from "./path.js";
 
 export type SchemaWalkReferenceMode = "preserve" | "follow";
+export type SchemaWalkControl = "continue" | "skip-children" | "stop";
+export type SchemaReferenceVisitMode = "per-occurrence" | "once-per-definition";
+export interface SchemaReferenceFrame {
+  reference: Extract<SchemaNode, { kind: "reference" }>;
+  sourcePath: SchemaPath;
+  sourceDefinition?: SchemaDefinition;
+  targetDefinition: SchemaDefinition;
+}
 
 export type SchemaReferenceTraversalStatus =
   | { status: "not-followed" }
@@ -43,10 +59,47 @@ export interface SchemaWalkContext {
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
   referenceResolution?: SchemaReferenceTraversalStatus;
+}
+
+export interface SchemaDefinitionWalkContext {
+  document: SchemaDocument;
+  definition: SchemaDefinition;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+}
+
+export interface SchemaFieldWalkContext {
+  document: SchemaDocument;
+  field: SchemaFieldNode;
+  parent: SchemaObjectNode;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+  containingDefinition?: SchemaDefinition;
+}
+
+export interface SchemaTupleElementWalkContext {
+  document: SchemaDocument;
+  element: SchemaTupleElement;
+  index: number;
+  parent: SchemaTupleNode;
+  typedPath: SchemaPath;
+  path: string[];
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
+  containingDefinition?: SchemaDefinition;
 }
 
 export interface SchemaWalkNodeContext {
@@ -54,6 +107,8 @@ export interface SchemaWalkNodeContext {
   typedPath: SchemaPath;
   path: string[];
   definitionLookup: ReadonlyMap<string, SchemaDefinition>;
+  lexicalDefinition?: SchemaDefinition;
+  referenceStack: readonly SchemaReferenceFrame[];
   parent?: SchemaNode;
   containingDefinition?: SchemaDefinition;
   via?: SchemaWalkVia;
@@ -61,17 +116,32 @@ export interface SchemaWalkNodeContext {
 }
 
 export interface SchemaWalkVisitor {
-  enter?(context: SchemaWalkContext): void;
+  enterDefinition?(
+    context: SchemaDefinitionWalkContext,
+  ): SchemaWalkControl | void;
+  leaveDefinition?(context: SchemaDefinitionWalkContext): void;
+  enterField?(context: SchemaFieldWalkContext): SchemaWalkControl | void;
+  leaveField?(context: SchemaFieldWalkContext): void;
+  enterTupleElement?(
+    context: SchemaTupleElementWalkContext,
+  ): SchemaWalkControl | void;
+  leaveTupleElement?(context: SchemaTupleElementWalkContext): void;
+  enter?(context: SchemaWalkContext): SchemaWalkControl | void;
+  leave?(context: SchemaWalkContext): void;
 }
 
 export interface SchemaWalkOptions {
   references?: SchemaWalkReferenceMode;
+  referenceVisits?: SchemaReferenceVisitMode;
 }
 
 interface SchemaWalkState {
   referenceMode: SchemaWalkReferenceMode;
+  referenceVisitMode: SchemaReferenceVisitMode;
   seenReferences: ReadonlySet<string>;
+  followedDefinitions: Set<string>;
   definitionIndex: SchemaDefinitionIndex;
+  stopped: boolean;
 }
 
 export function walkSchemaDocument(
@@ -91,29 +161,23 @@ export function walkSchemaDocumentStructure(
   const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
+    referenceVisitMode: options?.referenceVisits ?? "per-occurrence",
     seenReferences: new Set(),
+    followedDefinitions: new Set(),
     definitionIndex,
+    stopped: false,
   };
 
   for (const definition of document.definitions) {
-    walkNode(
-      definition.type,
-      {
-        document,
-        typedPath: createDefinitionSchemaPath(definition.name.source),
-        path: schemaPathToDiagnosticPath(
-          createDefinitionSchemaPath(definition.name.source),
-        ),
-        definitionLookup,
-        containingDefinition: definition,
-        via: {
-          kind: "definition",
-          definitionName: definition.name.source,
-        },
-      },
-      visitor,
-      state,
-    );
+    if (state.stopped) {
+      return;
+    }
+
+    walkDefinition(document, definition, definitionLookup, visitor, state);
+  }
+
+  if (state.stopped) {
+    return;
   }
 
   walkNode(
@@ -123,6 +187,7 @@ export function walkSchemaDocumentStructure(
       typedPath: createRootSchemaPath(),
       path: schemaPathToDiagnosticPath(createRootSchemaPath()),
       definitionLookup,
+      referenceStack: [],
       via: { kind: "root" },
     },
     visitor,
@@ -139,8 +204,11 @@ export function walkSchemaDocumentFromRoot(
   const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
+    referenceVisitMode: options?.referenceVisits ?? "per-occurrence",
     seenReferences: new Set(),
+    followedDefinitions: new Set(),
     definitionIndex,
+    stopped: false,
   };
 
   walkNode(
@@ -150,6 +218,7 @@ export function walkSchemaDocumentFromRoot(
       typedPath: createRootSchemaPath(),
       path: schemaPathToDiagnosticPath(createRootSchemaPath()),
       definitionLookup,
+      referenceStack: [],
       via: { kind: "root" },
     },
     visitor,
@@ -166,29 +235,19 @@ export function walkSchemaDefinitions(
   const definitionLookup = definitionIndex.unique;
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
+    referenceVisitMode: options?.referenceVisits ?? "per-occurrence",
     seenReferences: new Set(),
+    followedDefinitions: new Set(),
     definitionIndex,
+    stopped: false,
   };
 
   for (const definition of document.definitions) {
-    walkNode(
-      definition.type,
-      {
-        document,
-        typedPath: createDefinitionSchemaPath(definition.name.source),
-        path: schemaPathToDiagnosticPath(
-          createDefinitionSchemaPath(definition.name.source),
-        ),
-        definitionLookup,
-        containingDefinition: definition,
-        via: {
-          kind: "definition",
-          definitionName: definition.name.source,
-        },
-      },
-      visitor,
-      state,
-    );
+    if (state.stopped) {
+      return;
+    }
+
+    walkDefinition(document, definition, definitionLookup, visitor, state);
   }
 }
 
@@ -200,10 +259,13 @@ export function walkSchemaNode(
 ): void {
   const state: SchemaWalkState = {
     referenceMode: options?.references ?? "preserve",
+    referenceVisitMode: options?.referenceVisits ?? "per-occurrence",
     seenReferences: new Set(),
+    followedDefinitions: new Set(),
     definitionIndex: createSchemaDefinitionIndexFromLookup(
       context.definitionLookup,
     ),
+    stopped: false,
   };
 
   walkNode(node, context, visitor, state);
@@ -215,31 +277,35 @@ function walkNode(
   visitor: SchemaWalkVisitor,
   state: SchemaWalkState,
 ): void {
+  if (state.stopped) {
+    return;
+  }
+
   const referenceResolution =
     node.kind === "reference"
       ? (context.referenceResolution ??
         resolveReferenceTraversalStatus(node, context, state))
       : undefined;
+  const walkContext = createWalkContext(node, context, referenceResolution);
 
-  visitor.enter?.({
-    document: context.document,
-    node,
-    typedPath: context.typedPath,
-    path: context.path,
-    definitionLookup: context.definitionLookup,
-    ...(context.parent ? { parent: context.parent } : {}),
-    ...(context.containingDefinition
-      ? { containingDefinition: context.containingDefinition }
-      : {}),
-    ...(context.via ? { via: context.via } : {}),
-    ...(referenceResolution ? { referenceResolution } : {}),
-  });
+  const control = visitor.enter?.(walkContext) ?? "continue";
+
+  if (control === "stop") {
+    state.stopped = true;
+    return;
+  }
+
+  if (control === "skip-children") {
+    visitor.leave?.(walkContext);
+    return;
+  }
 
   switch (node.kind) {
     case "scalar":
     case "literal":
     case "null":
     case "unknown":
+      visitor.leave?.(walkContext);
       return;
     case "reference":
       followReferenceIfConfigured(
@@ -250,13 +316,18 @@ function walkNode(
         referenceResolution ??
           resolveReferenceTraversalStatus(node, context, state),
       );
+      if (!state.stopped) {
+        visitor.leave?.(walkContext);
+      }
       return;
     case "array":
-    case "tuple":
     case "record":
     case "union":
-    case "object":
       for (const child of getSchemaNodeChildren(node)) {
+        if (state.stopped) {
+          return;
+        }
+
         walkNode(
           child.node,
           createSchemaChildContext(context, node, child),
@@ -264,8 +335,209 @@ function walkNode(
           state,
         );
       }
+      if (!state.stopped) {
+        visitor.leave?.(walkContext);
+      }
+      return;
+    case "tuple":
+      for (const [index, element] of node.elements.entries()) {
+        if (state.stopped) {
+          return;
+        }
+
+        walkTupleElement(node, element, index, context, visitor, state);
+      }
+      if (!state.stopped) {
+        visitor.leave?.(walkContext);
+      }
+      return;
+    case "object":
+      for (const field of node.fields) {
+        if (state.stopped) {
+          return;
+        }
+
+        walkField(node, field, context, visitor, state);
+      }
+      if (!state.stopped) {
+        visitor.leave?.(walkContext);
+      }
       return;
   }
+}
+
+function walkDefinition(
+  document: SchemaDocument,
+  definition: SchemaDefinition,
+  definitionLookup: ReadonlyMap<string, SchemaDefinition>,
+  visitor: SchemaWalkVisitor,
+  state: SchemaWalkState,
+): void {
+  const typedPath = createDefinitionSchemaPath(definition.name.source);
+  const context: SchemaDefinitionWalkContext = {
+    document,
+    definition,
+    typedPath,
+    path: schemaPathToDiagnosticPath(typedPath),
+    definitionLookup,
+    lexicalDefinition: definition,
+    referenceStack: [],
+  };
+
+  const control = visitor.enterDefinition?.(context) ?? "continue";
+
+  if (control === "stop") {
+    state.stopped = true;
+    return;
+  }
+
+  if (control === "skip-children") {
+    visitor.leaveDefinition?.(context);
+    return;
+  }
+
+  walkNode(
+    definition.type,
+    {
+      document,
+      typedPath,
+      path: context.path,
+      definitionLookup,
+      lexicalDefinition: definition,
+      referenceStack: context.referenceStack,
+      containingDefinition: definition,
+      via: {
+        kind: "definition",
+        definitionName: definition.name.source,
+      },
+    },
+    visitor,
+    state,
+  );
+
+  if (!state.stopped) {
+    visitor.leaveDefinition?.(context);
+  }
+}
+
+function walkField(
+  parent: SchemaObjectNode,
+  field: SchemaFieldNode,
+  context: SchemaWalkNodeContext,
+  visitor: SchemaWalkVisitor,
+  state: SchemaWalkState,
+): void {
+  const childContext = createSchemaChildContext(context, parent, {
+    node: field.type,
+    pathSegment: { kind: "field", name: field.name.source },
+    via: { kind: "field", fieldName: field.name.source },
+  });
+  const fieldContext: SchemaFieldWalkContext = {
+    document: context.document,
+    field,
+    parent,
+    typedPath: childContext.typedPath,
+    path: childContext.path,
+    definitionLookup: context.definitionLookup,
+    ...(context.lexicalDefinition
+      ? { lexicalDefinition: context.lexicalDefinition }
+      : {}),
+    referenceStack: context.referenceStack,
+    ...(context.containingDefinition
+      ? { containingDefinition: context.containingDefinition }
+      : {}),
+  };
+
+  const control = visitor.enterField?.(fieldContext) ?? "continue";
+
+  if (control === "stop") {
+    state.stopped = true;
+    return;
+  }
+
+  if (control === "skip-children") {
+    visitor.leaveField?.(fieldContext);
+    return;
+  }
+
+  walkNode(field.type, childContext, visitor, state);
+
+  if (!state.stopped) {
+    visitor.leaveField?.(fieldContext);
+  }
+}
+
+function walkTupleElement(
+  parent: SchemaTupleNode,
+  element: SchemaTupleElement,
+  index: number,
+  context: SchemaWalkNodeContext,
+  visitor: SchemaWalkVisitor,
+  state: SchemaWalkState,
+): void {
+  const childContext = createSchemaChildContext(context, parent, {
+    node: element.type,
+    pathSegment: { kind: "tupleElement", index },
+    via: { kind: "tupleElement", index },
+  });
+  const elementContext: SchemaTupleElementWalkContext = {
+    document: context.document,
+    element,
+    index,
+    parent,
+    typedPath: childContext.typedPath,
+    path: childContext.path,
+    definitionLookup: context.definitionLookup,
+    ...(context.lexicalDefinition
+      ? { lexicalDefinition: context.lexicalDefinition }
+      : {}),
+    referenceStack: context.referenceStack,
+    ...(context.containingDefinition
+      ? { containingDefinition: context.containingDefinition }
+      : {}),
+  };
+
+  const control = visitor.enterTupleElement?.(elementContext) ?? "continue";
+
+  if (control === "stop") {
+    state.stopped = true;
+    return;
+  }
+
+  if (control === "skip-children") {
+    visitor.leaveTupleElement?.(elementContext);
+    return;
+  }
+
+  walkNode(element.type, childContext, visitor, state);
+
+  if (!state.stopped) {
+    visitor.leaveTupleElement?.(elementContext);
+  }
+}
+
+function createWalkContext(
+  node: SchemaNode,
+  context: SchemaWalkNodeContext,
+  referenceResolution?: SchemaReferenceTraversalStatus,
+): SchemaWalkContext {
+  return {
+    document: context.document,
+    node,
+    typedPath: context.typedPath,
+    path: context.path,
+    definitionLookup: context.definitionLookup,
+    ...(context.lexicalDefinition
+      ? { lexicalDefinition: context.lexicalDefinition }
+      : {}),
+    referenceStack: context.referenceStack,
+    ...(context.parent ? { parent: context.parent } : {}),
+    ...(context.containingDefinition
+      ? { containingDefinition: context.containingDefinition }
+      : {}),
+    ...(context.via ? { via: context.via } : {}),
+    ...(referenceResolution ? { referenceResolution } : {}),
+  };
 }
 
 function followReferenceIfConfigured(
@@ -279,8 +551,16 @@ function followReferenceIfConfigured(
     return;
   }
 
+  if (
+    state.referenceVisitMode === "once-per-definition" &&
+    state.followedDefinitions.has(resolution.definition.name.source)
+  ) {
+    return;
+  }
+
   const nextSeenReferences = new Set(state.seenReferences);
   nextSeenReferences.add(node.name);
+  state.followedDefinitions.add(resolution.definition.name.source);
 
   walkNode(
     resolution.definition.type,
@@ -289,6 +569,20 @@ function followReferenceIfConfigured(
       typedPath: context.typedPath,
       path: context.path,
       definitionLookup: context.definitionLookup,
+      ...(context.lexicalDefinition
+        ? { lexicalDefinition: context.lexicalDefinition }
+        : {}),
+      referenceStack: [
+        ...context.referenceStack,
+        {
+          reference: node,
+          sourcePath: context.typedPath,
+          ...(context.lexicalDefinition
+            ? { sourceDefinition: context.lexicalDefinition }
+            : {}),
+          targetDefinition: resolution.definition,
+        },
+      ],
       parent: node,
       containingDefinition: resolution.definition,
       via: {

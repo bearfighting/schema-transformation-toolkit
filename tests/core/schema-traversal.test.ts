@@ -391,7 +391,7 @@ describe("schema traversal", () => {
       referenceResolution?: string;
     }> = [];
 
-    walkSchemaDocument(
+    walkSchemaDocumentFromRoot(
       document,
       {
         enter(context) {
@@ -676,6 +676,269 @@ describe("schema traversal", () => {
     expect(visits.get("root.tags.elementType::scalar")).toBeNull();
   });
 
+  it("distinguishes lexicalDefinition from containingDefinition across reference follow", () => {
+    const document = schemaDocument(
+      "LexicalContext",
+      schemaReferenceNode("Order"),
+      {
+        definitions: [
+          schemaDefinition(
+            "Order",
+            schemaObjectNode([
+              schemaFieldNode("customer", schemaReferenceNode("User")),
+            ]),
+          ),
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const visits = new Map<
+      string,
+      {
+        lexicalDefinition?: string;
+        containingDefinition?: string;
+        referenceStackDepth: number;
+      }
+    >();
+
+    walkSchemaDocument(
+      document,
+      {
+        enter(context) {
+          visits.set(`${context.path.join(".")}::${context.node.kind}`, {
+            ...(context.lexicalDefinition
+              ? { lexicalDefinition: context.lexicalDefinition.name.source }
+              : {}),
+            ...(context.containingDefinition
+              ? {
+                  containingDefinition:
+                    context.containingDefinition.name.source,
+                }
+              : {}),
+            referenceStackDepth: context.referenceStack.length,
+          });
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(visits.get("definitions.Order.customer::reference")).toEqual({
+      lexicalDefinition: "Order",
+      containingDefinition: "Order",
+      referenceStackDepth: 0,
+    });
+    expect(visits.get("definitions.Order.customer::object")).toEqual({
+      lexicalDefinition: "Order",
+      containingDefinition: "User",
+      referenceStackDepth: 1,
+    });
+    expect(visits.get("root::reference")).toEqual({
+      referenceStackDepth: 0,
+    });
+    expect(visits.get("root::object")).toEqual({
+      containingDefinition: "Order",
+      referenceStackDepth: 1,
+    });
+    expect(visits.get("root.customer::object")).toEqual({
+      containingDefinition: "User",
+      referenceStackDepth: 2,
+    });
+  });
+
+  it("captures per-occurrence source and target information in referenceStack", () => {
+    const document = schemaDocument(
+      "ReferenceStack",
+      schemaReferenceNode("Order"),
+      {
+        definitions: [
+          schemaDefinition(
+            "Order",
+            schemaObjectNode([
+              schemaFieldNode("customer", schemaReferenceNode("User")),
+            ]),
+          ),
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("manager", schemaReferenceNode("User")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const stackSnapshots = new Map<
+      string,
+      Array<{
+        referenceName: string;
+        sourcePath: string[];
+        sourceDefinition?: string;
+        targetDefinition: string;
+      }>
+    >();
+
+    walkSchemaDocument(
+      document,
+      {
+        enter(context) {
+          if (context.node.kind !== "object") {
+            return;
+          }
+
+          stackSnapshots.set(
+            context.path.join("."),
+            context.referenceStack.map((frame) => ({
+              referenceName: frame.reference.name,
+              sourcePath: frame.sourcePath.map((segment) => {
+                switch (segment.kind) {
+                  case "root":
+                    return "root";
+                  case "definition":
+                    return `definitions.${segment.name}`;
+                  case "elementType":
+                    return "elementType";
+                  case "tupleElement":
+                  case "unionMember":
+                    return String(segment.index);
+                  case "recordKey":
+                    return "key";
+                  case "recordValue":
+                    return "value";
+                  case "field":
+                    return segment.name;
+                }
+              }),
+              ...(frame.sourceDefinition
+                ? { sourceDefinition: frame.sourceDefinition.name.source }
+                : {}),
+              targetDefinition: frame.targetDefinition.name.source,
+            })),
+          );
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(stackSnapshots.get("definitions.Order.customer")).toEqual([
+      {
+        referenceName: "User",
+        sourcePath: ["definitions.Order", "customer"],
+        sourceDefinition: "Order",
+        targetDefinition: "User",
+      },
+    ]);
+    expect(stackSnapshots.get("root")).toEqual([
+      {
+        referenceName: "Order",
+        sourcePath: ["root"],
+        targetDefinition: "Order",
+      },
+    ]);
+    expect(stackSnapshots.get("root.customer")).toEqual([
+      {
+        referenceName: "Order",
+        sourcePath: ["root"],
+        targetDefinition: "Order",
+      },
+      {
+        referenceName: "User",
+        sourcePath: ["root", "customer"],
+        targetDefinition: "User",
+      },
+    ]);
+  });
+
+  it("follows references per occurrence by default", () => {
+    const document = schemaDocument(
+      "RepeatRefs",
+      schemaTupleNode([
+        schemaReferenceNode("User"),
+        schemaReferenceNode("User"),
+      ]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const visits: string[] = [];
+
+    walkSchemaDocumentFromRoot(
+      document,
+      {
+        enter(context) {
+          visits.push(`${context.path.join(".")}::${context.node.kind}`);
+        },
+      },
+      { references: "follow" },
+    );
+
+    expect(visits).toEqual([
+      "root::tuple",
+      "root.0::reference",
+      "root.0::object",
+      "root.0.id::scalar",
+      "root.1::reference",
+      "root.1::object",
+      "root.1.id::scalar",
+    ]);
+  });
+
+  it("can follow each definition at most once when configured", () => {
+    const document = schemaDocument(
+      "RepeatRefs",
+      schemaTupleNode([
+        schemaReferenceNode("User"),
+        schemaReferenceNode("User"),
+      ]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const visits: string[] = [];
+
+    walkSchemaDocumentFromRoot(
+      document,
+      {
+        enter(context) {
+          visits.push(`${context.path.join(".")}::${context.node.kind}`);
+        },
+      },
+      {
+        references: "follow",
+        referenceVisits: "once-per-definition",
+      },
+    );
+
+    expect(visits).toEqual([
+      "root::tuple",
+      "root.0::reference",
+      "root.0::object",
+      "root.0.id::scalar",
+      "root.1::reference",
+    ]);
+  });
+
   it("uses a stable shared child-enumeration order", () => {
     const tupleChildren = getSchemaNodeChildren(
       schemaTupleNode([
@@ -751,6 +1014,308 @@ describe("schema traversal", () => {
     expect(unionChildren.map((child) => child.via.kind)).toEqual([
       "unionMember",
       "unionMember",
+    ]);
+  });
+
+  it("supports skipping children without stopping sibling traversal", () => {
+    const document = schemaDocument(
+      "TraversalControl",
+      schemaObjectNode([
+        schemaFieldNode(
+          "profile",
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("string")),
+            schemaFieldNode("age", schemaScalarNode("integer")),
+          ]),
+        ),
+        schemaFieldNode("status", schemaScalarNode("string")),
+      ]),
+    );
+
+    const visited: string[] = [];
+
+    walkSchemaDocumentFromRoot(document, {
+      enter(context) {
+        visited.push(`${context.path.join(".")}::${context.node.kind}`);
+
+        if (context.path.join(".") === "root.profile") {
+          return "skip-children";
+        }
+      },
+    });
+
+    expect(visited).toEqual([
+      "root::object",
+      "root.profile::object",
+      "root.status::scalar",
+    ]);
+  });
+
+  it("calls leave in post-order for completed traversal branches", () => {
+    const document = schemaDocument(
+      "LeaveTraversal",
+      schemaObjectNode([
+        schemaFieldNode(
+          "profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+      ]),
+    );
+
+    const events: string[] = [];
+
+    walkSchemaDocumentFromRoot(document, {
+      enter(context) {
+        events.push(`enter:${context.path.join(".")}::${context.node.kind}`);
+      },
+      leave(context) {
+        events.push(`leave:${context.path.join(".")}::${context.node.kind}`);
+      },
+    });
+
+    expect(events).toEqual([
+      "enter:root::object",
+      "enter:root.profile::object",
+      "enter:root.profile.id::scalar",
+      "leave:root.profile.id::scalar",
+      "leave:root.profile::object",
+      "leave:root::object",
+    ]);
+  });
+
+  it("calls leave after skip-children on the skipped node", () => {
+    const document = schemaDocument(
+      "SkipLeaveTraversal",
+      schemaObjectNode([
+        schemaFieldNode(
+          "profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+        schemaFieldNode("status", schemaScalarNode("string")),
+      ]),
+    );
+
+    const events: string[] = [];
+
+    walkSchemaDocumentFromRoot(document, {
+      enter(context) {
+        events.push(`enter:${context.path.join(".")}::${context.node.kind}`);
+
+        if (context.path.join(".") === "root.profile") {
+          return "skip-children";
+        }
+      },
+      leave(context) {
+        events.push(`leave:${context.path.join(".")}::${context.node.kind}`);
+      },
+    });
+
+    expect(events).toEqual([
+      "enter:root::object",
+      "enter:root.profile::object",
+      "leave:root.profile::object",
+      "enter:root.status::scalar",
+      "leave:root.status::scalar",
+      "leave:root::object",
+    ]);
+  });
+
+  it("supports stopping traversal immediately", () => {
+    const document = schemaDocument(
+      "StopTraversal",
+      schemaObjectNode([
+        schemaFieldNode("first", schemaScalarNode("string")),
+        schemaFieldNode("second", schemaScalarNode("integer")),
+      ]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const visited: string[] = [];
+
+    walkSchemaDocumentStructure(document, {
+      enter(context) {
+        visited.push(`${context.path.join(".")}::${context.node.kind}`);
+
+        if (context.path.join(".") === "definitions.User") {
+          return "stop";
+        }
+      },
+    });
+
+    expect(visited).toEqual(["definitions.User::object"]);
+  });
+
+  it("does not emit leave events after stop", () => {
+    const document = schemaDocument(
+      "StopLeaveTraversal",
+      schemaObjectNode([
+        schemaFieldNode(
+          "profile",
+          schemaObjectNode([schemaFieldNode("id", schemaScalarNode("string"))]),
+        ),
+      ]),
+    );
+
+    const events: string[] = [];
+
+    walkSchemaDocumentFromRoot(document, {
+      enter(context) {
+        events.push(`enter:${context.path.join(".")}::${context.node.kind}`);
+
+        if (context.path.join(".") === "root.profile") {
+          return "stop";
+        }
+      },
+      leave(context) {
+        events.push(`leave:${context.path.join(".")}::${context.node.kind}`);
+      },
+    });
+
+    expect(events).toEqual([
+      "enter:root::object",
+      "enter:root.profile::object",
+    ]);
+  });
+
+  it("exposes definition, field, and tuple-element wrapper hooks in traversal order", () => {
+    const document = schemaDocument(
+      "WrapperHooks",
+      schemaTupleNode([
+        schemaScalarNode("string"),
+        schemaObjectNode([
+          schemaFieldNode("profile", schemaReferenceNode("User")),
+        ]),
+      ]),
+      {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      },
+    );
+
+    const events: string[] = [];
+
+    walkSchemaDocument(document, {
+      enterDefinition(context) {
+        events.push(`enterDefinition:${context.path.join(".")}`);
+      },
+      leaveDefinition(context) {
+        events.push(`leaveDefinition:${context.path.join(".")}`);
+      },
+      enterField(context) {
+        events.push(
+          `enterField:${context.path.join(".")}:${context.field.name.source}`,
+        );
+      },
+      leaveField(context) {
+        events.push(
+          `leaveField:${context.path.join(".")}:${context.field.name.source}`,
+        );
+      },
+      enterTupleElement(context) {
+        events.push(
+          `enterTupleElement:${context.path.join(".")}:${context.index}`,
+        );
+      },
+      leaveTupleElement(context) {
+        events.push(
+          `leaveTupleElement:${context.path.join(".")}:${context.index}`,
+        );
+      },
+    });
+
+    expect(events).toEqual([
+      "enterDefinition:definitions.User",
+      "enterField:definitions.User.id:id",
+      "leaveField:definitions.User.id:id",
+      "leaveDefinition:definitions.User",
+      "enterTupleElement:root.0:0",
+      "leaveTupleElement:root.0:0",
+      "enterTupleElement:root.1:1",
+      "enterField:root.1.profile:profile",
+      "leaveField:root.1.profile:profile",
+      "leaveTupleElement:root.1:1",
+    ]);
+  });
+
+  it("supports skip-children on field and tuple-element wrapper hooks", () => {
+    const document = schemaDocument(
+      "WrapperHookControl",
+      schemaTupleNode([
+        schemaObjectNode([
+          schemaFieldNode(
+            "profile",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("string")),
+            ]),
+          ),
+        ]),
+        schemaObjectNode([
+          schemaFieldNode("status", schemaScalarNode("string")),
+        ]),
+      ]),
+    );
+
+    const events: string[] = [];
+
+    walkSchemaDocumentFromRoot(document, {
+      enterTupleElement(context) {
+        events.push(`enterTupleElement:${context.path.join(".")}`);
+
+        if (context.index === 1) {
+          return "skip-children";
+        }
+      },
+      leaveTupleElement(context) {
+        events.push(`leaveTupleElement:${context.path.join(".")}`);
+      },
+      enterField(context) {
+        events.push(`enterField:${context.path.join(".")}`);
+
+        if (context.field.name.source === "profile") {
+          return "skip-children";
+        }
+      },
+      leaveField(context) {
+        events.push(`leaveField:${context.path.join(".")}`);
+      },
+      enter(context) {
+        events.push(
+          `enterNode:${context.path.join(".")}::${context.node.kind}`,
+        );
+      },
+      leave(context) {
+        events.push(
+          `leaveNode:${context.path.join(".")}::${context.node.kind}`,
+        );
+      },
+    });
+
+    expect(events).toEqual([
+      "enterNode:root::tuple",
+      "enterTupleElement:root.0",
+      "enterNode:root.0::object",
+      "enterField:root.0.profile",
+      "leaveField:root.0.profile",
+      "leaveNode:root.0::object",
+      "leaveTupleElement:root.0",
+      "enterTupleElement:root.1",
+      "leaveTupleElement:root.1",
+      "leaveNode:root::tuple",
     ]);
   });
 

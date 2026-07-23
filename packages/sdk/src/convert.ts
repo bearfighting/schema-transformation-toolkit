@@ -1,4 +1,6 @@
 import type {
+  ConversionCapabilityRequirement,
+  ConversionLossHotspot,
   ConstraintDocument,
   SemanticLoss,
   SchemaDiagnostic,
@@ -6,6 +8,10 @@ import type {
   SchemaSemanticNote,
   ValueDocument,
 } from "@aio/core";
+import {
+  collectTypeScriptCapabilityRequirements,
+  collectTypeScriptTargetLossHotspots,
+} from "@aio/generator-typescript";
 import type { JsonSchemaOutput } from "@aio/generator-json-schema";
 import { generateTarget } from "./generate.js";
 import { planSemanticLosses } from "./losses.js";
@@ -54,6 +60,8 @@ export function convert(
   const semanticNotes: SchemaSemanticNote[] = [];
   const parseSemanticNotes: SchemaSemanticNote[] = [];
   const generateSemanticNotes: SchemaSemanticNote[] = [];
+  const capabilityRequirements: ConversionCapabilityRequirement[] = [];
+  const lossHotspots: ConversionLossHotspot[] = [];
   let valueArtifact: ValueDocument | undefined;
   let shapeArtifact: SchemaDocument | undefined;
   let constraintsArtifact: ConstraintDocument | undefined;
@@ -127,6 +135,13 @@ export function convert(
     ),
   );
 
+  if (shapeArtifact && options.targetFormat === "typescript") {
+    capabilityRequirements.push(
+      ...collectTypeScriptCapabilityRequirements(shapeArtifact),
+    );
+    lossHotspots.push(...collectTypeScriptTargetLossHotspots(shapeArtifact));
+  }
+
   const preservedCapabilities = collectPreservedCapabilities(
     options.sourceFormat,
     options.targetFormat,
@@ -142,6 +157,8 @@ export function convert(
     preservedCapabilities,
     parseSemanticNotes,
     generateSemanticNotes,
+    capabilityRequirements,
+    lossHotspots,
   );
 
   return {

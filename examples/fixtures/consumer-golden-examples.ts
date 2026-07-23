@@ -1,7 +1,4 @@
-export type ConsumerExampleSourceFormat =
-  | "json"
-  | "json-schema"
-  | "typescript";
+export type ConsumerExampleSourceFormat = "json" | "json-schema" | "typescript";
 
 export type ConsumerExampleTargetFormat = "json-schema" | "typescript";
 
@@ -38,8 +35,7 @@ export const consumerGoldenExamples = [
 }`,
     expectedDiagnosticCodes: [],
     category: "basic",
-    summary:
-      "Clean first-run example for downstream product surfaces.",
+    summary: "Clean first-run example for downstream product surfaces.",
   },
   {
     id: "json-user-list-nullable",
@@ -131,8 +127,7 @@ export type Response = User[];
 export type ResponseDocument = Response;`,
     expectedDiagnosticCodes: [],
     category: "basic",
-    summary:
-      "Shows the current local $defs and $ref reuse boundary clearly.",
+    summary: "Shows the current local $defs and $ref reuse boundary clearly.",
   },
   {
     id: "json-schema-feature-flags",

@@ -127,6 +127,7 @@ As of July 23, 2026, the latest completed slice includes:
 - public `@aio/sdk` contract schemas and a UI-friendly diagnostic normalization helper for downstream consumers
 - a first dedicated SDK product-scenario matrix covering `success`, `caveat`, `unsupported`, and `invalid-input` flows, plus `typescript -> typescript`, `json-schema -> json-schema`, and source-range-bearing parser failures
 - a first dedicated Web integration note for wiring format discovery, route discovery, conversion execution, and normalized diagnostics together
+- a first non-npm release path with version-sync scripts, annotated tags, tag-driven GitHub Releases, and attached package tarballs
 
 The resulting maturity is now:
 
@@ -166,6 +167,7 @@ For active implementation work:
 
 - read [test_plan.md](test_plan.md) for the current testing strategy
 - read [consumer-surface-checklist.md](consumer-surface-checklist.md) before deciding whether more core work should block downstream product integration
+- read [release-process.md](release-process.md) when cutting a GitHub-tagged engine release without npm publication
 - read [web-integration-notes.md](web-integration-notes.md) when wiring the first downstream Web surface onto `@aio/sdk`
 - read [schema-traversal.md](schema-traversal.md) before changing shared IR traversal, transform, or normalization behavior
 - read [sdk-report-analysis.md](sdk-report-analysis.md) or [../../packages/sdk/README.md](../../packages/sdk/README.md) when changing higher-level `sdk` report interpretation or examples

@@ -233,4 +233,5 @@ For project-level readiness status and remaining downstream-consumer work, see:
 
 - [../../docs/development/consumer-surface-checklist.md](../../docs/development/consumer-surface-checklist.md)
 - [../../docs/development/progress.md](../../docs/development/progress.md)
+- [../../docs/development/release-process.md](../../docs/development/release-process.md)
 - [../../docs/development/web-integration-notes.md](../../docs/development/web-integration-notes.md)

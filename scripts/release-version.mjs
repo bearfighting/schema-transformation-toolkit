@@ -27,5 +27,7 @@ for (const filePath of getManagedPackageJsonPaths()) {
     writeJson(filePath, nextManifest);
   }
 
-  console.log(`${dryRun ? "Would update" : "Updated"} ${filePath} -> ${version}`);
+  console.log(
+    `${dryRun ? "Would update" : "Updated"} ${filePath} -> ${version}`,
+  );
 }

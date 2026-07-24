@@ -39,7 +39,9 @@ for (const filePath of getWorkspacePackageJsonPaths()) {
     .at(-1);
 
   if (!packedFile) {
-    throw new Error(`Expected pnpm pack to output a tarball name for ${filePath}.`);
+    throw new Error(
+      `Expected pnpm pack to output a tarball name for ${filePath}.`,
+    );
   }
 
   packageEntries.push({
@@ -62,4 +64,6 @@ writeFileSync(
   `${JSON.stringify(manifest, null, 2)}\n`,
 );
 
-console.log(`Packed ${packageEntries.length} workspace packages into ${outDir}.`);
+console.log(
+  `Packed ${packageEntries.length} workspace packages into ${outDir}.`,
+);

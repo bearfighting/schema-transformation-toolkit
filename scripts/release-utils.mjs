@@ -103,7 +103,9 @@ export function ensureConsistentVersions(expectedVersion) {
       .map((entry) => `${entry.relativePath}: ${entry.version}`)
       .join("\n");
 
-    throw new Error(`Expected one shared version across manifests.\n${details}`);
+    throw new Error(
+      `Expected one shared version across manifests.\n${details}`,
+    );
   }
 
   const [actualVersion] = versions;

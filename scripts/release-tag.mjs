@@ -11,7 +11,9 @@ const tag = toReleaseTag(version);
 const status = runCommand("git", ["status", "--short"]);
 
 if (status.length > 0) {
-  throw new Error("Expected a clean git worktree before creating a release tag.");
+  throw new Error(
+    "Expected a clean git worktree before creating a release tag.",
+  );
 }
 
 const existingTag = runCommand("git", ["tag", "--list", tag]);

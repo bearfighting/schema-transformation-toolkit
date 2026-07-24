@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeConversionRouteCapabilities,
   describeFormatSupport,
+  listConversionRoutes,
   listFormatSupports,
+  planConversion,
 } from "../../packages/sdk/src/index.js";
 
 describe("sdk support matrix", () => {
@@ -140,5 +143,42 @@ describe("sdk support matrix", () => {
       "json-schema",
       "typescript",
     ]);
+  });
+
+  it("exposes the stable consumer-facing summary fields for format pickers and route copy", () => {
+    const summary = describeFormatSupport("typescript");
+
+    expect(summary).toMatchObject({
+      format: "typescript",
+      parser: {
+        producesIr: ["shape"],
+        capabilities: ["shape-ir"],
+      },
+      generator: {
+        consumesIr: ["shape"],
+        capabilities: ["shape-ir"],
+      },
+    });
+    expect(summary.sharedShapeKinds.length).toBeGreaterThan(0);
+    expect(summary.constraintFamilies.length).toBeGreaterThan(0);
+    expect(summary.notableLimitations.length).toBeGreaterThan(0);
+    expect(summary.experimentalAreas.length).toBeGreaterThan(0);
+  });
+
+  it("exposes stable route-discovery surfaces for downstream consumers", () => {
+    expect(listConversionRoutes()).toHaveLength(6);
+    expect(planConversion("json-schema", "typescript")).toMatchObject({
+      sourceFormat: "json-schema",
+      targetFormat: "typescript",
+      irSequence: ["shape"],
+    });
+    expect(
+      describeConversionRouteCapabilities("json-schema", "typescript"),
+    ).toMatchObject({
+      supportsShapeIr: true,
+      parserCapabilities: expect.arrayContaining(["shape-ir"]),
+      generatorCapabilities: expect.arrayContaining(["shape-ir"]),
+      preservedCapabilities: expect.arrayContaining(["shape-ir"]),
+    });
   });
 });

@@ -76,14 +76,17 @@ Shared constraint and annotation coverage currently includes:
 
 Recommended order for the next repository slice:
 
-1. complete the true pre-Web blockers in [consumer-surface-checklist.md](consumer-surface-checklist.md):
-   - freeze the Stage 1 `@aio/sdk` consumer contract
-   - add the small product-scenario matrix
-   - finish the machine-readable route and format surface
+1. finish the remaining documented pre-Web blockers in [consumer-surface-checklist.md](consumer-surface-checklist.md):
+   - explicitly freeze the Stage 1 `@aio/sdk` consumer contract
+   - expand and settle the new small product-scenario matrix
+   - keep the already-implemented machine-readable route and format surface documented as the downstream source of truth
 2. keep traversal, transform, normalization, and reporting stable while downstream consumer surfaces start depending on `@aio/sdk`
 3. treat release notes, richer diagnostic-location guidance, and Worker-oriented integration notes as urgent follow-up work, but not reasons to block the first downstream Web iteration
 4. keep the public SDK contract and UI-friendly diagnostic model small and stable
 5. continue expanding shared IR only when pressure appears across multiple formats, not because one source format wants a local convenience
+
+This page is intentionally only a short status summary.
+Use [consumer-surface-checklist.md](consumer-surface-checklist.md) as the single detailed readiness checklist instead of duplicating its task breakdown here.
 
 ## What Is Deferred
 
@@ -122,6 +125,8 @@ As of July 23, 2026, the latest completed slice includes:
 - a report-contract test that keeps the documented `sdk` analysis example aligned with real output
 - an examples walkthrough and runnable script for higher-level `@aio/sdk` report interpretation
 - public `@aio/sdk` contract schemas and a UI-friendly diagnostic normalization helper for downstream consumers
+- a first dedicated SDK product-scenario matrix covering `success`, `caveat`, `unsupported`, and `invalid-input` flows, plus `typescript -> typescript`, `json-schema -> json-schema`, and source-range-bearing parser failures
+- a first dedicated Web integration note for wiring format discovery, route discovery, conversion execution, and normalized diagnostics together
 
 The resulting maturity is now:
 
@@ -134,7 +139,13 @@ It moved shared traversal extraction from the next refactor into implemented rep
 
 ## Verification
 
-The latest full local verification pass completed on July 22, 2026 and included:
+The latest full local verification pass completed on July 24, 2026 and included:
+
+- `pnpm test`
+
+That pass was green with `46` test files and `579` passing tests.
+
+A prior broader verification pass completed on July 22, 2026 and included:
 
 - `pnpm check:api`
 - `pnpm typecheck`
@@ -142,7 +153,7 @@ The latest full local verification pass completed on July 22, 2026 and included:
 
 That pass was green with `39` test files and `520` passing tests.
 
-A newer targeted verification pass completed on July 23, 2026 and included:
+A targeted verification pass completed on July 23, 2026 and included:
 
 - `./node_modules/.bin/vitest run tests/sdk/report.test.ts tests/sdk/api-contract.test.ts tests/generators/typescript/analysis.test.ts`
 - `./node_modules/.bin/tsc --noEmit`
@@ -155,6 +166,7 @@ For active implementation work:
 
 - read [test_plan.md](test_plan.md) for the current testing strategy
 - read [consumer-surface-checklist.md](consumer-surface-checklist.md) before deciding whether more core work should block downstream product integration
+- read [web-integration-notes.md](web-integration-notes.md) when wiring the first downstream Web surface onto `@aio/sdk`
 - read [schema-traversal.md](schema-traversal.md) before changing shared IR traversal, transform, or normalization behavior
 - read [sdk-report-analysis.md](sdk-report-analysis.md) or [../../packages/sdk/README.md](../../packages/sdk/README.md) when changing higher-level `sdk` report interpretation or examples
 - read [typescript-parser-cases.md](typescript-parser-cases.md) and [typescript-parser-preprocess.md](typescript-parser-preprocess.md) only when touching the TypeScript parser boundary

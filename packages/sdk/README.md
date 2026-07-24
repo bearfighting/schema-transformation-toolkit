@@ -2,6 +2,9 @@
 
 `@aio/sdk` is the highest-level package in the repository.
 
+It is the intended downstream consumer boundary for Stage 1 product surfaces.
+Project-level readiness planning lives in [../../docs/development/consumer-surface-checklist.md](../../docs/development/consumer-surface-checklist.md), not in this package README.
+
 Use it when you want to:
 
 - convert between supported source and target formats
@@ -37,6 +40,30 @@ if (!result.ok) {
   console.log(result.report);
 }
 ```
+
+## Stage 1 Contract
+
+For downstream product surfaces, the intended Stage 1 contract is:
+
+- call `convert(...)` for conversion execution
+- validate cross-boundary payloads with `publicConvertResultSchema` when runtime checking is useful
+- branch on `result.ok` for ordinary success or failure handling
+- treat `result.phase` on failures as the current public failure taxonomy: `parse | generate`
+
+The most stable result fields for consumers to build on are:
+
+- failure: `code`, `message`, `phase`, `plan`, optional `diagnostics`
+- success: `output`, `plan`, optional `report`
+- report core: `semanticCaveats`, `losses`, `capabilityRequirements`, `lossHotspots`, `entrySelection`, `policyDecisions`
+- diagnostic core: `severity`, `code`, `message`, optional `path`, optional `source`
+
+The scenario-matrix tests in [../../tests/sdk/scenario-matrix.test.ts](../../tests/sdk/scenario-matrix.test.ts) exercise this contract through stable `success`, `caveat`, `unsupported`, `invalid-input`, route-planning, and `sourceRange`-bearing flows.
+
+Consumers should not rely on:
+
+- thrown exception strings for expected parse or generate failures
+- undocumented `evidence` payload details remaining byte-for-byte stable
+- lower-level parser or generator internals as part of this Stage 1 consumer boundary
 
 ## How To Read `result.report`
 
@@ -136,6 +163,14 @@ Each returned item follows one stable presentation-oriented shape:
 - optional `suggestion`
 - optional `technicalDetails`
 
+For Stage 1 consumers, the most stable expectations are:
+
+- always branch on `severity`, `code`, `title`, and `message`
+- use `path` and `source` when present for grouping or attribution
+- use `sourceRange` when present for editor or inline-highlighting integrations
+- treat `suggestion` as helpful copy, not as an exhaustive remediation taxonomy
+- treat `technicalDetails` as drill-down data rather than as a primary rendering contract
+
 ### Capability Summaries
 
 Use `describeFormatSupport(...)` or `listFormatSupports()` when a downstream app needs a small machine-readable support summary instead of scraping README prose.
@@ -157,6 +192,19 @@ Each summary includes:
 - constraint families
 - notable limitations
 - experimental areas
+
+For Stage 1 consumers, the most stable expectations are:
+
+- use `listFormatSupports()` to drive format pickers without hard-coding format names
+- use `describeFormatSupport(...)` for per-format help text, badges, and limitation copy
+- rely on `format`, `parser`, `generator`, `sharedShapeKinds`, `constraintFamilies`, `notableLimitations`, and `experimentalAreas`
+- treat limitation and experimental strings as concise support hints, not as a full public ontology
+
+For route-level discovery, pair this with:
+
+- `listConversionRoutes()`
+- `planConversion(...)`
+- `describeConversionRouteCapabilities(...)`
 
 This layer is intentionally small.
 It is meant to power honest badges, route copy, or help text, not to expose every internal capability rule directly.
@@ -180,4 +228,9 @@ For deeper report interpretation, see:
 
 - [../../docs/development/sdk-report-analysis.md](../../docs/development/sdk-report-analysis.md)
 - [../../docs/development/capabilities-and-loss.md](../../docs/development/capabilities-and-loss.md)
+
+For project-level readiness status and remaining downstream-consumer work, see:
+
 - [../../docs/development/consumer-surface-checklist.md](../../docs/development/consumer-surface-checklist.md)
+- [../../docs/development/progress.md](../../docs/development/progress.md)
+- [../../docs/development/web-integration-notes.md](../../docs/development/web-integration-notes.md)

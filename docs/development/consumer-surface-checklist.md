@@ -5,6 +5,9 @@ This checklist tracks the remaining work needed to keep the repository ready for
 This repository itself remains a Node library workspace.
 It is not the place where those product surfaces are implemented.
 
+This document is the single repository-level checklist for downstream consumer readiness.
+Other repository docs should summarize or link to this page rather than restating the same task list.
+
 ## Current Judgment
 
 As of July 23, 2026:
@@ -29,7 +32,7 @@ These are the true library-facing blockers before a downstream Web app should re
 
 1. freeze a clearly documented Stage 1 consumer contract in `@aio/sdk`
 2. add a small product-scenario matrix that tests end-user conversion flows rather than only parser or generator internals
-3. ensure the Web-facing format and route availability surface is machine-readable and does not require hard-coded format lists
+3. finish the remaining contract documentation around the already-implemented machine-readable format and route surface
 
 ### Should Land Soon, But Should Not Block Web Start
 
@@ -55,6 +58,8 @@ These are the highest-value library-facing gaps.
 
 ### 1. Freeze A Small Consumer-Facing SDK Contract
 
+Status: in progress
+
 Why it matters:
 
 - downstream apps should depend only on the stable `@aio/sdk` surface
@@ -76,13 +81,48 @@ Minimum acceptance:
 
 Current repository status:
 
-- this is now partially in place through `publicConvertResultSchema` and companion schemas in `@aio/sdk`
+- this is materially in place through `publicConvertResultSchema` and companion schemas in `@aio/sdk`
 - current stable consumer entry points are already centered on:
   - `convert()`
   - `planConversion()`
   - `listConversionRoutes()`
   - `describeConversionRouteCapabilities()`
-- remaining work is mostly to treat that contract as the default downstream boundary and keep its semantics documented
+- remaining work is mostly to document the intended Stage 1 boundary as an explicit stability promise rather than an accidental current shape
+
+Stage 1 consumer contract should now be read as:
+
+- downstream product code should treat `publicConvertResultSchema` as the runtime boundary for `convert(...)`
+- consumers may rely on `ok` as the primary discriminant for ordinary success or failure flow control
+- consumers may rely on failure results carrying:
+  - `code`
+  - `message`
+  - `phase`
+  - `plan`
+  - optional `diagnostics`
+- consumers may rely on success results carrying:
+  - `output`
+  - `plan`
+  - optional `report`
+  - optional `artifacts` when `includeArtifacts` is requested
+  - optional top-level `diagnostics`, `losses`, `preservedCapabilities`, and `semanticNotes`
+- consumers should treat these fields as the Stage 1 product-facing report core:
+  - `report.semanticCaveats`
+  - `report.losses`
+  - `report.capabilityRequirements`
+  - `report.lossHotspots`
+  - `report.entrySelection`
+  - `report.policyDecisions`
+- within those report and diagnostic surfaces, consumers may treat these fields as especially stable:
+  - `severity`
+  - `code`
+  - `message`
+  - `path`
+  - `source`
+  - `referenceStack` where present
+- consumers should not depend on:
+  - thrown exception strings for ordinary unsupported or invalid-input handling
+  - undocumented `evidence` payload internals staying frozen across future releases
+  - low-level parser, generator, traversal, or IR helper exports as part of the Stage 1 product boundary
 
 Important current note:
 
@@ -107,6 +147,8 @@ Those fields are already close to a real product model.
 The remaining work is to document them as an explicit consumer contract instead of leaving them implied by current implementation.
 
 ### 2. Add A UI-Friendly Diagnostic Normalization Layer
+
+Status: in progress, but not a pre-Web blocker on its own
 
 Why it matters:
 
@@ -135,8 +177,31 @@ It does require one stable presentation-oriented model.
 
 Current repository status:
 
-- this is now partially in place through `collectUserFacingDiagnostics(...)` in `@aio/sdk`
-- remaining work is mostly around choosing how much of that normalized model should be considered part of the long-term public contract
+- this is now materially in place through `collectUserFacingDiagnostics(...)` in `@aio/sdk`
+- remaining work is mostly around deciding whether more convenience summaries belong here or should stay in downstream presentation code
+
+The Stage 1 UI-facing diagnostic contract should now be read as:
+
+- downstream consumers may treat `collectUserFacingDiagnostics(...)` as the stable normalization layer across:
+  - failure results
+  - parser or generator diagnostics
+  - semantic caveats
+  - semantic losses
+- each returned item should be treated as carrying these stable core fields:
+  - `severity`
+  - `code`
+  - `title`
+  - `message`
+  - optional `path`
+  - optional `source`
+- consumers may also rely on:
+  - optional `sourceRange` when structured parser evidence includes source locations
+  - optional `suggestion` for a small set of known codes and failure phases
+  - optional `technicalDetails` for debugging or drill-down UI
+- consumers should not depend on:
+  - every diagnostic always carrying `sourceRange`
+  - `suggestion` coverage being exhaustive for every code
+  - the internal shape of `technicalDetails` remaining frozen across future releases
 
 Important current note:
 
@@ -144,6 +209,8 @@ Important current note:
 - downstream Web consumers should not need to infer their own user-facing diagnostic shape from raw parser, generator, or semantic-loss payloads
 
 ### 3. Publish Honest Machine-Readable Capability Summaries
+
+Status: mostly complete, with follow-up documentation remaining
 
 Why it matters:
 
@@ -160,13 +227,42 @@ Current strength already exists in:
 
 Current gap:
 
-- there is still no stable consumer-facing description of supported format subsets and known unsupported semantic families
-- there is still no tiny consumer helper for format pickers if a downstream app wants to avoid deriving source and target format lists itself from route data
+- the code surface exists, but the contract still needs to be called out more explicitly as the intended downstream source of truth
+- the remaining work is to keep the summary small, honest, and aligned with real parser and generator behavior as support evolves
 
 Current repository status:
 
-- this is now partially in place through `describeFormatSupport(...)` and `listFormatSupports()` in `@aio/sdk`
-- remaining work is mostly to keep the summary small, honest, and aligned with real parser and generator behavior
+- this is already in place through `describeFormatSupport(...)`, `listFormatSupports()`, `planConversion(...)`, and `listConversionRoutes()`
+- downstream consumers no longer need to hard-code format names just to build format pickers or availability states
+
+The Stage 1 machine-readable capability-summary contract should now be read as:
+
+- downstream consumers may treat these helpers as the stable route and format discovery layer:
+  - `describeFormatSupport(...)`
+  - `listFormatSupports()`
+  - `planConversion(...)`
+  - `listConversionRoutes()`
+  - `describeConversionRouteCapabilities(...)`
+- consumers may rely on format summaries carrying:
+  - `format`
+  - optional `parser`
+  - optional `generator`
+  - `sharedShapeKinds`
+  - `constraintFamilies`
+  - `notableLimitations`
+  - `experimentalAreas`
+- within `parser` and `generator`, consumers may rely on:
+  - `producesIr` or `consumesIr`
+  - `capabilities`
+- consumers may treat these helpers as the Stage 1 source of truth for:
+  - source-format pickers
+  - target-format pickers
+  - route availability
+  - honest support and limitation copy
+- consumers should not depend on:
+  - the exact prose wording of every limitation string remaining unchanged forever
+  - these summaries exposing every low-level parser or generator rule in exhaustive detail
+  - experimental-area labels remaining product copy instead of concise engineering identifiers
 
 First useful target:
 
@@ -179,6 +275,8 @@ First useful target:
     without hard-coding format names like `["json", "json-schema", "typescript"]`
 
 ### 4. Add A Small Product-Scenario Matrix
+
+Status: first pass in place, with follow-up expansion still required before calling the surface settled
 
 Why it matters:
 
@@ -208,14 +306,25 @@ Suggested first buckets:
 
 Current repository status:
 
-- this is not yet fully represented as a dedicated product-facing scenario layer
-- current curated examples and consumer-facing fixtures provide strong candidate inputs for this matrix
+- this now has a first dedicated product-facing SDK test layer in [../../tests/sdk/scenario-matrix.test.ts](../../tests/sdk/scenario-matrix.test.ts)
+- the current matrix covers:
+  - `success`
+  - `caveat`
+  - `unsupported`
+  - `invalid-input`
+- the current matrix also now exercises:
+  - a stable `typescript -> typescript` authoring flow
+  - a `json-schema -> json-schema` constraint-preserving round-trip
+  - a parser failure path that surfaces structured `sourceRange` data for downstream highlighting
+- remaining work is mostly to decide how much more route breadth is needed before this should stop being considered an active pre-Web blocker
 
 ## Should Land Soon After
 
 These items are important, but they do not need to block the first downstream consumer surface.
 
-### 4. Curated Golden Examples
+### 5. Curated Golden Examples
+
+Status: largely complete
 
 Why it matters:
 
@@ -246,7 +355,7 @@ Current repository status:
   - [../../examples/fixtures/consumer-golden-examples.ts](../../examples/fixtures/consumer-golden-examples.ts)
 - remaining work is mostly to keep the curated set aligned with real supported behavior as route coverage grows
 
-### 5. Consumer Runtime Notes
+### 6. Consumer Runtime Notes
 
 Why it matters:
 
@@ -261,7 +370,7 @@ This repository should:
 
 This repository does not need to host a full browser demo just to stay a healthy Node library.
 
-### 6. Release And Version Baseline
+### 7. Release And Version Baseline
 
 Why it matters:
 
@@ -280,7 +389,7 @@ Current repository status:
 - important, but not a blocker for the first downstream Web prototype
 - should land before treating the engine as a publicly consumable stable baseline
 
-### 7. Diagnostic Location Contract
+### 8. Diagnostic Location Contract
 
 Why it matters:
 
@@ -297,7 +406,7 @@ Current repository status:
 
 This should improve editor integrations, but it should not block the first Web UI from shipping a simpler diagnostics list.
 
-### 8. Worker-Friendly Integration Path
+### 9. Worker-Friendly Integration Path
 
 Why it matters:
 

@@ -159,6 +159,11 @@ describe("sdk web-facing contract", () => {
       code: "unsupported-typescript-function-type",
       title: "Unsupported Typescript Function Type",
       source: "parser-typescript",
+      sourceRange: {
+        start: { offset: 19, line: 1, column: 20 },
+        end: { offset: 31, line: 1, column: 32 },
+        length: 12,
+      },
     });
   });
 });

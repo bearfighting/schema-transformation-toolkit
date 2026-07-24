@@ -1,0 +1,49 @@
+{
+  "tag": "v0.1.1-alpha.1",
+  "version": "0.1.1-alpha.1",
+  "generatedAt": "2026-07-24T14:30:19.477Z",
+  "packages": [
+    {
+      "name": "@aio/core",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-core-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/generator-json-schema",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-generator-json-schema-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/generator-typescript",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-generator-typescript-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/parser-json-schema",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-parser-json-schema-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/parser-json",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-parser-json-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/parser-typescript",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-parser-typescript-0.1.1-alpha.1.tgz"
+    },
+    {
+      "name": "@aio/sdk",
+      "version": "0.1.1-alpha.1",
+      "private": true,
+      "tarball": "aio-sdk-0.1.1-alpha.1.tgz"
+    }
+  ]
+}

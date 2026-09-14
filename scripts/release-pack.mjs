@@ -1,11 +1,8 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
-  ensureConsistentVersions,
-  getWorkspacePackageJsonPaths,
-  readJson,
+  packWorkspacePackages,
   REPO_ROOT,
-  runCommand,
   toReleaseTag,
 } from "./release-utils.mjs";
 
@@ -22,41 +19,17 @@ if (outDirFlagIndex !== -1 && !process.argv[outDirFlagIndex + 1]) {
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-const { version } = ensureConsistentVersions();
-const packageEntries = [];
-
-for (const filePath of getWorkspacePackageJsonPaths()) {
-  const packageDir = path.dirname(filePath);
-  const manifest = readJson(filePath);
-  const packedFile = runCommand(
-    "pnpm",
-    ["pack", "--pack-destination", outDir],
-    { cwd: packageDir },
-  )
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .at(-1);
-
-  if (!packedFile) {
-    throw new Error(
-      `Expected pnpm pack to output a tarball name for ${filePath}.`,
-    );
-  }
-
-  packageEntries.push({
-    name: manifest.name,
-    version: manifest.version,
-    private: manifest.private === true,
-    tarball: path.basename(packedFile),
-  });
-}
+const { version, packages: packageEntries } = packWorkspacePackages(outDir);
 
 const manifest = {
   tag: toReleaseTag(version),
   version,
   generatedAt: new Date().toISOString(),
-  packages: packageEntries,
+  packages: packageEntries.map((entry) =>
+    Object.fromEntries(
+      Object.entries(entry).filter(([key]) => key !== "tarballPath"),
+    ),
+  ),
 };
 
 writeFileSync(

@@ -16,12 +16,19 @@ export interface PythonClassSyntax {
   fields: PythonFieldSyntax[];
   position: PythonPosition;
 }
+export interface PythonAliasSyntax {
+  name: string;
+  annotation: string;
+  position: PythonPosition;
+}
 export interface PythonFileSyntax {
   classes: PythonClassSyntax[];
+  aliases: PythonAliasSyntax[];
 }
 
 export function parsePythonSyntax(source: string): PythonFileSyntax {
   const classes: PythonClassSyntax[] = [];
+  const aliases: PythonAliasSyntax[] = [];
   const lines = source.split(/\n/u);
   let offset = 0;
   let pendingDataclass = false;
@@ -77,6 +84,34 @@ export function parsePythonSyntax(source: string): PythonFileSyntax {
         `Python decorator "${trimmed}" is not supported in V1.`,
         position,
       );
+    const aliasMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/u);
+    if (aliasMatch && indent === 0 && /^dict\s*\[/u.test(aliasMatch[2]!)) {
+      if (pendingDataclass)
+        throw new PythonSyntaxError(
+          "invalid-python-syntax",
+          "A @dataclass decorator must be immediately followed by a class.",
+          position,
+        );
+      if (
+        classes.some((item) => item.name === aliasMatch[1]) ||
+        aliases.some((item) => item.name === aliasMatch[1])
+      )
+        throw new PythonSyntaxError(
+          "duplicate-python-definition",
+          `Duplicate Python definition "${aliasMatch[1]}".`,
+          position,
+        );
+      assertPythonIdentifier(aliasMatch[1]!, position, "alias");
+      aliases.push({
+        name: aliasMatch[1]!,
+        annotation: aliasMatch[2]!.trim(),
+        position,
+      });
+      active = undefined;
+      classIndent = -1;
+      offset += raw.length + 1;
+      continue;
+    }
     const classMatch = trimmed.match(
       /^class\s+([A-Za-z_][A-Za-z0-9_]*)(.*):$/u,
     );
@@ -99,7 +134,10 @@ export function parsePythonSyntax(source: string): PythonFileSyntax {
           "Python dataclass inheritance and generics are not supported in V1.",
           position,
         );
-      if (classes.some((item) => item.name === classMatch[1]))
+      if (
+        classes.some((item) => item.name === classMatch[1]) ||
+        aliases.some((item) => item.name === classMatch[1])
+      )
         throw new PythonSyntaxError(
           "duplicate-python-definition",
           `Duplicate Python dataclass "${classMatch[1]}".`,
@@ -169,13 +207,13 @@ export function parsePythonSyntax(source: string): PythonFileSyntax {
       "Expected a class after @dataclass.",
       { offset: source.length, line: lines.length, column: 1 },
     );
-  return { classes };
+  return { classes, aliases };
 }
 
 function assertPythonIdentifier(
   name: string,
   position: PythonPosition,
-  kind: "class" | "field",
+  kind: "class" | "field" | "alias",
 ): void {
   if (PYTHON_KEYWORDS.has(name))
     throw new PythonSyntaxError(
@@ -233,9 +271,13 @@ export interface PythonTypeSyntax {
   members?: PythonTypeSyntax[];
 }
 
-export function parsePythonType(source: string): PythonTypeSyntax {
-  const tokens = source.match(/[A-Za-z_][A-Za-z0-9_]*|(?:\[|\]|,|\|)/gu) ?? [];
-  if (tokens.join("") !== source.replace(/\s+/gu, ""))
+export function parsePythonType(
+  source: string,
+  options: { allowQuoted?: boolean } = {},
+): PythonTypeSyntax {
+  const tokens =
+    source.match(/[A-Za-z_][A-Za-z0-9_]*|"[^"\n]*"|(?:\[|\]|,|\|)/gu) ?? [];
+  if (tokens.join("").replace(/\s+/gu, "") !== source.replace(/\s+/gu, ""))
     throw new PythonSyntaxError(
       "invalid-python-syntax",
       `Invalid Python type annotation "${source}".`,
@@ -245,6 +287,14 @@ export function parsePythonType(source: string): PythonTypeSyntax {
   const take = () => tokens[index++];
   function atom(): PythonTypeSyntax {
     const name = take();
+    if (name?.startsWith('"') && name.endsWith('"')) {
+      if (!options.allowQuoted)
+        throw new PythonSyntaxError(
+          "invalid-python-syntax",
+          `Quoted Python type references are not supported in "${source}".`,
+        );
+      return parsePythonType(name.slice(1, -1), options);
+    }
     if (!name || !/^[A-Za-z_]/u.test(name))
       throw new PythonSyntaxError(
         "invalid-python-syntax",

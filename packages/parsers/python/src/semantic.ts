@@ -4,6 +4,7 @@ import {
   schemaFieldNode,
   schemaNullNode,
   schemaObjectNode,
+  schemaRecordNode,
   schemaReferenceNode,
   schemaScalarNode,
   schemaUnionNode,
@@ -13,7 +14,9 @@ import {
 } from "@schema-transformation-toolkit/core";
 import {
   parsePythonType,
+  type PythonAliasSyntax,
   type PythonClassSyntax,
+  type PythonFileSyntax,
   type PythonTypeSyntax,
 } from "./syntax.js";
 import type { PythonPosition } from "./syntax.js";
@@ -31,36 +34,43 @@ export class PythonSemanticError extends Error {
 }
 
 export function mapPythonFile(
-  file: { classes: PythonClassSyntax[] },
+  file: PythonFileSyntax,
   name: string,
   entry?: string,
 ): SchemaDocument {
-  if (!file.classes.length)
+  const declarations = [...file.classes, ...file.aliases];
+  if (!declarations.length)
     throw new PythonSemanticError(
       "invalid-python-data-model",
-      "Python source must declare at least one @dataclass.",
+      "Python source must declare at least one supported dataclass or map alias.",
     );
   const root = entry
-    ? file.classes.find((item) => item.name === entry)
-    : file.classes.length === 1
-      ? file.classes[0]
+    ? declarations.find((item) => item.name === entry)
+    : declarations.length === 1
+      ? declarations[0]
       : undefined;
   if (!root)
     throw new PythonSemanticError(
       entry ? "missing-python-entry" : "ambiguous-python-entry",
       entry
-        ? `Python entry dataclass "${entry}" was not found.`
-        : "Python source has multiple dataclasses; an entry option is required.",
+        ? `Python entry definition "${entry}" was not found.`
+        : "Python source has multiple definitions; an entry option is required.",
     );
-  const names = new Set(file.classes.map((item) => item.name));
+  const names = new Set(declarations.map((item) => item.name));
   const mapped = new Map(
-    file.classes.map((item) => [item.name, mapClass(item, names)] as const),
+    declarations.map(
+      (item) =>
+        [
+          item.name,
+          "fields" in item ? mapClass(item, names) : mapAlias(item, names),
+        ] as const,
+    ),
   );
   const rootNode = mapped.get(root.name)!;
-  const rootIsReferenced = file.classes.some((item) =>
+  const rootIsReferenced = declarations.some((item) =>
     schemaNodeReferencesName(mapped.get(item.name)!, root.name),
   );
-  const definitions = file.classes
+  const definitions = declarations
     .filter((item) => item !== root || rootIsReferenced)
     .map((item) => schemaDefinition(item.name, mapped.get(item.name)!));
   return schemaDocument(
@@ -84,9 +94,37 @@ function schemaNodeReferencesName(node: SchemaNode, name: string): boolean {
       return node.fields.some((field) =>
         schemaNodeReferencesName(field.type, name),
       );
+    case "record":
+      return (
+        schemaNodeReferencesName(node.key, name) ||
+        schemaNodeReferencesName(node.value, name)
+      );
     default:
       return false;
   }
+}
+
+function mapAlias(item: PythonAliasSyntax, names: Set<string>): SchemaNode {
+  let type: PythonTypeSyntax;
+  try {
+    type = parsePythonType(item.annotation, { allowQuoted: true });
+  } catch (error) {
+    if (error instanceof Error)
+      throw new PythonSemanticError(
+        "invalid-python-syntax",
+        error.message,
+        item.position,
+      );
+    throw error;
+  }
+  const mapped = mapType(type, names, false, item.position);
+  if (mapped.nullable || mapped.node.kind !== "record")
+    throw new PythonSemanticError(
+      "unsupported-python-type",
+      "Python V1 only supports aliases of the form Name = dict[str, T].",
+      item.position,
+    );
+  return mapped.node;
 }
 
 function mapClass(item: PythonClassSyntax, names: Set<string>): SchemaNode {
@@ -179,6 +217,23 @@ function mapType(
             nullable: false,
           }
         : { ...mapped, nullable: true };
+    }
+    if (type.name === "dict") {
+      if (args.length !== 2)
+        throw new PythonSemanticError(
+          "unsupported-python-type",
+          "dict[str, T] requires exactly two type arguments.",
+          position,
+        );
+      const key = mapType(args[0]!, names, true, position);
+      if (key.node.kind !== "scalar" || key.node.scalar !== "string")
+        throw new PythonSemanticError(
+          "unsupported-python-type",
+          "Python V1 only supports string-keyed dict[str, T] maps.",
+          position,
+        );
+      const value = mapType(args[1]!, names, true, position);
+      return { node: schemaRecordNode(key.node, value.node), nullable: false };
     }
     throw new PythonSemanticError(
       "unsupported-python-type",

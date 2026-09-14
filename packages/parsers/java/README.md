@@ -2,6 +2,9 @@
 
 Restricted Java record, structural class, and unit-enum parser for the shared Shape IR.
 
+This adapter produces Shape IR only. It does not infer or preserve Constraint IR;
+constraint-bearing source routes report any Java target loss through the SDK.
+
 Java V1 accepts exactly one public top-level record, restricted structural class, or unit-only enum and allows
 additional package-private declarations as named definitions. Structural classes contain only
 serializable instance fields; methods, constructors, inheritance, and framework metadata are rejected.

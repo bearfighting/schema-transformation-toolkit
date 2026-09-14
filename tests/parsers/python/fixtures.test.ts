@@ -34,7 +34,6 @@ describe("Python fixture matrix", () => {
     ["default-factory", "unsupported-python-default"],
     ["inheritance", "unsupported-python-inheritance"],
     ["decorator", "unsupported-python-decorator"],
-    ["dict", "unsupported-python-type"],
     ["tuple", "unsupported-python-type"],
     ["set", "unsupported-python-type"],
     ["literal", "unsupported-python-type"],

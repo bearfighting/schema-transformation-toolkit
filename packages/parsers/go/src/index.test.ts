@@ -41,14 +41,54 @@ describe("Go parser", () => {
     ]);
   });
 
-  it("reports unsupported map keys and ambiguous roots", () => {
-    expect(
-      tryParseGo("type User struct { Values map[int]string }"),
-    ).toMatchObject({ ok: false, code: "unsupported-go-map-key" });
-    expect(tryParseGo("type A struct{}\ntype B struct{}")).toMatchObject({
-      ok: false,
-      code: "ambiguous-go-entry",
+  it("preserves numeric representation hints for supported Go scalars", () => {
+    const result = tryParseGo("type User struct { ID int64; Ratio float64 }", {
+      entry: "User",
     });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.root).toMatchObject({
+      kind: "object",
+      fields: [
+        {
+          type: {
+            scalar: "integer",
+            representation: {
+              family: "integer",
+              signedness: "signed",
+              widthBits: 64,
+            },
+          },
+        },
+        {
+          type: {
+            scalar: "number",
+            representation: { family: "float", widthBits: 64 },
+          },
+        },
+      ],
+    });
+  });
+
+  it("reports unsupported map keys and ambiguous roots", () => {
+    expectGoFailure(
+      tryParseGo("type User struct { Values map[int]string }"),
+      "unsupported-go-map-key",
+      true,
+    );
+    expectGoFailure(
+      tryParseGo(
+        "type NamedKey string\ntype User struct { Values map[NamedKey]string }",
+        { entry: "User" },
+      ),
+      "unsupported-go-map-key",
+      true,
+    );
+    expectGoFailure(
+      tryParseGo("type A struct{}\ntype B struct{}"),
+      "ambiguous-go-entry",
+      false,
+    );
   });
 
   it("distinguishes empty interfaces from method interfaces", () => {
@@ -98,4 +138,74 @@ describe("Go parser", () => {
       code: "unsupported-go-feature",
     });
   });
+
+  it.each([
+    [
+      "malformed syntax",
+      "type User struct { Name string",
+      "invalid-go-syntax",
+      false,
+    ],
+    [
+      "generic type",
+      "type User[T any] struct { Value T }",
+      "invalid-go-syntax",
+      true,
+    ],
+    [
+      "embedded field",
+      "type User struct { Profile }",
+      "unsupported-go-feature",
+      true,
+    ],
+    [
+      "unknown reference",
+      "type User struct { Value Missing }",
+      "unknown-go-reference",
+      true,
+    ],
+  ] as const)(
+    "reports %s with stable diagnostic metadata",
+    (_label, input, code, hasPosition) => {
+      expectGoFailure(tryParseGo(input, { entry: "User" }), code, hasPosition);
+    },
+  );
+
+  it("rejects duplicate definitions and missing entries structurally", () => {
+    expectGoFailure(
+      tryParseGo("type User struct{}\ntype User struct{}", { entry: "User" }),
+      "duplicate-go-definition",
+      true,
+    );
+    expectGoFailure(
+      tryParseGo("type User struct{}", { entry: "Missing" }),
+      "missing-go-entry",
+      false,
+    );
+  });
 });
+
+function expectGoFailure(
+  result: ReturnType<typeof tryParseGo>,
+  code: string,
+  hasPosition: boolean,
+): void {
+  expect(result).toMatchObject({ ok: false, code });
+  if (result.ok) return;
+  const diagnostic = result.diagnostics?.[0];
+  expect(diagnostic).toMatchObject({ source: "parser-go", code });
+  const evidence = diagnostic?.evidence;
+  if (!hasPosition) {
+    expect(evidence).toBeUndefined();
+    return;
+  }
+  expect(evidence).toEqual(
+    expect.objectContaining({
+      position: expect.objectContaining({
+        offset: expect.any(Number),
+        line: expect.any(Number),
+        column: expect.any(Number),
+      }),
+    }),
+  );
+}

@@ -1,13 +1,19 @@
 import {
   areEquivalentSchemaNodes,
+  tryValidateIrDocument,
   normalizeSchemaDocument,
   tryValidateSchemaDocument,
   type SchemaDefinition,
+  type ConstraintDocument,
   type SchemaDocument,
   type SchemaFieldNode,
   type SchemaNode,
   type SchemaNodeKind,
 } from "@schema-transformation-toolkit/core";
+import type {
+  SemanticFixture,
+  SemanticFixtureFormatId,
+} from "../fixtures/semantics/types.js";
 import { expect } from "vitest";
 
 export function expectValidIr(document: SchemaDocument): void {
@@ -51,6 +57,105 @@ export function expectIrEquivalent(
   expect(
     areEquivalentSchemaNodes(normalizedActual.root, normalizedExpected.root),
   ).toBe(true);
+}
+
+/**
+ * Compares the semantic portion of Constraint IR. Diagnostic prose and
+ * evidence are deliberately excluded because they are adapter-specific.
+ */
+export function expectConstraintEquivalent(
+  actual: ConstraintDocument,
+  expected: ConstraintDocument,
+): void {
+  expect(tryValidateIrDocument(actual)).toEqual({ ok: true });
+  expect(tryValidateIrDocument(expected)).toEqual({ ok: true });
+
+  expect(actual.kind).toBe("constraint-document");
+  expect(expected.kind).toBe("constraint-document");
+  expect(actual.name).toBe(expected.name);
+  expect(normalizeConstraintEntries(actual.entries)).toEqual(
+    normalizeConstraintEntries(expected.entries),
+  );
+}
+
+export function expectFixtureConstraintsEquivalent(
+  actual: ConstraintDocument,
+  fixture: SemanticFixture,
+  format: SemanticFixtureFormatId,
+): void {
+  if (!fixture.canonicalConstraints) {
+    throw new Error(
+      `Fixture "${fixture.id}" does not define canonical constraints.`,
+    );
+  }
+  const normalization = fixture.constraintPathNormalizations?.[format];
+  const expected = normalization
+    ? {
+        ...fixture.canonicalConstraints,
+        entries: fixture.canonicalConstraints.entries.map((entry) => ({
+          ...entry,
+          target: {
+            ...entry.target,
+            path: replaceConstraintPath(
+              entry.target.path,
+              normalization.replacePrefix,
+              normalization.replacement,
+            ),
+          },
+        })),
+      }
+    : fixture.canonicalConstraints;
+  expectConstraintEquivalent(actual, expected);
+}
+
+function replaceConstraintPath(
+  path: string[],
+  replacePrefix: string[],
+  replacement: string[],
+): string[] {
+  expect(path.slice(0, replacePrefix.length)).toEqual(replacePrefix);
+  return [...replacement, ...path.slice(replacePrefix.length)];
+}
+
+function normalizeConstraintEntries(
+  entries: ConstraintDocument["entries"],
+): unknown[] {
+  return [...entries]
+    .map((entry) => ({
+      target: { kind: entry.target.kind, path: [...entry.target.path] },
+      constraints: [...entry.constraints]
+        .map((item) => ({
+          kind: item.kind,
+          ...(item.severity ? { severity: item.severity } : {}),
+          ...(item.value !== undefined
+            ? { value: normalizeConstraintValue(item.value) }
+            : {}),
+        }))
+        .sort((left, right) =>
+          stableJson(left).localeCompare(stableJson(right)),
+        ),
+    }))
+    .sort((left, right) => {
+      const leftKey = stableJson(left);
+      const rightKey = stableJson(right);
+      return leftKey.localeCompare(rightKey);
+    });
+}
+
+function normalizeConstraintValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeConstraintValue);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, normalizeConstraintValue(item)]),
+    );
+  }
+  return value;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value) ?? "undefined";
 }
 
 export function normalizeSchemaDocumentForTest(

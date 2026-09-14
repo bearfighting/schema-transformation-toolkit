@@ -107,7 +107,10 @@ core → format packages → generated builtin registry → SDK
 Generated registry output must be deterministic and checked in. Before a
 release or public-boundary change, update every managed manifest and the
 corresponding changelog section, then validate a third-party manifest/custom
-registry and a clean SDK tarball install. Use a matching release tag; tags with
+registry and a clean SDK tarball install. The SDK package smoke installs all
+workspace dependencies from local tarballs and does not rely on workspace
+links or publication of local packages; ordinary third-party dependencies
+retain normal package-manager resolution. Use a matching release tag; tags with
 prerelease suffixes are published as prereleases by the release workflow. Never
 rely on a local workspace link as packaging evidence.
 

@@ -7,12 +7,15 @@ inheritance, user-defined generics, arbitrary generic types, and
 framework-specific models are outside V1.
 
 Supported annotations are `str`, `int`, `float`, `bool`, `list[T]`,
-`Optional[T]`, `T | None`, and references to dataclasses in the same source
-file. Multiple dataclasses require the `entry` parse option. Direct and mutual
-recursive references are supported; quoted forward references are rejected.
+`dict[str, T]`, `Optional[T]`, `T | None`, and references to dataclasses or
+restricted map aliases in the same source file. Multiple definitions require
+the `entry` parse option. Direct and mutual recursive references are supported.
+Quoted forward references are rejected in dataclass annotations, but accepted
+inside restricted map aliases generated for forward or recursive references.
 
-The supported generic forms are deliberately limited to `list[T]` and
-`Optional[T]`. Other generic types are outside the Python Dataclass V1
+The supported generic forms are deliberately limited to `list[T]`,
+`dict[str, T]`, and `Optional[T]`. Top-level aliases are limited to
+`Name = dict[str, T]`. Other generic types are outside the Python Dataclass V1
 boundary; this does not mean that every generic-looking annotation is
 unsupported for the same reason.
 

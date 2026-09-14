@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   schemaDefinition,
   schemaDocument,
@@ -244,4 +248,141 @@ describe("Java generator", () => {
       output: `public final class User {\n    public User() {}\n}\n`,
     });
   });
+
+  it.each([
+    [
+      "record",
+      schemaDocument("User", schemaReferenceNode("User"), {
+        rootName: "User",
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+              schemaFieldNode("profile", schemaReferenceNode("Profile"), {
+                nullable: true,
+              }),
+              schemaFieldNode(
+                "metadata",
+                schemaRecordNode(
+                  schemaScalarNode("string"),
+                  schemaReferenceNode("Profile"),
+                ),
+              ),
+            ]),
+          ),
+          schemaDefinition(
+            "Profile",
+            schemaObjectNode([
+              schemaFieldNode("name", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
+      }),
+      {},
+      "User",
+    ],
+    [
+      "class",
+      schemaDocument(
+        "User",
+        schemaObjectNode([schemaFieldNode("id", schemaScalarNode("integer"))]),
+        { rootName: "User" },
+      ),
+      { declarationStyle: "class" },
+      "User",
+    ],
+    [
+      "enum",
+      schemaDocument(
+        "Status",
+        schemaUnionNode([
+          schemaLiteralNode("ACTIVE"),
+          schemaLiteralNode("INACTIVE"),
+        ]),
+        { rootName: "Status" },
+      ),
+      {},
+      "Status",
+    ],
+    [
+      "packaged-record",
+      schemaDocument("UserDocument", schemaReferenceNode("User"), {
+        rootName: "User",
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("profile", schemaReferenceNode("Profile")),
+            ]),
+          ),
+          schemaDefinition(
+            "Profile",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+        ],
+      }),
+      { packageName: "com.example.models" },
+      "User",
+    ],
+  ] as const)(
+    "emits compilable Java %s source",
+    (_fixture, document, options, rootName) => {
+      const generated = tryGenerateJava(document, options);
+      expect(generated.ok).toBe(true);
+      if (!generated.ok) return;
+      const directory = mkdtempSync(
+        join(tmpdir(), "schema-toolkit-java-smoke-"),
+      );
+      const packageName =
+        "packageName" in options ? options.packageName : undefined;
+      const sourceDirectory = packageName
+        ? join(directory, ...packageName.split("."))
+        : directory;
+      const directoryResult = spawnSync("mkdir", ["-p", sourceDirectory], {
+        encoding: "utf8",
+      });
+      if (directoryResult.status !== 0) {
+        throw new Error(
+          `Unable to create Java source directory ${sourceDirectory}: ${directoryResult.stderr ?? directoryResult.error?.message ?? "unknown error"}`,
+        );
+      }
+      const sourcePath = join(sourceDirectory, `${rootName}.java`);
+      const outputDirectory = join(directory, "classes");
+      try {
+        writeFileSync(sourcePath, generated.output, "utf8");
+        const version = spawnSync("javac", ["-version"], { encoding: "utf8" });
+        const compilation = spawnSync(
+          "javac",
+          ["-d", outputDirectory, sourcePath],
+          { encoding: "utf8" },
+        );
+        if (compilation.status !== 0) {
+          throw new Error(
+            [
+              `fixture=${_fixture}`,
+              `sourcePath=${sourcePath}`,
+              `javacVersion=${version.stderr?.trim() || version.stdout?.trim() || "unavailable"}`,
+              `compilerStdout=${compilation.stdout?.trim() || ""}`,
+              `compilerStderr=${compilation.stderr?.trim() || ""}`,
+              compilation.error
+                ? `spawnError=${compilation.error.message}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          );
+        }
+      } catch (error) {
+        throw new Error(
+          `Generated Java source failed to compile (fixture=${_fixture}):\n${generated.output}\n${error instanceof Error ? error.message : String(error)}`,
+          { cause: error },
+        );
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    },
+  );
 });

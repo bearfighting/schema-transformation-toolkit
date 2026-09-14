@@ -67,14 +67,10 @@ describe("Java parser", () => {
     const annotation = tryParseJava(
       "public record User(@Deprecated String name) {}",
     );
-    expect(generic.ok ? undefined : generic.code).toBe(
-      "unsupported-java-generic",
-    );
-    expect(map.ok ? undefined : map.code).toBe("unsupported-java-map-key");
+    expectJavaFailure(generic, "unsupported-java-generic", true);
+    expectJavaFailure(map, "unsupported-java-map-key", true);
     expect(classResult.ok).toBe(true);
-    expect(annotation.ok ? undefined : annotation.code).toBe(
-      "unsupported-java-feature",
-    );
+    expectJavaFailure(annotation, "unsupported-java-feature", true);
   });
 
   it("rejects unsupported record modifiers and malformed imports", () => {
@@ -86,15 +82,11 @@ describe("Java parser", () => {
       "import java.util.List public record User(String name) {}",
     );
 
-    expect(privateRecord.ok ? undefined : privateRecord.code).toBe(
-      "unsupported-java-feature",
-    );
-    expect(staticRecord.ok ? undefined : staticRecord.code).toBe(
-      "unsupported-java-feature",
-    );
-    expect(malformedImport.ok ? undefined : malformedImport.code).toBe(
-      "invalid-java-syntax",
-    );
+    expectJavaFailure(privateRecord, "unsupported-java-feature", true);
+    expectJavaFailure(staticRecord, "unsupported-java-feature", true);
+    // The Java syntax mapper reports malformed imports without a source
+    // position; keep that adapter behavior explicit rather than inventing one.
+    expectJavaFailure(malformedImport, "invalid-java-syntax", false);
   });
 
   it("rejects Java reserved words as declaration and component names", () => {
@@ -205,14 +197,14 @@ describe("Java parser", () => {
   });
 
   it("describes class support in empty and missing-root failures", () => {
-    expect(tryParseJava("")).toMatchObject({
-      ok: false,
-      code: "invalid-java-data-model",
+    const empty = tryParseJava("");
+    expectJavaFailure(empty, "invalid-java-data-model", false);
+    expect(empty).toMatchObject({
       message: "Java source must declare at least one record, class, or enum.",
     });
-    expect(tryParseJava("class User { int id; }")).toMatchObject({
-      ok: false,
-      code: "missing-java-public-root",
+    const missing = tryParseJava("class User { int id; }");
+    expectJavaFailure(missing, "missing-java-public-root", false);
+    expect(missing).toMatchObject({
       message:
         "Java source must contain one public root record, class, or enum.",
     });
@@ -240,3 +232,30 @@ describe("Java parser", () => {
     });
   });
 });
+
+function expectJavaFailure(
+  result: ReturnType<typeof tryParseJava>,
+  code: string,
+  hasPosition: boolean,
+): void {
+  expect(result).toMatchObject({ ok: false, code });
+  if (result.ok) return;
+  expect(result.diagnostics?.[0]).toMatchObject({
+    source: "parser-java",
+    code,
+  });
+  const evidence = result.diagnostics?.[0]?.evidence;
+  if (!hasPosition) {
+    expect(evidence).toBeUndefined();
+    return;
+  }
+  expect(evidence).toEqual(
+    expect.objectContaining({
+      position: expect.objectContaining({
+        offset: expect.any(Number),
+        line: expect.any(Number),
+        column: expect.any(Number),
+      }),
+    }),
+  );
+}

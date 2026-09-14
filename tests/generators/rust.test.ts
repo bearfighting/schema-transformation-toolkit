@@ -254,4 +254,26 @@ describe("Rust generator", () => {
       ]),
     );
   });
+
+  it("does not report supported records as unsupported hotspots", () => {
+    const document = schemaDocument(
+      "Config",
+      schemaRecordNode(
+        schemaScalarNode("string"),
+        schemaRecordNode(
+          schemaScalarNode("string"),
+          schemaScalarNode("integer"),
+        ),
+      ),
+    );
+
+    expect(collectRustLossHotspots(document)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "unsupported-rust-node",
+          evidence: expect.objectContaining({ nodeKind: "record" }),
+        }),
+      ]),
+    );
+  });
 });

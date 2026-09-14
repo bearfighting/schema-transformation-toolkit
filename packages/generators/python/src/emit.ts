@@ -5,6 +5,7 @@ import type {
   SchemaFieldNode,
   SchemaNode,
   SchemaObjectNode,
+  SchemaRecordNode,
 } from "@schema-transformation-toolkit/core";
 import { PythonGenerationError } from "./failure.js";
 
@@ -48,6 +49,7 @@ function renderRoot(document: SchemaDocument): string {
 }
 
 function renderNamedNode(name: IdentifierName, node: SchemaNode): string {
+  if (node.kind === "record") return renderAlias(name.source, node);
   if (node.kind !== "object") {
     throw new PythonGenerationError(
       "unsupported-python-root",
@@ -55,6 +57,10 @@ function renderNamedNode(name: IdentifierName, node: SchemaNode): string {
     );
   }
   return renderObject(name.source, node);
+}
+
+function renderAlias(name: string, node: SchemaRecordNode): string {
+  return `${pythonIdentifier(name)} = ${renderNode(node, true)}`;
 }
 
 function renderObject(name: string, node: SchemaObjectNode): string {
@@ -90,7 +96,7 @@ function renderFieldType(field: SchemaFieldNode): string {
   return field.nullable ? `${parenthesize(type)} | None` : type;
 }
 
-function renderNode(node: SchemaNode): string {
+function renderNode(node: SchemaNode, quoteReferences = false): string {
   switch (node.kind) {
     case "scalar":
       if (node.scalar === "string") return "str";
@@ -99,9 +105,13 @@ function renderNode(node: SchemaNode): string {
       if (node.scalar === "boolean") return "bool";
       break;
     case "reference":
-      return pythonIdentifier(node.name);
+      return quoteReferences
+        ? JSON.stringify(pythonIdentifier(node.name))
+        : pythonIdentifier(node.name);
     case "array":
-      return `list[${renderNode(node.elementType)}]`;
+      return `list[${renderNode(node.elementType, quoteReferences)}]`;
+    case "record":
+      return `dict[${renderNode(node.key, quoteReferences)}, ${renderNode(node.value, quoteReferences)}]`;
     case "union": {
       const nonNull = node.members.filter((member) => member.kind !== "null");
       if (
@@ -109,7 +119,10 @@ function renderNode(node: SchemaNode): string {
         nonNull.length !== node.members.length &&
         node.members.some((member) => member.kind === "null")
       ) {
-        return `${parenthesize(renderNode(nonNull[0]!))} | None`;
+        const member = nonNull[0]!;
+        if (quoteReferences && containsReference(member))
+          return JSON.stringify(`${renderNode(member)} | None`);
+        return `${parenthesize(renderNode(member, quoteReferences))} | None`;
       }
       throw new PythonGenerationError(
         "unsupported-python-node",
@@ -132,6 +145,21 @@ function renderNode(node: SchemaNode): string {
     "unsupported-python-node",
     `Unsupported Python scalar "${node.kind}".`,
   );
+}
+
+function containsReference(node: SchemaNode): boolean {
+  switch (node.kind) {
+    case "reference":
+      return true;
+    case "array":
+      return containsReference(node.elementType);
+    case "record":
+      return containsReference(node.key) || containsReference(node.value);
+    case "union":
+      return node.members.some(containsReference);
+    default:
+      return false;
+  }
 }
 
 function parenthesize(type: string): string {

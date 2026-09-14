@@ -70,42 +70,38 @@ structural subset. Validated semantics include:
 - arrays through `list[T]`;
 - nullable values through `Optional[T]` and `T | None`;
 - named dataclass references and same-file forward references;
-- recursive and mutually recursive definitions; and
+- recursive and mutually recursive definitions;
+- string-keyed `dict[str, T]` fields and restricted map aliases; and
 - multiple definitions selected with an explicit `entry` when required.
 
-The parser and generator are now in V1 final cleanup and maintenance mode.
-New Python syntax features are intentionally deferred until a shared semantic
-capability has been designed and validated across multiple adapters.
+The parser and generator are now in V1 final cleanup and maintenance mode for
+the current dataclass and string-keyed map boundary. New Python syntax features
+are intentionally deferred until a shared semantic capability has been designed
+and validated across multiple adapters.
 
 ## Next Priorities
 
-1. Finish Python Dataclass V1 documentation and failure-taxonomy cleanup, then
-   freeze the current supported boundary without adding Python-specific IR.
-2. Complete Rust V1 hardening: semantic round trips, recursive references,
-   negative fixtures, source locations, and cross-format fixtures.
-3. Add Rust unit-only enums by lowering them to the existing literal and union
-   Shape IR nodes; validate Rust ↔ TypeScript, JSON Schema, and Zod routes.
-4. Add string-keyed Rust maps for `HashMap<String, T>` and
-   `BTreeMap<String, T>` by lowering them to the existing record Shape IR;
-   validate map routes across JSON Schema, TypeScript, Zod, and OpenAPI.
-5. Keep data-carrying enums, Serde representation attributes, aliases,
+1. Maintain Rust V1 hardening: semantic round trips, recursive references,
+   negative fixtures, source locations, cross-format fixtures, and generated
+   source compilation smoke tests.
+2. Keep data-carrying enums, Serde representation attributes, aliases,
    newtypes, and generics deferred until enum/map work reveals concrete shared
    IR pressure.
-6. Keep the public SDK contract, user guide, capability matrix, and consumer
+3. Keep the public SDK contract, user guide, capability matrix, and consumer
    scenario matrix aligned with actual published behavior.
-7. Decide whether the current builtin registry bundle should remain fully
+4. Decide whether the current builtin registry bundle should remain fully
    bundled or gain a measured tree-shaking strategy for downstream products.
-8. Improve diagnostic location guidance for editor and code-highlighting
+5. Improve diagnostic location guidance for editor and code-highlighting
    integrations.
-9. Validate the package surface against a clean external checkout or release
+6. Validate the package surface against a clean external checkout or release
    artifact when the next Rust milestone is prepared.
-10. Validate the shared `rootName` contract across language adapters and keep
-    record/map semantics aligned without adding format-specific IR.
-11. Harden Go V1 with broader fixtures, source locations, semantic-loss
-    reporting, and cross-format route coverage.
-12. Harden Java structural class coverage with negative fixtures, class-style
-    generation, and cross-format semantic round trips without adding
-    Java-specific Core IR.
+7. Validate the shared `rootName` contract across language adapters and keep
+   record/map semantics aligned without adding format-specific IR.
+8. Harden Go V1 with broader fixtures, source locations, semantic-loss
+   reporting, and cross-format route coverage.
+9. Maintain Java V1 coverage: parser/generator negative fixtures, class-style
+   generation, `javac` smoke, and cross-format Shape round trips are complete;
+   keep the adapter boundary aligned without adding Java-specific Core IR.
 
 ### Future shared-capability roadmap
 
@@ -117,17 +113,15 @@ cross-language equivalence
 → programming-language semantic matrix
 → shared string-keyed map design
 → Shape IR record/map validation and fixtures
-→ Python dict[str, T], Rust maps, TypeScript Record, JSON Schema maps
+→ Python dict[str, T], Rust maps, TypeScript Record, JSON Schema maps (complete)
 → Literal / unit-enum study across adapters
 → general union study
 ```
 
-Map is the proposed first shared capability because the current IR already
-has `SchemaRecordNode` and the four target families have clear structural
-counterparts. The first version should remain limited to `string → T` until
-cross-format tests demonstrate a need for broader key semantics. Literal and
-unit-enum support should reuse named literal unions where targets can preserve
-their values without extra metadata. General unions come later because `oneOf`,
+The shared string-keyed map capability now uses the existing `SchemaRecordNode`
+across language adapters. It remains limited to `string → T`; Python
+`typing.Dict`, non-string keys, and mixed open-object semantics are deferred.
+Rust unit-enum support reuses named literal unions; general unions come later because `oneOf`,
 `anyOf`, discriminators, ambiguity, and nullable special cases require a more
 careful shared contract.
 
@@ -142,12 +136,12 @@ careful shared contract.
   newtypes, and generics until the preceding Rust milestones establish a
   concrete cross-format requirement.
 - Broad new parser families or speculative IR expansion.
-- Python `dict[str, T]` parsing until the shared record/map route matrix is
-  implemented.
+- Python `typing.Dict`, non-string dict keys, and general map key semantics
+  remain outside the shared string-keyed record/map contract.
 - Python defaults, `field(...)`, Pydantic, attrs, TypedDict, NamedTuple, and
   other framework/runtime semantics remain outside the Dataclass V1 adapter.
-- Cross-language map, Literal/Enum, and general-union semantics until their
-  shared IR contracts are explicitly designed.
+- Literal/Enum and general-union semantics until their shared IR contracts are
+  explicitly designed.
 - Go typed const enums, package resolution, generics, and embedded-field
   promotion remain deferred beyond the Go data-model V1 adapter.
 - Java data-carrying enums, Jackson/Bean Validation metadata, JavaBeans,
@@ -176,14 +170,15 @@ careful shared contract.
 
 Latest completed baseline:
 
-- 96 test files, 1054 tests passing.
+- 100 test files, 1093 tests passing; 2 release-tooling tests are currently
+  blocked by the local pnpm sqlite database environment.
 - TypeScript, ESLint, and Prettier passing.
 - Package boundary and API snapshot checks passing.
 - Generated builtin registry check passing.
 - Explicit workspace build passing.
 - Third-party manifest/custom registry smoke passing.
-- SDK tarball clean-install smoke remains an acceptance check; the latest run
-  was blocked by the environment's pnpm database file error.
+- SDK tarball clean-install smoke uses locally packed workspace dependencies and
+  does not require unpublished workspace packages to exist in npm.
 
 Primary commands:
 
@@ -206,4 +201,4 @@ node scripts/check-sdk-package.mjs
 2. [standards.md](standards.md) for implementation and validation rules.
 3. Package `README`s and `examples/` for package-specific usage.
 
-Last verified: 2026-09-06.
+Last verified: 2026-09-14.

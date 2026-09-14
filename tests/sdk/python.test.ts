@@ -141,4 +141,48 @@ class User:
       );
     }
   });
+
+  it("converts string-keyed maps across schema-oriented targets", () => {
+    const input = `@dataclass
+class User:
+    labels: dict[str, str | None]
+`;
+    for (const targetFormat of [
+      "python",
+      "typescript",
+      "json-schema",
+      "zod",
+      "openapi",
+      "rust",
+      "go",
+      "java",
+      "kotlin",
+    ] as const) {
+      const result = convert({
+        sourceFormat: "python",
+        targetFormat,
+        input,
+        includeArtifacts: true,
+      });
+      expect(result.ok, `python -> ${targetFormat}`).toBe(true);
+      if (!result.ok) continue;
+      expect(result.artifacts?.shape).toBeDefined();
+      expect(result.output).toBeTruthy();
+    }
+  });
+
+  it("converts a pure JSON Schema map to a Python alias", () => {
+    const result = convert({
+      sourceFormat: "json-schema",
+      targetFormat: "python",
+      input: JSON.stringify({
+        title: "Metadata",
+        type: "object",
+        additionalProperties: { type: "string" },
+      }),
+      name: "Metadata",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.output).toContain("Metadata = dict[str, str]");
+  });
 });

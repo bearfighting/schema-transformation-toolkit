@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   schemaArrayNode,
   schemaDocument,
@@ -170,5 +174,72 @@ describe("Go generator", () => {
       ok: false,
       code: "invalid-go-struct-tag",
     });
+  });
+
+  it("emits Go source that compiles for the V1 representative shape", () => {
+    const fixtureId = "go-v1-representative-shape";
+    const document = schemaDocument("User", schemaReferenceNode("User"), {
+      rootName: "User",
+      definitions: [
+        schemaDefinition(
+          "User",
+          schemaObjectNode([
+            schemaFieldNode("id", schemaScalarNode("integer")),
+            schemaFieldNode("email", schemaScalarNode("string"), {
+              required: false,
+              nullable: true,
+            }),
+            schemaFieldNode(
+              "metadata",
+              schemaRecordNode(
+                schemaScalarNode("string"),
+                schemaUnionNode([schemaScalarNode("string"), schemaNullNode()]),
+              ),
+            ),
+            schemaFieldNode(
+              "children",
+              schemaArrayNode(schemaReferenceNode("User")),
+            ),
+          ]),
+        ),
+      ],
+    });
+    const generated = tryGenerateGo(document);
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+
+    const directory = mkdtempSync(join(tmpdir(), "schema-toolkit-go-smoke-"));
+    const sourcePath = join(directory, "model.go");
+    const objectPath = join(directory, "model.o");
+    try {
+      writeFileSync(sourcePath, generated.output, "utf8");
+      const version = spawnSync("go", ["version"], { encoding: "utf8" });
+      const compilation = spawnSync(
+        "go",
+        ["tool", "compile", "-o", objectPath, sourcePath],
+        { encoding: "utf8" },
+      );
+      if (compilation.status !== 0) {
+        throw new Error(
+          [
+            `fixture=${fixtureId}`,
+            `sourcePath=${sourcePath}`,
+            `goVersion=${version.stdout?.trim() || version.stderr?.trim() || "unavailable"}`,
+            `compilerStdout=${compilation.stdout?.trim() || ""}`,
+            `compilerStderr=${compilation.stderr?.trim() || ""}`,
+            compilation.error ? `spawnError=${compilation.error.message}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Generated Go source failed to compile (fixture=${fixtureId}):\nsourcePath=${sourcePath}\n${generated.output}\n${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });

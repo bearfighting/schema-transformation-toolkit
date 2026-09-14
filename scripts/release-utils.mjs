@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -120,6 +120,43 @@ export function ensureConsistentVersions(expectedVersion) {
     version: actualVersion,
     snapshot,
   };
+}
+
+export function packWorkspacePackages(outDir) {
+  mkdirSync(outDir, { recursive: true });
+  const { version, snapshot } = ensureConsistentVersions();
+  const packages = [];
+
+  for (const entry of snapshot.filter(
+    (item) => item.relativePath !== "package.json",
+  )) {
+    const packageDir = path.dirname(entry.filePath);
+    const packedFile = runCommand(
+      "pnpm",
+      ["pack", "--pack-destination", outDir],
+      { cwd: packageDir },
+    )
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.endsWith(".tgz"))
+      .at(-1);
+
+    if (!packedFile) {
+      throw new Error(
+        `Expected pnpm pack to output a tarball name for ${entry.relativePath}.`,
+      );
+    }
+
+    packages.push({
+      name: entry.name,
+      version: entry.version,
+      private: entry.private,
+      tarball: path.basename(packedFile),
+      tarballPath: path.join(outDir, path.basename(packedFile)),
+    });
+  }
+
+  return { version, packages };
 }
 
 export function runCommand(command, args, options = {}) {

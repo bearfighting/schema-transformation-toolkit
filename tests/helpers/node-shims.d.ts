@@ -12,6 +12,7 @@ declare module "node:fs/promises" {
 }
 
 declare module "node:fs" {
+  export function existsSync(path: string): boolean;
   export function mkdtempSync(prefix: string): string;
   export function readFileSync(path: string, encoding: "utf8"): string;
   export function rmSync(
@@ -29,7 +30,7 @@ declare module "node:child_process" {
   export function spawnSync(
     command: string,
     args: string[],
-    options: { encoding: "utf8" },
+    options: { encoding: "utf8"; cwd?: string },
   ): {
     status: number | null;
     stdout: string;
@@ -52,4 +53,5 @@ declare module "node:url" {
 
 declare const process: {
   cwd(): string;
+  execPath: string;
 };

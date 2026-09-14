@@ -170,14 +170,14 @@ careful shared contract.
 
 Latest completed baseline:
 
-- 96 test files, 1054 tests passing.
+- 98 test files, 1068 tests passing.
 - TypeScript, ESLint, and Prettier passing.
 - Package boundary and API snapshot checks passing.
 - Generated builtin registry check passing.
 - Explicit workspace build passing.
 - Third-party manifest/custom registry smoke passing.
-- SDK tarball clean-install smoke remains an acceptance check; the latest run
-  was blocked by the environment's pnpm database file error.
+- SDK tarball clean-install smoke uses locally packed workspace dependencies and
+  does not require unpublished workspace packages to exist in npm.
 
 Primary commands:
 

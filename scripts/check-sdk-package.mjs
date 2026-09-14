@@ -3,21 +3,19 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { packWorkspacePackages } from "./release-utils.mjs";
 
 const repoRoot = process.cwd();
 const tempRoot = mkdtempSync(
   path.join(os.tmpdir(), "schema-transformation-toolkit-sdk-package-"),
 );
+let completed = false;
 
 try {
-  execFileSync(
-    "pnpm",
-    ["--filter", "@schema-transformation-toolkit/sdk", "build"],
-    {
-      cwd: repoRoot,
-      stdio: "inherit",
-    },
-  );
+  execFileSync(process.execPath, ["scripts/build-workspace.mjs"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
 
   const sdkBundle = readFileSync(
     path.join(repoRoot, "packages/sdk/dist/index.js"),
@@ -32,84 +30,45 @@ try {
     );
   }
 
-  const packOutput = execFileSync(
-    "pnpm",
-    ["pack", "--pack-destination", tempRoot],
-    {
-      cwd: path.join(repoRoot, "packages/sdk"),
-      encoding: "utf8",
-    },
-  );
-  const tarballName = packOutput
-    .trim()
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.endsWith(".tgz"))
-    .at(-1);
-
-  if (!tarballName) {
-    throw new Error("pnpm pack did not report an SDK tarball.");
-  }
-
-  const tarballPath = path.join(tempRoot, path.basename(tarballName));
-  const packedPackageJson = JSON.parse(
-    execFileSync("tar", ["-xOf", tarballPath, "package/package.json"], {
-      encoding: "utf8",
-    }),
-  );
-  const workspaceDependencies = Object.entries(
-    packedPackageJson.dependencies ?? {},
-  ).filter(
-    ([, version]) =>
-      version === "workspace:*" || version.startsWith("workspace:"),
-  );
-  if (workspaceDependencies.length > 0) {
-    throw new Error(
-      `Packed SDK still contains workspace dependencies: ${workspaceDependencies
-        .map(([name]) => name)
-        .join(", ")}`,
-    );
-  }
-
-  const workspaceOverrideNames = [
-    "@schema-transformation-toolkit/core",
-    "@schema-transformation-toolkit/generator-csv",
-    "@schema-transformation-toolkit/generator-json",
-    "@schema-transformation-toolkit/generator-json-schema",
-    "@schema-transformation-toolkit/generator-openapi",
-    "@schema-transformation-toolkit/generator-rust",
-    "@schema-transformation-toolkit/generator-python",
-    "@schema-transformation-toolkit/generator-go",
-    "@schema-transformation-toolkit/generator-java",
-    "@schema-transformation-toolkit/generator-kotlin",
-    "@schema-transformation-toolkit/generator-toml",
-    "@schema-transformation-toolkit/generator-typescript",
-    "@schema-transformation-toolkit/generator-zod",
-    "@schema-transformation-toolkit/generator-yaml",
-    "@schema-transformation-toolkit/parser-csv",
-    "@schema-transformation-toolkit/parser-json",
-    "@schema-transformation-toolkit/parser-json-schema",
-    "@schema-transformation-toolkit/parser-openapi",
-    "@schema-transformation-toolkit/parser-rust",
-    "@schema-transformation-toolkit/parser-python",
-    "@schema-transformation-toolkit/parser-go",
-    "@schema-transformation-toolkit/parser-java",
-    "@schema-transformation-toolkit/parser-kotlin",
-    "@schema-transformation-toolkit/parser-toml",
-    "@schema-transformation-toolkit/parser-typescript",
-    "@schema-transformation-toolkit/parser-zod",
-    "@schema-transformation-toolkit/parser-yaml",
-  ];
+  const { packages } = packWorkspacePackages(tempRoot);
+  const packagesByName = new Map(packages.map((entry) => [entry.name, entry]));
+  const sdkPackage = packagesByName.get("@schema-transformation-toolkit/sdk");
+  if (!sdkPackage) throw new Error("SDK package was not packed.");
   const workspaceOverrides = Object.fromEntries(
-    workspaceOverrideNames.map((name) => {
-      const localPackage = `file:${path.join(
-        repoRoot,
-        "packages",
-        packageDirectoryFor(name),
-      )}`;
-      return [name, localPackage];
-    }),
+    packages.map((entry) => [entry.name, `file:${entry.tarballPath}`]),
   );
+  for (const entry of packages) {
+    const packageJson = JSON.parse(
+      execFileSync("tar", ["-xOf", entry.tarballPath, "package/package.json"], {
+        encoding: "utf8",
+      }),
+    );
+    const workspaceDependencies = [
+      "dependencies",
+      "optionalDependencies",
+      "peerDependencies",
+      "devDependencies",
+    ].flatMap((section) =>
+      Object.entries(packageJson[section] ?? {}).filter(
+        ([, version]) =>
+          typeof version === "string" && version.startsWith("workspace:"),
+      ),
+    );
+    if (workspaceDependencies.length > 0) {
+      throw new Error(
+        `Packed ${entry.name} still contains workspace dependencies: ${workspaceDependencies
+          .map(([name]) => name)
+          .join(", ")}`,
+      );
+    }
+    if (
+      packageJson.name !== entry.name ||
+      packageJson.version !== entry.version
+    ) {
+      throw new Error(`Packed manifest mismatch for ${entry.name}.`);
+    }
+  }
+  const tarballPath = sdkPackage.tarballPath;
   writeFileSync(
     path.join(tempRoot, "package.json"),
     `${JSON.stringify(
@@ -120,7 +79,6 @@ try {
         dependencies: {
           "@schema-transformation-toolkit/sdk": `file:${tarballPath}`,
         },
-        pnpm: { overrides: workspaceOverrides },
       },
       null,
       2,
@@ -128,13 +86,20 @@ try {
   );
   writeFileSync(
     path.join(tempRoot, "pnpm-workspace.yaml"),
-    `packages:\n  - "."\n`,
+    `${JSON.stringify({ packages: ["."], overrides: workspaceOverrides }, null, 2)}\n`,
   );
 
-  execFileSync("pnpm", ["install", "--ignore-scripts", "--lockfile=false"], {
-    cwd: tempRoot,
-    stdio: "inherit",
-  });
+  execFileSync(
+    "pnpm",
+    // Workspace dependencies are overridden to local tarballs above. Prefer
+    // the local store while allowing ordinary third-party dependencies to
+    // resolve normally when they are not cached.
+    ["install", "--prefer-offline", "--ignore-scripts", "--lockfile=false"],
+    {
+      cwd: tempRoot,
+      stdio: "inherit",
+    },
+  );
 
   const tomlSmokeInput = JSON.stringify('id = 1\nname = "Ada"\n');
   const smokeScript = `
@@ -201,16 +166,10 @@ try {
   }
 
   console.log("SDK package smoke check passed.");
+  completed = true;
+} catch (error) {
+  console.error(`SDK package smoke diagnostics preserved at: ${tempRoot}`);
+  throw error;
 } finally {
-  rmSync(tempRoot, { recursive: true, force: true });
-}
-
-function packageDirectoryFor(name) {
-  const [, packageName] = name.split("/");
-
-  if (packageName === "core") return "core";
-  if (packageName.startsWith("parser-")) {
-    return `parsers/${packageName.slice("parser-".length)}`;
-  }
-  return `generators/${packageName.slice("generator-".length)}`;
+  if (completed) rmSync(tempRoot, { recursive: true, force: true });
 }

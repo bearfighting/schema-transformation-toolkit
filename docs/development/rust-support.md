@@ -1,8 +1,7 @@
 # Rust Parser / Generator Design and Roadmap
 
-The current released Rust surface is V1. The next milestones are V1
-hardening followed by unit-only enums and string-keyed maps. This page records
-the supported boundary and the intentional sequence for expanding it.
+The current released Rust surface is V1. This page records the supported
+boundary, stability requirements, and intentional deferrals.
 
 ## 1. Goal
 
@@ -105,7 +104,15 @@ Supported container types:
 ```text
 Option<T>
 Vec<T>
+Box<T>
+HashMap<String, T>
+BTreeMap<String, T>
 ```
+
+Unit-only enums are lowered to named string literal unions. Both standard and
+`alloc` paths for the supported map containers are accepted. `HashMap` and
+`BTreeMap` share `SchemaRecordNode` semantics; generation currently uses
+`std::collections::HashMap<String, T>`.
 
 Supported references to other named data types:
 
@@ -124,7 +131,6 @@ Multiple structs in the same source file are supported.
 The following features are intentionally excluded from V1:
 
 ```text
-enum
 tuple struct
 tuple
 fixed-size array
@@ -142,9 +148,6 @@ where clause
 Serde attributes
 custom attributes
 
-HashMap
-BTreeMap
-Box
 Rc
 Arc
 
@@ -159,67 +162,14 @@ struct Page<T> {
 }
 ```
 
-```rust
-enum Status {
-    Active,
-    Disabled,
-}
-```
-
-```rust
-type UserId = u64;
-```
-
 Unsupported syntax should fail explicitly rather than silently degrading semantic information.
 
-## 3.1 Planned Expansion
-
-The next Rust milestone is intentionally limited to common data-model
-semantics that already have cross-format representations.
-
-### V1 hardening
-
-- Add Rust → IR → Rust → IR semantic round-trip fixtures.
-- Add recursive reference coverage and support `Box<T>` as a narrow,
-  schema-transparent wrapper where needed for recursion.
-- Improve structured diagnostics and source-location coverage.
-- Add cross-format fixtures for the existing Rust subset.
-
-### Unit-only enums
-
-Support enums such as:
-
-```rust
-enum Status {
-    Pending,
-    Active,
-    Disabled,
-}
-```
-
-Lower them to the existing `literal` and `union` Shape IR nodes. Do not add a
-Rust-specific IR node. The first version should reject explicit discriminants,
-tuple variants, struct variants, and string literals that cannot be represented
-as deterministic valid Rust variant identifiers.
-
-### String-keyed maps
-
-Support:
-
-```rust
-HashMap<String, T>
-BTreeMap<String, T>
-```
-
-where `T` is already supported. Lower both forms to the existing `record` Shape
-IR node. Reject non-string-compatible map keys explicitly. The generator may
-choose a canonical `HashMap<String, T>` representation initially; the choice
-of `HashMap` versus `BTreeMap` is a generator policy, not shared schema
-semantics.
-
-Data-carrying enums, Serde representation attributes, aliases, newtypes, and
-generics remain deferred until enum/map implementation demonstrates concrete
-cross-format pressure for additional shared semantics.
+The current V1 hardening requirement is semantic validation: parser and
+generator round trips must preserve Shape and Constraint IR, recursive
+references, unit enums, maps, nullable values, and numeric representation
+hints. Generated representative sources are also compiled with `rustc` in a
+temporary directory. This validates emitted syntax without adding a runtime
+dependency or expanding the supported language boundary.
 
 ---
 
@@ -1032,7 +982,7 @@ wrapping them.
 
 ## Phase 6 — Round-Trip Tests
 
-Establish:
+The current stability suite establishes:
 
 ```text
 Rust → IR → Rust → IR
@@ -1042,50 +992,31 @@ semantic equivalence tests.
 
 ## Phase 7 — Cross-Format Tests
 
-Test:
+The current route suite tests:
 
 ```text
 Rust ↔ TypeScript
 Rust ↔ JSON Schema
 ```
 
-Then expand to other existing adapters.
+and the other existing Shape-compatible adapters, including Zod, OpenAPI,
+Python, Go, Java, and Kotlin.
 
 ---
 
 # 20. Future Extensions
 
-After V1 is stable, extend Rust support incrementally.
-
-Suggested order:
+Future work remains deliberately deferred:
 
 ```text
-V1.1
-├── simple enums
-├── tuples
-├── tuple structs
-└── fixed-size arrays
-
-V1.2
-├── serde(rename)
-├── serde(rename_all)
-└── serde(default)
-
-V1.3
-├── type aliases
-├── HashMap
-├── BTreeMap
-└── Box
-
-V2
-├── tagged enums
-├── untagged enums
-├── serde(flatten)
-├── transparent types
-└── richer serialization semantics
+data-carrying and Serde-represented enums
+tuples, tuple structs, and fixed-size arrays
+aliases, newtypes, and generics
+richer serialization semantics and macro-generated types
 ```
 
-Generics should be treated as a separate design problem rather than casually added to the parser.
+Generics should be treated as a separate design problem rather than casually
+added to the parser.
 
 ---
 

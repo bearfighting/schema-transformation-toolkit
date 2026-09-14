@@ -81,28 +81,27 @@ and validated across multiple adapters.
 
 ## Next Priorities
 
-1. Complete Rust V1 hardening: semantic round trips, recursive references,
-   negative fixtures, source locations, and cross-format fixtures.
-2. Add Rust unit-only enums by lowering them to the existing literal and union
-   Shape IR nodes; validate Rust ↔ TypeScript, JSON Schema, and Zod routes.
-3. Keep data-carrying enums, Serde representation attributes, aliases,
+1. Maintain Rust V1 hardening: semantic round trips, recursive references,
+   negative fixtures, source locations, cross-format fixtures, and generated
+   source compilation smoke tests.
+2. Keep data-carrying enums, Serde representation attributes, aliases,
    newtypes, and generics deferred until enum/map work reveals concrete shared
    IR pressure.
-4. Keep the public SDK contract, user guide, capability matrix, and consumer
+3. Keep the public SDK contract, user guide, capability matrix, and consumer
    scenario matrix aligned with actual published behavior.
-5. Decide whether the current builtin registry bundle should remain fully
+4. Decide whether the current builtin registry bundle should remain fully
    bundled or gain a measured tree-shaking strategy for downstream products.
-6. Improve diagnostic location guidance for editor and code-highlighting
+5. Improve diagnostic location guidance for editor and code-highlighting
    integrations.
-7. Validate the package surface against a clean external checkout or release
+6. Validate the package surface against a clean external checkout or release
    artifact when the next Rust milestone is prepared.
-8. Validate the shared `rootName` contract across language adapters and keep
+7. Validate the shared `rootName` contract across language adapters and keep
    record/map semantics aligned without adding format-specific IR.
-9. Harden Go V1 with broader fixtures, source locations, semantic-loss
+8. Harden Go V1 with broader fixtures, source locations, semantic-loss
    reporting, and cross-format route coverage.
-10. Harden Java structural class coverage with negative fixtures, class-style
-    generation, and cross-format semantic round trips without adding
-    Java-specific Core IR.
+9. Harden Java structural class coverage with negative fixtures, class-style
+   generation, and cross-format semantic round trips without adding
+   Java-specific Core IR.
 
 ### Future shared-capability roadmap
 
@@ -122,9 +121,7 @@ cross-language equivalence
 The shared string-keyed map capability now uses the existing `SchemaRecordNode`
 across language adapters. It remains limited to `string → T`; Python
 `typing.Dict`, non-string keys, and mixed open-object semantics are deferred.
-Literal and
-unit-enum support should reuse named literal unions where targets can preserve
-their values without extra metadata. General unions come later because `oneOf`,
+Rust unit-enum support reuses named literal unions; general unions come later because `oneOf`,
 `anyOf`, discriminators, ambiguity, and nullable special cases require a more
 careful shared contract.
 

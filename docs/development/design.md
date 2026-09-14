@@ -183,12 +183,11 @@ identify shared capability
 → add cross-language equivalence fixtures
 ```
 
-The next proposed capability is a string-keyed map. The existing
-`SchemaRecordNode` is the starting point; the initial shared contract should
-be `string → T`, with Python `dict[str, T]`, Rust string-keyed maps,
-TypeScript `Record<string, T>`, and JSON Schema `additionalProperties` as
-adapters. This work is deferred until the route matrix exposes a concrete
-semantic gap.
+The shared string-keyed map capability uses the existing `SchemaRecordNode`.
+The contract is limited to `string → T`, with Python `dict[str, T]`, Rust
+string-keyed maps, TypeScript `Record<string, T>`, and JSON Schema
+`additionalProperties` as adapters. Fixed fields plus additional properties
+remain `SchemaObjectNode` semantics.
 
 Literal and unit-enum semantics reuse named literal-union definitions when
 targets can preserve their values without extra metadata. Java unit enums lower

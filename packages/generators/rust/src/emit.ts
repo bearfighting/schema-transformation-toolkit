@@ -16,6 +16,8 @@ import { RustGenerationError } from "./failure.js";
 interface RenderContext {
   constraints?: ConstraintDocument;
   notes: SchemaSemanticNote[];
+  currentDefinition: string | undefined;
+  recursiveReferences: Set<string>;
 }
 
 const INTEGER_TYPES = [
@@ -42,6 +44,8 @@ export function renderRustDocument(
   const context: RenderContext = {
     ...(constraints ? { constraints } : {}),
     notes: [],
+    currentDefinition: undefined,
+    recursiveReferences: findRecursiveReferences(document),
   };
   const rootReferenceName =
     document.root.kind === "reference" ? document.root.name : undefined;
@@ -99,8 +103,14 @@ function renderDefinition(
   path: string[],
   context: RenderContext,
 ): string {
-  if (node.kind === "object") return renderStruct(name, node, path, context);
-  if (node.kind === "union") return renderEnum(name, node);
+  const previousDefinition = context.currentDefinition;
+  context.currentDefinition = name;
+  try {
+    if (node.kind === "object") return renderStruct(name, node, path, context);
+    if (node.kind === "union") return renderEnum(name, node);
+  } finally {
+    context.currentDefinition = previousDefinition;
+  }
   throw new RustGenerationError(
     "unsupported-rust-node",
     `Rust definition "${name}" must be an object or string enum.`,
@@ -185,7 +195,12 @@ function renderNode(
         `Unsupported Rust scalar "${node.scalar}".`,
       );
     case "reference":
-      return rustIdentifier(node.name);
+      return context.currentDefinition &&
+        context.recursiveReferences.has(
+          `${context.currentDefinition}->${node.name}`,
+        )
+        ? `Box<${rustIdentifier(node.name)}>`
+        : rustIdentifier(node.name);
     case "array":
       return `Vec<${renderNode(node.elementType, [...path, "items"], context)}>`;
     case "record":
@@ -369,4 +384,71 @@ function addConstraintLosses(
 
 function decimal(value: string): NumericValue {
   return { representation: "decimal", value };
+}
+
+function findRecursiveReferences(document: SchemaDocument): Set<string> {
+  const definitions = new Map(
+    document.definitions.map((definition) => [
+      definition.name.source,
+      definition.type,
+    ]),
+  );
+  const graph = new Map<string, Set<string>>();
+  for (const [name, node] of definitions) {
+    const references = new Set<string>();
+    collectReferences(node, references);
+    graph.set(
+      name,
+      new Set(
+        [...references].filter((reference) => definitions.has(reference)),
+      ),
+    );
+  }
+  const recursive = new Set<string>();
+  for (const [source, targets] of graph) {
+    for (const target of targets) {
+      if (target === source || canReach(graph, target, source))
+        recursive.add(`${source}->${target}`);
+    }
+  }
+  return recursive;
+}
+
+function collectReferences(node: SchemaNode, references: Set<string>): void {
+  switch (node.kind) {
+    case "reference":
+      references.add(node.name);
+      return;
+    case "array":
+      collectReferences(node.elementType, references);
+      return;
+    case "record":
+      collectReferences(node.value, references);
+      return;
+    case "union":
+      node.members.forEach((member) => collectReferences(member, references));
+      return;
+    case "object":
+      node.fields.forEach((field) => collectReferences(field.type, references));
+      return;
+    default:
+      return;
+  }
+}
+
+function canReach(
+  graph: Map<string, Set<string>>,
+  start: string,
+  target: string,
+): boolean {
+  const visited = new Set<string>();
+  const pending = [start];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (current === target) return true;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    for (const next of graph.get(current) ?? []) pending.push(next);
+  }
+  return false;
 }

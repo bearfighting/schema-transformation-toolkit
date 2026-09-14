@@ -76,7 +76,7 @@ export function collectRustLossHotspots(
           }),
         );
       }
-      if (["record", "tuple", "unknown"].includes(context.node.kind)) {
+      if (["tuple", "unknown"].includes(context.node.kind)) {
         hotspots.push(
           createHotspot(context, "unsupported-rust-node", {
             nodeKind: context.node.kind,

@@ -426,6 +426,18 @@ export const crossLanguageRecordFixture: SemanticFixture = {
   id: "cross-language.record-array",
   description:
     "A portable object combining a string-keyed record and an array.",
+  equivalenceRoutes: [
+    "go->json-schema",
+    "json-schema->go",
+    "go->typescript",
+    "typescript->go",
+    "go->zod",
+    "zod->go",
+    "go->openapi",
+    "openapi->go",
+    "go->rust",
+    "rust->go",
+  ],
   canonicalShape: schemaDocument(
     "User",
     schemaObjectNode([
@@ -458,6 +470,33 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     typescript: {
       input:
         "type User = { metadata: Record<string, string>; tags: string[]; };",
+      options: { name: "User", entry: "User" },
+    },
+    zod: {
+      input:
+        'import { z } from "zod"; export const User = z.object({ metadata: z.record(z.string()), tags: z.array(z.string()) });',
+      options: { name: "User", entry: "User" },
+    },
+    openapi: {
+      input: JSON.stringify({
+        openapi: "3.1.0",
+        info: { title: "User", version: "1.0.0" },
+        components: {
+          schemas: {
+            User: {
+              type: "object",
+              properties: {
+                metadata: {
+                  type: "object",
+                  additionalProperties: { type: "string" },
+                },
+                tags: { type: "array", items: { type: "string" } },
+              },
+              required: ["metadata", "tags"],
+            },
+          },
+        },
+      }),
       options: { name: "User", entry: "User" },
     },
     rust: {
@@ -506,6 +545,8 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     rust: "exact",
     python: "exact",
     go: "exact",
+    zod: "exact",
+    openapi: "exact",
     java: "normalized",
     kotlin: "exact",
   },
@@ -515,6 +556,8 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     rust: ["shape-ir"],
     python: ["shape-ir"],
     go: ["shape-ir"],
+    zod: ["shape-ir"],
+    openapi: ["shape-ir"],
     java: ["shape-ir"],
     kotlin: ["shape-ir"],
   },
@@ -592,6 +635,12 @@ export const optionalVsNullableFixture: SemanticFixture = {
   id: "union.optional-vs-nullable",
   description:
     "An object that keeps optional presence and required-nullable semantics distinct in the same shape.",
+  equivalenceRoutes: [
+    "go->json-schema",
+    "json-schema->go",
+    "go->typescript",
+    "typescript->go",
+  ],
   canonicalShape: schemaDocument(
     "PresenceSemantics",
     schemaObjectNode([
@@ -639,14 +688,27 @@ export const optionalVsNullableFixture: SemanticFixture = {
         entry: "PresenceSemantics",
       },
     },
+    go: {
+      input: [
+        "package models",
+        "type PresenceSemantics struct {",
+        '  ID float64 `json:"id"`',
+        '  Nickname *string `json:"nickname,omitempty"`',
+        '  Alias *string `json:"alias"`',
+        "}",
+      ].join("\n"),
+      options: { name: "PresenceSemantics", entry: "PresenceSemantics" },
+    },
   },
   support: {
     "json-schema": "normalized",
     typescript: "exact",
+    go: "normalized",
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir"],
     typescript: ["shape-ir"],
+    go: ["shape-ir"],
     "generator:json-schema": ["shape-ir"],
     "generator:typescript": ["shape-ir"],
   },
@@ -1033,6 +1095,12 @@ export const recursiveReferenceFixture: SemanticFixture = {
   id: "reference.recursive-reference",
   description:
     "A named root definition that recursively references itself through an array field.",
+  equivalenceRoutes: [
+    "go->json-schema",
+    "json-schema->go",
+    "go->typescript",
+    "typescript->go",
+  ],
   canonicalShape: schemaDocument("TreeDocument", schemaReferenceNode("Tree"), {
     definitions: [
       schemaDefinition(
@@ -1081,14 +1149,26 @@ export const recursiveReferenceFixture: SemanticFixture = {
         entry: "Tree",
       },
     },
+    go: {
+      input: [
+        "package models",
+        "type Tree struct {",
+        '  Value float64 `json:"value"`',
+        '  Children []Tree `json:"children"`',
+        "}",
+      ].join("\n"),
+      options: { name: "TreeDocument", entry: "Tree" },
+    },
   },
   support: {
     "json-schema": "exact",
     typescript: "exact",
+    go: "normalized",
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir"],
     typescript: ["shape-ir"],
+    go: ["shape-ir"],
     "generator:json-schema": ["shape-ir"],
     "generator:typescript": ["shape-ir"],
   },
@@ -1098,6 +1178,12 @@ export const recordArrayReferenceUnionFixture: SemanticFixture = {
   id: "collection.record-array-reference-union",
   description:
     "A reusable response definition whose record field maps to arrays of referenced-or-null users.",
+  equivalenceRoutes: [
+    "go->json-schema",
+    "json-schema->go",
+    "go->typescript",
+    "typescript->go",
+  ],
   canonicalShape: schemaDocument(
     "GroupedUsersDocument",
     schemaReferenceNode("GroupedUsers"),
@@ -1179,14 +1265,29 @@ export const recordArrayReferenceUnionFixture: SemanticFixture = {
         entry: "GroupedUsers",
       },
     },
+    go: {
+      input: [
+        "package models",
+        "type User struct {",
+        '  ID float64 `json:"id"`',
+        '  Name string `json:"name"`',
+        "}",
+        "type GroupedUsers struct {",
+        '  Grouped map[string][]*User `json:"grouped"`',
+        "}",
+      ].join("\n"),
+      options: { name: "GroupedUsersDocument", entry: "GroupedUsers" },
+    },
   },
   support: {
     "json-schema": "normalized",
     typescript: "exact",
+    go: "normalized",
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir"],
     typescript: ["shape-ir"],
+    go: ["shape-ir"],
     "generator:json-schema": ["shape-ir"],
     "generator:typescript": ["shape-ir"],
   },
@@ -2365,6 +2466,14 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
   id: "constraint.numeric-minimum",
   description:
     "A JSON Schema object whose numeric field carries a preserved minimum constraint.",
+  equivalenceRoutes: [
+    "go->json-schema",
+    "json-schema->go",
+    "go->zod",
+    "zod->go",
+    "go->openapi",
+    "openapi->go",
+  ],
   canonicalShape: schemaDocument(
     "MinimumScore",
     schemaObjectNode([
@@ -2403,8 +2512,8 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
     },
     zod: {
       input:
-        'import { z } from "zod"; export const MinimumScore = z.object({ score: z.number().min(0) });',
-      options: { name: "MinimumScore", entry: "MinimumScore" },
+        'import { z } from "zod"; export const MinimumScoreSchema = z.object({ score: z.number().min(0).optional() });',
+      options: { name: "MinimumScore", entry: "MinimumScoreSchema" },
     },
     openapi: {
       input: JSON.stringify({
@@ -2421,6 +2530,15 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
       }),
       options: { name: "MinimumScore", entry: "MinimumScore" },
     },
+    go: {
+      input: [
+        "package models",
+        "type MinimumScore struct {",
+        '  Score *float64 `json:"score,omitempty"`',
+        "}",
+      ].join("\n"),
+      options: { name: "MinimumScore", entry: "MinimumScore" },
+    },
   },
   support: {
     json: "not-applicable",
@@ -2428,11 +2546,12 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
     typescript: "unsupported",
     zod: "exact",
     openapi: "exact",
+    go: "normalized",
   },
   constraintPathNormalizations: {
     zod: {
       replacePrefix: ["root"],
-      replacement: ["definitions", "MinimumScore"],
+      replacement: ["definitions", "MinimumScoreSchema"],
     },
   },
   capabilityCoverage: {
@@ -2442,9 +2561,34 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
       "constraint-ir",
       "numeric-constraints",
     ],
+    go: ["shape-ir"],
   },
   conversionExpectations: {
     "json-schema->typescript": {
+      semanticLosses: [
+        {
+          lostCapability: "numeric-constraints",
+          sourcePath: ["root", "score"],
+        },
+      ],
+    },
+    "json-schema->go": {
+      semanticLosses: [
+        {
+          lostCapability: "numeric-constraints",
+          sourcePath: ["root", "score"],
+        },
+      ],
+    },
+    "zod->go": {
+      semanticLosses: [
+        {
+          lostCapability: "numeric-constraints",
+          sourcePath: ["definitions", "MinimumScoreSchema", "score"],
+        },
+      ],
+    },
+    "openapi->go": {
       semanticLosses: [
         {
           lostCapability: "numeric-constraints",

@@ -1,11 +1,15 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const SEMVER_PATTERN =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
-export const REPO_ROOT = process.cwd();
+export const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 export const ROOT_PACKAGE_JSON_PATH = path.join(REPO_ROOT, "package.json");
 export const PACKAGES_ROOT = path.join(REPO_ROOT, "packages");
 

@@ -286,6 +286,20 @@ export const optionalPropertyFixture: SemanticFixture = {
 export const stringRecordFixture: SemanticFixture = {
   id: "collection.record",
   description: "A string-keyed record of booleans.",
+  equivalenceRoutes: [
+    "typescript->json-schema",
+    "json-schema->typescript",
+    "typescript->zod",
+    "zod->typescript",
+    "typescript->openapi",
+    "openapi->typescript",
+    "json-schema->zod",
+    "zod->json-schema",
+    "json-schema->openapi",
+    "openapi->json-schema",
+    "zod->openapi",
+    "openapi->zod",
+  ],
   canonicalShape: schemaDocument(
     "Dictionary",
     schemaRecordNode(schemaScalarNode("string"), schemaScalarNode("boolean")),
@@ -310,10 +324,38 @@ export const stringRecordFixture: SemanticFixture = {
         entry: "Dictionary",
       },
     },
+    zod: {
+      input:
+        'import { z } from "zod"; export const Dictionary = z.record(z.boolean());',
+      options: {
+        name: "Dictionary",
+        entry: "Dictionary",
+      },
+    },
+    openapi: {
+      input: JSON.stringify({
+        openapi: "3.1.0",
+        info: { title: "Dictionary", version: "1.0.0" },
+        components: {
+          schemas: {
+            Dictionary: {
+              type: "object",
+              additionalProperties: { type: "boolean" },
+            },
+          },
+        },
+      }),
+      options: {
+        name: "Dictionary",
+        entry: "Dictionary",
+      },
+    },
   },
   support: {
     "json-schema": "exact",
     typescript: "exact",
+    zod: "normalized",
+    openapi: "exact",
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir"],
@@ -377,6 +419,104 @@ export const nullablePropertyFixture: SemanticFixture = {
     typescript: ["shape-ir"],
     "generator:json-schema": ["shape-ir"],
     "generator:typescript": ["shape-ir"],
+  },
+};
+
+export const crossLanguageRecordFixture: SemanticFixture = {
+  id: "cross-language.record-array",
+  description:
+    "A portable object combining a string-keyed record and an array.",
+  canonicalShape: schemaDocument(
+    "User",
+    schemaObjectNode([
+      schemaFieldNode(
+        "metadata",
+        schemaRecordNode(
+          schemaScalarNode("string"),
+          schemaScalarNode("string"),
+        ),
+      ),
+      schemaFieldNode("tags", schemaArrayNode(schemaScalarNode("string"))),
+    ]),
+  ),
+  sources: {
+    "json-schema": {
+      input: {
+        title: "User",
+        type: "object",
+        properties: {
+          metadata: {
+            type: "object",
+            additionalProperties: { type: "string" },
+          },
+          tags: { type: "array", items: { type: "string" } },
+        },
+        required: ["metadata", "tags"],
+      },
+      options: { name: "User" },
+    },
+    typescript: {
+      input:
+        "type User = { metadata: Record<string, string>; tags: string[]; };",
+      options: { name: "User", entry: "User" },
+    },
+    rust: {
+      input: [
+        "use std::collections::HashMap;",
+        "struct User { metadata: HashMap<String, String>, tags: Vec<String> }",
+      ].join("\n"),
+      options: { name: "User", entry: "User" },
+    },
+    python: {
+      input: [
+        "from dataclasses import dataclass",
+        "",
+        "@dataclass",
+        "class User:",
+        "    metadata: dict[str, str]",
+        "    tags: list[str]",
+      ].join("\n"),
+      options: { name: "User", entry: "User" },
+    },
+    go: {
+      input: [
+        "package models",
+        "",
+        "type User struct {",
+        '  Metadata map[string]string `json:"metadata"`',
+        '  Tags []string `json:"tags"`',
+        "}",
+      ].join("\n"),
+      options: { name: "User", entry: "User" },
+    },
+    java: {
+      input:
+        "public record User(java.util.Map<String, String> metadata, java.util.List<String> tags) {}",
+      options: { name: "User", entry: "User" },
+    },
+    kotlin: {
+      input:
+        "data class User(val metadata: Map<String, String>, val tags: List<String>)",
+      options: { name: "User", entry: "User" },
+    },
+  },
+  support: {
+    "json-schema": "exact",
+    typescript: "exact",
+    rust: "exact",
+    python: "exact",
+    go: "exact",
+    java: "normalized",
+    kotlin: "exact",
+  },
+  capabilityCoverage: {
+    "json-schema": ["shape-ir"],
+    typescript: ["shape-ir"],
+    rust: ["shape-ir"],
+    python: ["shape-ir"],
+    go: ["shape-ir"],
+    java: ["shape-ir"],
+    kotlin: ["shape-ir"],
   },
 };
 
@@ -2261,11 +2401,39 @@ export const numericMinimumConstraintFixture: SemanticFixture = {
         name: "MinimumScore",
       },
     },
+    zod: {
+      input:
+        'import { z } from "zod"; export const MinimumScore = z.object({ score: z.number().min(0) });',
+      options: { name: "MinimumScore", entry: "MinimumScore" },
+    },
+    openapi: {
+      input: JSON.stringify({
+        openapi: "3.1.0",
+        info: { title: "MinimumScore", version: "1.0.0" },
+        components: {
+          schemas: {
+            MinimumScore: {
+              type: "object",
+              properties: { score: { type: "number", minimum: 0 } },
+            },
+          },
+        },
+      }),
+      options: { name: "MinimumScore", entry: "MinimumScore" },
+    },
   },
   support: {
     json: "not-applicable",
     "json-schema": "exact",
     typescript: "unsupported",
+    zod: "exact",
+    openapi: "exact",
+  },
+  constraintPathNormalizations: {
+    zod: {
+      replacePrefix: ["root"],
+      replacement: ["definitions", "MinimumScore"],
+    },
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir", "constraint-ir", "numeric-constraints"],
@@ -2447,6 +2615,7 @@ const semanticFixtureDefinitions: SemanticFixture[] = [
   stringArrayFixture,
   optionalPropertyFixture,
   stringRecordFixture,
+  crossLanguageRecordFixture,
   nullablePropertyFixture,
   nestedObjectFixture,
   optionalVsNullableFixture,

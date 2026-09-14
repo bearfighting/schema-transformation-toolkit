@@ -3,9 +3,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { packWorkspacePackages } from "./release-utils.mjs";
 
-const repoRoot = process.cwd();
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const tempRoot = mkdtempSync(
   path.join(os.tmpdir(), "schema-transformation-toolkit-sdk-package-"),
 );

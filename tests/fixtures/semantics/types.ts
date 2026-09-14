@@ -6,15 +6,35 @@ import type {
 import type { JsonParseOptions } from "@schema-transformation-toolkit/parser-json";
 import type { JsonSchemaParseOptions } from "@schema-transformation-toolkit/parser-json-schema";
 import type { TypeScriptParseOptions } from "@schema-transformation-toolkit/parser-typescript";
+import type { OpenApiParseOptions } from "@schema-transformation-toolkit/parser-openapi";
+import type { ZodParseOptions } from "@schema-transformation-toolkit/parser-zod";
+import type { RustParseOptions } from "@schema-transformation-toolkit/parser-rust";
+import type { PythonParseOptions } from "@schema-transformation-toolkit/parser-python";
+import type { GoParseOptions } from "@schema-transformation-toolkit/parser-go";
+import type { JavaParseOptions } from "@schema-transformation-toolkit/parser-java";
+import type { KotlinParseOptions } from "@schema-transformation-toolkit/parser-kotlin";
 
-export type SemanticFixtureFormatId = "json" | "json-schema" | "typescript";
+export type SemanticFixtureFormatId =
+  | "json"
+  | "json-schema"
+  | "typescript"
+  | "zod"
+  | "openapi"
+  | "rust"
+  | "python"
+  | "go"
+  | "java"
+  | "kotlin";
 export type SemanticFixtureCoverageSubject =
   | SemanticFixtureFormatId
   | "generator:json-schema"
   | "generator:typescript"
   | "generator:zod";
 export type SemanticFixtureGeneratorId =
-  "generator:json-schema" | "generator:typescript" | "generator:zod";
+  | "generator:json-schema"
+  | "generator:typescript"
+  | "generator:zod"
+  | "generator:openapi";
 export type SemanticFixtureRouteId =
   `${SemanticFixtureFormatId}->${SemanticFixtureFormatId}`;
 
@@ -42,6 +62,41 @@ export interface JsonSemanticFixtureSource {
   options?: JsonParseOptions;
 }
 
+export interface ZodSemanticFixtureSource {
+  input: string;
+  options?: ZodParseOptions;
+}
+
+export interface OpenApiSemanticFixtureSource {
+  input: string;
+  options?: OpenApiParseOptions;
+}
+
+export interface RustSemanticFixtureSource {
+  input: string;
+  options?: RustParseOptions;
+}
+
+export interface PythonSemanticFixtureSource {
+  input: string;
+  options?: PythonParseOptions;
+}
+
+export interface GoSemanticFixtureSource {
+  input: string;
+  options?: GoParseOptions;
+}
+
+export interface JavaSemanticFixtureSource {
+  input: string;
+  options?: JavaParseOptions;
+}
+
+export interface KotlinSemanticFixtureSource {
+  input: string;
+  options?: KotlinParseOptions;
+}
+
 export interface SemanticFixtureGeneratorExpectation {
   diagnosticCodes?: string[];
   semanticNoteCodes?: string[];
@@ -53,11 +108,18 @@ export interface SemanticFixtureValidationExamples {
 }
 
 export interface SemanticFixtureConversionExpectation {
+  constraintPolicy?: "exact" | "lossy" | "not-applicable";
+  generatorExpectation?: SemanticFixtureGeneratorExpectation;
   semanticCaveatCodes?: string[];
   semanticLosses?: Array<{
     lostCapability: ConversionCapability;
     sourcePath: string[];
   }>;
+}
+
+export interface SemanticFixtureConstraintPathNormalization {
+  replacePrefix: string[];
+  replacement: string[];
 }
 
 export interface SemanticFixture {
@@ -66,10 +128,22 @@ export interface SemanticFixture {
   validationExamples?: SemanticFixtureValidationExamples;
   canonicalShape: SchemaDocument;
   canonicalConstraints?: ConstraintDocument;
+  constraintPathNormalizations?: Partial<
+    Record<SemanticFixtureFormatId, SemanticFixtureConstraintPathNormalization>
+  >;
+  /** Explicit opt-in for generator round-trip routes supported by a fixture. */
+  equivalenceRoutes?: SemanticFixtureRouteId[];
   sources: Partial<{
     json: JsonSemanticFixtureSource;
     "json-schema": JsonSchemaSemanticFixtureSource;
     typescript: TypeScriptSemanticFixtureSource;
+    zod: ZodSemanticFixtureSource;
+    openapi: OpenApiSemanticFixtureSource;
+    rust: RustSemanticFixtureSource;
+    python: PythonSemanticFixtureSource;
+    go: GoSemanticFixtureSource;
+    java: JavaSemanticFixtureSource;
+    kotlin: KotlinSemanticFixtureSource;
   }>;
   support: Partial<
     Record<SemanticFixtureFormatId, SemanticFixtureSupportLevel>

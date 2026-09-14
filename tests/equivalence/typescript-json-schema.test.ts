@@ -30,6 +30,7 @@ describe("equivalence: typescript <-> json-schema", () => {
       "collection.array",
       "object.optional-property",
       "collection.record",
+      "cross-language.record-array",
       "object.nullable-property",
       "object.nested-object",
       "union.optional-vs-nullable",

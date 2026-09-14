@@ -60,6 +60,86 @@ class User:
     expect(optional.document).toEqual(pipe.document);
   });
 
+  it("parses string-keyed maps and preserves nested nullable values", () => {
+    const result = tryParsePython(
+      `@dataclass
+class User:
+    metadata: dict[str, list[str | None]]
+`,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.root).toMatchObject({
+      kind: "object",
+      fields: [
+        {
+          type: {
+            kind: "record",
+            key: { kind: "scalar", scalar: "string" },
+            value: {
+              kind: "array",
+              elementType: { kind: "union" },
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it("rejects non-string and unsupported dict forms", () => {
+    expect(
+      tryParsePython("@dataclass\nclass User:\n    values: dict[int, str]\n"),
+    ).toMatchObject({ ok: false, code: "unsupported-python-type" });
+    expect(
+      tryParsePython("@dataclass\nclass User:\n    values: Dict[str, str]\n"),
+    ).toMatchObject({ ok: false, code: "unsupported-python-type" });
+  });
+
+  it("parses restricted map aliases as roots and definitions", () => {
+    const root = tryParsePython("Metadata = dict[str, int]");
+    expect(root.ok).toBe(true);
+    if (!root.ok) return;
+    expect(root.document.root.kind).toBe("record");
+
+    const nested = tryParsePython(
+      "Metadata = dict[str, int]\n\n@dataclass\nclass User:\n    metadata: Metadata\n",
+      { entry: "User" },
+    );
+    expect(nested.ok).toBe(true);
+    if (!nested.ok) return;
+    expect(nested.document.definitions).toHaveLength(1);
+    expect(nested.document.definitions[0]?.type.kind).toBe("record");
+  });
+
+  it("rejects alias and dataclass name collisions in either order", () => {
+    for (const source of [
+      "Metadata = dict[str, int]\n@dataclass\nclass Metadata:\n    id: int\n",
+      "@dataclass\nclass Metadata:\n    id: int\nMetadata = dict[str, int]\n",
+    ]) {
+      expect(tryParsePython(source)).toMatchObject({
+        ok: false,
+        code: "duplicate-python-definition",
+      });
+    }
+  });
+
+  it("accepts quoted forward references inside map aliases", () => {
+    const result = tryParsePython(
+      'Metadata = dict[str, "User | None"]\n@dataclass\nclass User:\n    id: int\n',
+      { entry: "User" },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.document.definitions.find(
+        (definition) => definition.name.source === "Metadata",
+      )?.type,
+    ).toMatchObject({
+      kind: "record",
+      value: { kind: "union" },
+    });
+  });
+
   it("requires an entry for multiple dataclasses", () => {
     const result = tryParsePython(
       "@dataclass\nclass A:\n    value: str\n\n@dataclass\nclass B:\n    value: str\n",

@@ -6,6 +6,9 @@ import {
   schemaReferenceNode,
   schemaScalarNode,
   schemaArrayNode,
+  schemaRecordNode,
+  schemaNullNode,
+  schemaUnionNode,
   schemaDefinition,
 } from "@schema-transformation-toolkit/core";
 import { tryGeneratePython } from "@schema-transformation-toolkit/generator-python";
@@ -78,6 +81,97 @@ describe("Python dataclass generator", () => {
     expect(tryGeneratePython(document)).toMatchObject({
       ok: false,
       code: "unsupported-python-optional-field",
+    });
+  });
+
+  it("renders record fields, roots, and definitions as dict aliases", () => {
+    const metadata = schemaRecordNode(
+      schemaScalarNode("string"),
+      schemaArrayNode(schemaScalarNode("string")),
+    );
+    const user = schemaObjectNode([
+      schemaFieldNode("metadata", schemaReferenceNode("Metadata")),
+    ]);
+    const result = tryGeneratePython(
+      schemaDocument("User", user, {
+        definitions: [schemaDefinition("Metadata", metadata)],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.output).toContain("Metadata = dict[str, list[str]]");
+    expect(result.output).toContain("metadata: Metadata");
+
+    const root = tryGeneratePython(
+      schemaDocument("Metadata", metadata, { rootName: "Metadata" }),
+    );
+    expect(root).toMatchObject({
+      ok: true,
+      output: expect.stringContaining("Metadata = dict[str, list[str]]"),
+    });
+  });
+
+  it("quotes references in map aliases for executable forward references", () => {
+    const metadata = schemaRecordNode(
+      schemaScalarNode("string"),
+      schemaReferenceNode("User"),
+    );
+    const result = tryGeneratePython(
+      schemaDocument("User", schemaReferenceNode("User"), {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+          schemaDefinition("Metadata", metadata),
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.output).toContain('Metadata = dict[str, "User"]');
+
+    const recursive = schemaRecordNode(
+      schemaScalarNode("string"),
+      schemaReferenceNode("Metadata"),
+    );
+    const recursiveResult = tryGeneratePython(
+      schemaDocument("Metadata", schemaReferenceNode("Metadata"), {
+        definitions: [schemaDefinition("Metadata", recursive)],
+        rootName: "Metadata",
+      }),
+    );
+    expect(recursiveResult).toMatchObject({
+      ok: true,
+      output: expect.stringContaining('Metadata = dict[str, "Metadata"]'),
+    });
+
+    const nested = schemaRecordNode(
+      schemaScalarNode("string"),
+      schemaArrayNode(
+        schemaUnionNode([schemaReferenceNode("User"), schemaNullNode()]),
+      ),
+    );
+    const nestedResult = tryGeneratePython(
+      schemaDocument("Metadata", nested, {
+        definitions: [
+          schemaDefinition(
+            "User",
+            schemaObjectNode([
+              schemaFieldNode("id", schemaScalarNode("integer")),
+            ]),
+          ),
+        ],
+        rootName: "Metadata",
+      }),
+    );
+    expect(nestedResult).toMatchObject({
+      ok: true,
+      output: expect.stringContaining(
+        'Metadata = dict[str, list["User | None"]]',
+      ),
     });
   });
 });

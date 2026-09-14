@@ -107,7 +107,8 @@ const FORMAT_LIMITATIONS: Record<string, string[]> = {
   ],
   python: [
     "Python support is limited to modern dataclass type annotations and does not execute Python.",
-    "Defaults, field(...), inheritance, generics, quoted forward references, and serialization behavior remain unsupported.",
+    "Defaults, field(...), inheritance, user-defined generics, quoted forward references, and serialization behavior remain unsupported.",
+    "String-keyed dict[str, T] fields and restricted map aliases are supported; typing.Dict and non-string keys remain unsupported.",
     "Constraint IR is not rendered as runtime validation; unsupported constraints are reported as semantic loss.",
   ],
   go: [
@@ -152,7 +153,7 @@ const FORMAT_EXPERIMENTAL_AREAS: Record<string, string[]> = {
     "Serde representation semantics",
     "generic types",
   ],
-  python: ["dict[str, T]", "Literal and Enum"],
+  python: ["Literal and Enum"],
   go: [
     "typed const enums",
     "package and cross-file resolution",

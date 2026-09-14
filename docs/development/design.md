@@ -159,10 +159,10 @@ but may not reuse the name of another definition in the same document.
 Transforms, normalization, and document equivalence preserve this identity.
 
 The existing `SchemaRecordNode` already represents string-keyed map semantics.
-Future Python `dict[str, T]` support should first lower to that node and be
-validated against existing Rust, TypeScript, and JSON Schema record mappings.
-Only add another IR concept if that cross-format implementation reveals a
-semantic gap.
+Python `dict[str, T]` lowers to that node and is validated against existing
+Rust, Go, Java, Kotlin, TypeScript, Zod, and JSON Schema record mappings. The
+current shared contract remains limited to string keys; only add another IR
+concept if a future cross-format implementation reveals a semantic gap.
 
 `SchemaRecordNode` represents a pure string-keyed map. `SchemaObjectNode.fields`
 represents fixed properties, and `additionalProperties` represents the policy

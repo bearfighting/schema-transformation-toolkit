@@ -119,4 +119,38 @@ class Child:
     if (!reparsed.ok) return;
     expectIrEquivalent(reparsed.document, parsed.document);
   });
+
+  it("preserves string-keyed maps through Python generation and parsing", () => {
+    const parsed = tryParsePython(
+      `@dataclass
+class User:
+    metadata: dict[str, list[str | None]]
+`,
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const generated = tryGeneratePython(parsed.document);
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+    const reparsed = tryParsePython(generated.output);
+    expect(reparsed.ok).toBe(true);
+    if (!reparsed.ok) return;
+    expectIrEquivalent(reparsed.document, parsed.document);
+  });
+
+  it("round-trips a named map alias root", () => {
+    const parsed = tryParsePython("Metadata = dict[str, int]");
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const generated = tryGeneratePython(parsed.document);
+    expect(generated).toMatchObject({
+      ok: true,
+      output: expect.stringContaining("Metadata = dict[str, int]"),
+    });
+    if (!generated.ok) return;
+    const reparsed = tryParsePython(generated.output);
+    expect(reparsed.ok).toBe(true);
+    if (!reparsed.ok) return;
+    expectIrEquivalent(reparsed.document, parsed.document);
+  });
 });

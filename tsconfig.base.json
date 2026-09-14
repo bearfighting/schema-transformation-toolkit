@@ -44,6 +44,9 @@
       "@schema-transformation-toolkit/generator-java": [
         "./packages/generators/java/src/index.ts"
       ],
+      "@schema-transformation-toolkit/generator-kotlin": [
+        "./packages/generators/kotlin/src/index.ts"
+      ],
       "@schema-transformation-toolkit/parser-json": [
         "./packages/parsers/json/src/index.ts"
       ],
@@ -79,6 +82,9 @@
       ],
       "@schema-transformation-toolkit/parser-java": [
         "./packages/parsers/java/src/index.ts"
+      ],
+      "@schema-transformation-toolkit/parser-kotlin": [
+        "./packages/parsers/kotlin/src/index.ts"
       ],
       "@schema-transformation-toolkit/sdk": ["./packages/sdk/src/index.ts"]
     },

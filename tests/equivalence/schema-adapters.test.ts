@@ -285,6 +285,24 @@ describe("equivalence: schema adapter fixture infrastructure", () => {
     }
   });
 
+  it("keeps constraint capability mappings explicit", () => {
+    expect(
+      [...constraintKindsForCapability("object-constraints")].sort(),
+    ).toEqual([
+      "closed-object",
+      "max-properties",
+      "min-properties",
+      "read-only",
+      "write-only",
+    ]);
+    expect(constraintKindsForCapability("constraint-ir")).toEqual(
+      new Set(["*"]),
+    );
+    expect(() =>
+      constraintKindsForCapability("future-capability" as ConversionCapability),
+    ).toThrow("Unsupported constraint loss capability");
+  });
+
   it("keeps numeric constraints equivalent across JSON Schema, Zod, and OpenAPI", () => {
     const fixture = sharedSemanticFixtures.find(
       (item) => item.id === "constraint.numeric-minimum",

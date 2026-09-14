@@ -170,7 +170,8 @@ careful shared contract.
 
 Latest completed baseline:
 
-- 98 test files, 1068 tests passing.
+- 100 test files, 1093 tests passing; 2 release-tooling tests are currently
+  blocked by the local pnpm sqlite database environment.
 - TypeScript, ESLint, and Prettier passing.
 - Package boundary and API snapshot checks passing.
 - Generated builtin registry check passing.
@@ -200,4 +201,4 @@ node scripts/check-sdk-package.mjs
 2. [standards.md](standards.md) for implementation and validation rules.
 3. Package `README`s and `examples/` for package-specific usage.
 
-Last verified: 2026-09-06.
+Last verified: 2026-09-14.

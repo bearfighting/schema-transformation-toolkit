@@ -147,4 +147,71 @@ describe("SDK Java integration", () => {
       result.semanticNotes?.some((note) => note.code === "java-enum-lowered"),
     ).toBe(true);
   });
+
+  it.each([
+    [
+      "json-schema",
+      JSON.stringify({
+        title: "Score",
+        type: "object",
+        properties: { score: { type: "number", minimum: 0 } },
+        required: ["score"],
+      }),
+      ["root", "score"],
+    ],
+    [
+      "zod",
+      'import { z } from "zod"; export const ScoreSchema = z.object({ score: z.number().min(0) });',
+      ["definitions", "ScoreSchema", "score"],
+    ],
+    [
+      "openapi",
+      JSON.stringify({
+        openapi: "3.1.0",
+        info: { title: "Score", version: "1.0.0" },
+        components: {
+          schemas: {
+            Score: {
+              type: "object",
+              properties: { score: { type: "number", minimum: 0 } },
+              required: ["score"],
+            },
+          },
+        },
+      }),
+      ["root", "score"],
+    ],
+  ] as const)(
+    "reports %s constraints as Java target loss with artifacts",
+    (sourceFormat, input, sourcePath) => {
+      const result = convert({
+        sourceFormat,
+        targetFormat: "java",
+        input,
+        name: "Score",
+        includeArtifacts: true,
+      });
+      expect(result.ok, JSON.stringify(result)).toBe(true);
+      if (!result.ok) return;
+      expect(result.artifacts?.constraints?.entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            target: { kind: "node", path: sourcePath },
+            constraints: [
+              expect.objectContaining({ kind: "minimum", value: 0 }),
+            ],
+          }),
+        ]),
+      );
+      expect(result.losses).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            lostCapability: "numeric-constraints",
+            sourcePath,
+            evidence: { constraintKind: "minimum", targetKind: "node" },
+          }),
+        ]),
+      );
+    },
+  );
 });

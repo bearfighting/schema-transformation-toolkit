@@ -99,9 +99,9 @@ and validated across multiple adapters.
    record/map semantics aligned without adding format-specific IR.
 8. Harden Go V1 with broader fixtures, source locations, semantic-loss
    reporting, and cross-format route coverage.
-9. Harden Java structural class coverage with negative fixtures, class-style
-   generation, and cross-format semantic round trips without adding
-   Java-specific Core IR.
+9. Maintain Java V1 coverage: parser/generator negative fixtures, class-style
+   generation, `javac` smoke, and cross-format Shape round trips are complete;
+   keep the adapter boundary aligned without adding Java-specific Core IR.
 
 ### Future shared-capability roadmap
 

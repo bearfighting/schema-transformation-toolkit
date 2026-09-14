@@ -12,7 +12,7 @@ import type { RustParseOptions } from "@schema-transformation-toolkit/parser-rus
 import type { PythonParseOptions } from "@schema-transformation-toolkit/parser-python";
 import type { GoParseOptions } from "@schema-transformation-toolkit/parser-go";
 import type { JavaParseOptions } from "@schema-transformation-toolkit/parser-java";
-import type { KotlinParseOptions } from "@schema-transformation-toolkit/parser-kotlin";
+import type { KotlinParseOptions } from "../../../packages/parsers/kotlin/src/options.js";
 
 export type SemanticFixtureFormatId =
   | "json"

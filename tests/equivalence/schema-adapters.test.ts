@@ -20,7 +20,7 @@ import type {
 } from "@schema-transformation-toolkit/core";
 import { tryGenerateRust } from "@schema-transformation-toolkit/generator-rust";
 import { tryGeneratePython } from "@schema-transformation-toolkit/generator-python";
-import { tryGenerateKotlin } from "@schema-transformation-toolkit/generator-kotlin";
+import { tryGenerateKotlin } from "../../packages/generators/kotlin/src/api.js";
 import { tryGenerateGo } from "../../packages/generators/go/src/api.js";
 import { tryGenerateJava } from "../../packages/generators/java/src/api.js";
 import {

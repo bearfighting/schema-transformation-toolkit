@@ -6,7 +6,7 @@ import type {
 import { tryGenerateGo } from "../../packages/generators/go/src/api.js";
 import { tryGenerateJava } from "../../packages/generators/java/src/api.js";
 import { tryGenerateJsonSchema } from "@schema-transformation-toolkit/generator-json-schema";
-import { tryGenerateKotlin } from "@schema-transformation-toolkit/generator-kotlin";
+import { tryGenerateKotlin } from "../../packages/generators/kotlin/src/api.js";
 import { tryGenerateOpenApi } from "@schema-transformation-toolkit/generator-openapi";
 import { tryGenerateTypeScript } from "@schema-transformation-toolkit/generator-typescript";
 import { tryGenerateZod } from "@schema-transformation-toolkit/generator-zod";

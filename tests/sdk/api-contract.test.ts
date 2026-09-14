@@ -5,9 +5,10 @@ import {
   expectSemanticCaveatCodes,
   expectSemanticLosses,
 } from "../helpers/report-assertions.js";
+import type { SemanticFixtureFormatId } from "../fixtures/semantics/types.js";
 
-type FixtureRouteSourceFormat = "json" | "json-schema" | "typescript";
-type FixtureRouteTargetFormat = "json-schema" | "typescript";
+type FixtureRouteSourceFormat = SemanticFixtureFormatId;
+type FixtureRouteTargetFormat = SemanticFixtureFormatId;
 
 function getFixtureRouteInput(
   fixture: (typeof sharedSemanticFixtures)[number],
@@ -40,6 +41,21 @@ function getFixtureRouteInput(
       }
 
       return JSON.stringify(source.input);
+    }
+    case "zod":
+    case "openapi":
+    case "rust":
+    case "python":
+    case "go":
+    case "java":
+    case "kotlin": {
+      const source = fixture.sources[sourceFormat];
+
+      if (!source) {
+        break;
+      }
+
+      return String(source.input);
     }
   }
 

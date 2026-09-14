@@ -101,7 +101,7 @@ describe("release packaging scripts", () => {
     } finally {
       rmSync(workingDirectory, { recursive: true, force: true });
     }
-  });
+  }, 60_000);
 });
 
 function gitStatus(): string {

@@ -27,8 +27,8 @@ export function tryParseCSharp(
   input: string,
   options: CSharpParserOptions = {},
 ): CSharpParseResult {
-  const resolved = resolveCSharpParseOptions(options);
   try {
+    const resolved = resolveCSharpParseOptions(options);
     assertSupportedCSharpParseOptions(resolved);
     const result = mapCSharpFile(
       parseCSharpSyntax(input),

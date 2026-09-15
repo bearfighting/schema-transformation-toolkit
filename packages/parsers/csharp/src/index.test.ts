@@ -72,6 +72,103 @@ public sealed record User
     });
   });
 
+  it("maps classes with required and nullable properties", () => {
+    const result = tryParseCSharp(`internal sealed class User
+{
+    public required string Name { get; init; }
+    public int Age { get; set; }
+    public string? Email { get; init; }
+}`);
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.document.root).toMatchObject({
+      kind: "object",
+      fields: [
+        { name: { source: "Name" }, required: true, nullable: false },
+        { name: { source: "Age" }, required: false, nullable: false },
+        { name: { source: "Email" }, required: false, nullable: true },
+      ],
+    });
+  });
+
+  it("supports empty classes and mixed declarations", () => {
+    const result = tryParseCSharp(
+      `public class Empty { }
+record User(Status Status);
+    enum Status { Active, Disabled }`,
+      { entry: "User" },
+    );
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.document.rootName).toMatchObject({ source: "User" });
+    expect(result.document.definitions).toHaveLength(2);
+    expect(result.document.definitions[1]).toMatchObject({
+      name: { source: "Status" },
+      type: { kind: "union" },
+    });
+    const empty = tryParseCSharp("public class Empty { }");
+    expect(empty).toMatchObject({ ok: true });
+    if (empty.ok) expect(empty.document.root).toMatchObject({ fields: [] });
+  });
+
+  it("classifies declaration, constructor, and field attributes", () => {
+    expect(
+      tryParseCSharp("[Serializable] public class User { }"),
+    ).toMatchObject({
+      ok: false,
+      code: "unsupported-csharp-attribute",
+    });
+    expect(
+      tryParseCSharp("public class User { public User() { } }"),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-member" });
+    expect(
+      tryParseCSharp("public class User { private User() { } }"),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-member" });
+    expect(
+      tryParseCSharp(
+        "public class User { public string this[int index] { get; } }",
+      ),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-member" });
+    expect(
+      tryParseCSharp('public class User { public string Name = "x"; }'),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-member" });
+  });
+
+  it("returns a structured failure for invalid options", () => {
+    expect(tryParseCSharp("public record User;", { name: "" })).toMatchObject({
+      ok: false,
+      code: "invalid-csharp-options",
+      diagnostics: [{ source: "parser-csharp" }],
+    });
+  });
+
+  it("maps enum definitions and enum roots", () => {
+    const referenced = tryParseCSharp(`record User(Status? Status);
+public enum Status { Active, @class, Disabled, }`);
+    expect(referenced).toMatchObject({ ok: true });
+    if (!referenced.ok) return;
+    expect(referenced.document).toMatchObject({
+      rootName: { source: "User" },
+      root: { kind: "object" },
+      definitions: [
+        {
+          name: { source: "Status" },
+          type: {
+            kind: "union",
+            members: [
+              { kind: "literal", value: "Active" },
+              { kind: "literal", value: "class" },
+              { kind: "literal", value: "Disabled" },
+            ],
+          },
+        },
+      ],
+    });
+    const root = tryParseCSharp("public enum Status { Active, Disabled, }");
+    expect(root).toMatchObject({ ok: true });
+    if (root.ok) expect(root.document.root).toMatchObject({ kind: "union" });
+  });
+
   it("maps arrays, lists, dictionaries, nested nullability, and numeric hints", () => {
     const result = tryParseCSharp(
       `public record Values(
@@ -205,7 +302,6 @@ public record Address(string City);`;
     for (const [source, code] of [
       ["", "invalid-csharp-data-model"],
       ["public record User(string Name", "invalid-csharp-syntax"],
-      ["public class User { }", "unsupported-csharp-declaration"],
       ["public record User(DateTime Created);", "unsupported-csharp-type"],
       [
         "public record User(Dictionary<int, string> Values);",
@@ -228,6 +324,27 @@ public record Address(string City);`;
         "public record User { string Name { get; init; } }",
         "unsupported-csharp-property",
       ],
+      [
+        "public class User { public string Name; }",
+        "unsupported-csharp-member",
+      ],
+      [
+        "public class User { public void Save() { } }",
+        "unsupported-csharp-member",
+      ],
+      [
+        "public class User : Base { public string Name { get; init; } }",
+        "unsupported-csharp-inheritance",
+      ],
+      [
+        "public record User { [Required] public string Name { get; init; } }",
+        "unsupported-csharp-attribute",
+      ],
+      ["public enum Status { }", "empty-csharp-enum"],
+      ["public enum Status { Active = 1 }", "unsupported-csharp-enum-member"],
+      ["public enum Status { Active, Active }", "duplicate-csharp-enum-member"],
+      ["public enum Status : int { Active }", "unsupported-csharp-enum"],
+      ["public enum Status { Active { } }", "unsupported-csharp-enum-member"],
     ] as const) {
       const result = tryParseCSharp(source);
       expect(result).toMatchObject({ ok: false, code });

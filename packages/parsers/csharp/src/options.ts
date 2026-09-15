@@ -2,6 +2,7 @@ import type {
   ParseOptions,
   PreparedOptions,
 } from "@schema-transformation-toolkit/core";
+import { CSharpSemanticError } from "./failure.js";
 
 export interface CSharpParserOptions extends ParseOptions {
   entry?: string;
@@ -26,8 +27,12 @@ export function validateCSharpParseOptions(
   options: ResolvedCSharpParserOptions,
 ): string[] {
   const errors: string[] = [];
-  if (!options.name.trim()) errors.push("name must not be empty.");
-  if (options.entry !== undefined && !options.entry.trim())
+  if (typeof options.name !== "string" || !options.name.trim())
+    errors.push("name must be a non-empty string.");
+  if (
+    options.entry !== undefined &&
+    (typeof options.entry !== "string" || !options.entry.trim())
+  )
     errors.push("entry must not be empty.");
   return errors;
 }
@@ -46,5 +51,8 @@ export function assertSupportedCSharpParseOptions(
 ): void {
   const errors = validateCSharpParseOptions(options);
   if (errors.length)
-    throw new Error(`Invalid C# parser options: ${errors.join("; ")}`);
+    throw new CSharpSemanticError(
+      "invalid-csharp-options",
+      `Invalid C# parser options: ${errors.join("; ")}`,
+    );
 }

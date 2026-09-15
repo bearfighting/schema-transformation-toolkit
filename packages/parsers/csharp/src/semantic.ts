@@ -3,6 +3,7 @@ import {
   schemaDefinition,
   schemaDocument,
   schemaFieldNode,
+  schemaLiteralNode,
   schemaObjectNode,
   schemaRecordNode,
   schemaReferenceNode,
@@ -15,8 +16,8 @@ import {
 } from "@schema-transformation-toolkit/core";
 import { CSharpSemanticError } from "./failure.js";
 import type {
+  CSharpDeclarationSyntax,
   CSharpFileSyntax,
-  CSharpRecordSyntax,
   CSharpTypeSyntax,
 } from "./syntax.js";
 
@@ -128,7 +129,7 @@ export function mapCSharpFile(
   if (!file.declarations.length)
     throw new CSharpSemanticError(
       "invalid-csharp-data-model",
-      "C# source must declare at least one record.",
+      "C# source must declare at least one supported declaration.",
     );
   const names = new Set<string>();
   for (const declaration of file.declarations) {
@@ -167,7 +168,7 @@ export function mapCSharpFile(
 }
 
 function selectRoot(
-  declarations: CSharpRecordSyntax[],
+  declarations: CSharpDeclarationSyntax[],
   names: Set<string>,
   entry?: string,
 ): string {
@@ -199,10 +200,11 @@ function selectRoot(
 }
 
 function collectReferences(
-  declaration: CSharpRecordSyntax,
+  declaration: CSharpDeclarationSyntax,
   names: Set<string>,
   referenced: Set<string>,
 ): void {
+  if (declaration.kind === "enum") return;
   for (const field of declaration.fields)
     collectTypeReferences(field.type, declaration.name, names, referenced);
 }
@@ -225,9 +227,10 @@ function collectTypeReferences(
     collectTypeReferences(type.element, owner, names, referenced);
 }
 function declarationReferencesName(
-  declaration: CSharpRecordSyntax,
+  declaration: CSharpDeclarationSyntax,
   target: string,
 ): boolean {
+  if (declaration.kind === "enum") return false;
   return declaration.fields.some((field) =>
     typeReferencesName(field.type, target),
   );
@@ -243,9 +246,13 @@ function typeReferencesName(type: CSharpTypeSyntax, target: string): boolean {
 }
 
 function mapDeclaration(
-  declaration: CSharpRecordSyntax,
+  declaration: CSharpDeclarationSyntax,
   names: Set<string>,
 ): SchemaNode {
+  if (declaration.kind === "enum")
+    return schemaUnionNode(
+      declaration.members.map((member) => schemaLiteralNode(member)),
+    );
   const fieldNames = new Set<string>();
   return schemaObjectNode(
     declaration.fields.map((field) => {
@@ -317,7 +324,7 @@ function mapType(type: CSharpTypeSyntax, names: Set<string>): MappedType {
     }
     throw new CSharpSemanticError(
       "unsupported-csharp-generic",
-      `C# generic type "${type.name}" is not supported in PR3.`,
+      `C# generic type "${type.name}" is not supported in PR4.`,
       type.position,
     );
   }
@@ -337,7 +344,7 @@ function mapType(type: CSharpTypeSyntax, names: Set<string>): MappedType {
   if (unsupportedNamedTypes.has(type.name!))
     throw new CSharpSemanticError(
       "unsupported-csharp-type",
-      `C# type "${type.name}" is not supported in PR3.`,
+      `C# type "${type.name}" is not supported in PR4.`,
       type.position,
     );
   throw new CSharpSemanticError(

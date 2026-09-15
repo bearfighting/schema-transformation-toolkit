@@ -29,8 +29,22 @@ export interface CSharpRecordSyntax {
   position: CSharpPosition;
   positional: boolean;
 }
+export interface CSharpClassSyntax {
+  kind: "class";
+  name: string;
+  fields: CSharpFieldSyntax[];
+  position: CSharpPosition;
+}
+export interface CSharpEnumSyntax {
+  kind: "enum";
+  name: string;
+  members: string[];
+  position: CSharpPosition;
+}
+export type CSharpDeclarationSyntax =
+  CSharpRecordSyntax | CSharpClassSyntax | CSharpEnumSyntax;
 export interface CSharpFileSyntax {
-  declarations: CSharpRecordSyntax[];
+  declarations: CSharpDeclarationSyntax[];
 }
 
 const identifiers = /^@?[A-Za-z_][A-Za-z0-9_]*/u;
@@ -159,7 +173,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
   let index = 0;
   let namespaceSeen = false;
   let usingAllowed = true;
-  const declarations: CSharpRecordSyntax[] = [];
+  const declarations: CSharpDeclarationSyntax[] = [];
   const peek = () => tokens[index];
   const take = () => tokens[index++];
   const fail = (
@@ -197,6 +211,11 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
   };
 
   while (peek()) {
+    if (peek()!.text === "[")
+      fail(
+        "unsupported-csharp-attribute",
+        "Declaration attributes are not supported in PR4.",
+      );
     if (peek()!.text === "using" || peek()!.text === "global") {
       if (namespaceSeen)
         fail(
@@ -276,31 +295,68 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
         "invalid-csharp-syntax",
         "C# record declaration modifiers cannot be repeated.",
       );
-    if (peek()?.text !== "record") {
+    if (
+      peek()?.text !== "record" &&
+      peek()?.text !== "class" &&
+      peek()?.text !== "enum"
+    ) {
       if (peek())
         fail(
           "unsupported-csharp-declaration",
-          `C# declaration "${peek()!.text}" is not supported in PR3.`,
+          `C# declaration "${peek()!.text}" is not supported in PR4.`,
         );
       break;
     }
-    const start = take()!.position;
+    const declarationKind = take()!;
+    const start = declarationKind.position;
     if (modifiers.some((m) => !["public", "internal", "sealed"].includes(m)))
       fail(
         "unsupported-csharp-modifier",
-        "Only public, internal, and sealed record modifiers are supported.",
+        "Only public, internal, and sealed record or class modifiers are supported.",
       );
-    if (peek()?.text === "struct")
+    if (declarationKind.text === "enum" && modifiers.includes("sealed"))
+      fail(
+        "unsupported-csharp-modifier",
+        "Sealed enum declarations are not supported.",
+      );
+    if (declarationKind.text === "record" && peek()?.text === "struct")
       fail(
         "unsupported-csharp-declaration",
-        "Record structs are not supported in PR3.",
+        "Record structs are not supported in PR4.",
       );
     const name = identifier("a record name");
     if (peek()?.text === "<")
       fail(
         "unsupported-csharp-feature",
-        "Generic record declarations are not supported.",
+        "Generic C# declarations are not supported in PR4.",
       );
+    if (peek()?.text === ":")
+      fail(
+        declarationKind.text === "enum"
+          ? "unsupported-csharp-enum"
+          : "unsupported-csharp-inheritance",
+        declarationKind.text === "enum"
+          ? "Enum underlying types are not supported in PR4."
+          : "Inheritance and interfaces are not supported in PR4.",
+      );
+    if (declarationKind.text === "enum") {
+      declarations.push(parseEnum(name, start));
+      continue;
+    }
+    if (declarationKind.text === "class") {
+      if (peek()?.text === "(")
+        fail(
+          "unsupported-csharp-feature",
+          "Class primary constructors are not supported in PR4.",
+        );
+      declarations.push({
+        kind: "class",
+        name,
+        fields: parsePropertyBody(name),
+        position: start,
+      });
+      continue;
+    }
     let fields: CSharpFieldSyntax[];
     let positional = false;
     if (peek()?.text === ";") {
@@ -310,7 +366,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
       take();
       fields = parseParameterList();
       expect(")");
-    } else fields = parsePropertyBody();
+    } else fields = parsePropertyBody(name);
     if (peek()?.text === ";") take();
     declarations.push({
       kind: "record",
@@ -321,6 +377,62 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
     });
   }
   return { declarations };
+
+  function parseEnum(name: string, position: CSharpPosition): CSharpEnumSyntax {
+    expect("{");
+    const members: string[] = [];
+    if (peek()?.text === "}")
+      fail("empty-csharp-enum", `C# enum "${name}" must declare a member.`);
+    while (peek()?.text !== "}") {
+      if (peek()?.text === "[")
+        fail(
+          "unsupported-csharp-attribute",
+          "Enum member attributes are not supported in PR4.",
+        );
+      const member = identifier("an enum member name");
+      if (members.includes(member))
+        fail(
+          "duplicate-csharp-enum-member",
+          `Duplicate C# enum member "${member}".`,
+        );
+      members.push(member);
+      if (peek()?.text === "=")
+        fail(
+          "unsupported-csharp-enum-member",
+          "Enum member assignments are not supported in PR4.",
+        );
+      if (peek()?.text === "(")
+        fail(
+          "unsupported-csharp-enum-member",
+          "Enum member arguments are not supported in PR4.",
+        );
+      if (peek()?.text === "{")
+        fail(
+          "unsupported-csharp-enum-member",
+          "Enum bodies are not supported in PR4.",
+        );
+      if (peek()?.text === ",") {
+        take();
+        continue;
+      }
+      if (peek()?.text === ";") {
+        take();
+        if (peek()?.text !== "}")
+          fail(
+            "unsupported-csharp-enum-member",
+            "Enum bodies are not supported in PR4.",
+          );
+        break;
+      }
+      if (peek()?.text !== "}")
+        fail(
+          "invalid-csharp-syntax",
+          "Expected comma or closing brace after an enum member.",
+        );
+    }
+    expect("}");
+    return { kind: "enum", name, members, position };
+  }
 
   function parseParameterList(): CSharpFieldSyntax[] {
     const fields: CSharpFieldSyntax[] = [];
@@ -334,33 +446,59 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
     }
     return fields;
   }
-  function parsePropertyBody(): CSharpFieldSyntax[] {
+  function parsePropertyBody(ownerName: string): CSharpFieldSyntax[] {
     expect("{");
     const fields: CSharpFieldSyntax[] = [];
     while (peek()?.text !== "}") {
       const position = peek()?.position ?? { offset: 0, line: 1, column: 1 };
       let required = false;
+      if (peek()?.text === "[")
+        fail(
+          "unsupported-csharp-attribute",
+          "Property attributes are not supported in PR4.",
+        );
       if (peek()?.text === "public") take();
       else if (
         peek()?.text === "private" ||
         peek()?.text === "protected" ||
         peek()?.text === "internal"
-      )
+      ) {
+        const accessibility = take()!.text;
+        if (peek()?.text === ownerName || peek()?.text === "this")
+          fail(
+            "unsupported-csharp-member",
+            `Non-public ${accessibility} constructors and indexers are not supported in PR4.`,
+          );
         fail(
           "unsupported-csharp-property",
-          "Only public record properties are supported.",
+          "Only public automatic properties are supported.",
         );
-      else
+      } else
         fail(
           "unsupported-csharp-property",
-          "Only public record properties are supported.",
+          "Only public automatic properties are supported.",
         );
       if (peek()?.text === "required") {
         required = true;
         take();
       }
+      if (peek()?.text === ownerName || peek()?.text === "this")
+        fail(
+          "unsupported-csharp-member",
+          "Constructors and indexers are not supported in PR4.",
+        );
       const type = parseType();
+      if (peek()?.text === "this")
+        fail(
+          "unsupported-csharp-member",
+          "Constructors and indexers are not supported in PR4.",
+        );
       const name = identifier("a property name");
+      if (peek()?.text === "(" || peek()?.text === ";" || peek()?.text === "=")
+        fail(
+          "unsupported-csharp-member",
+          "Methods and fields with initializers are not supported in PR4.",
+        );
       expect("{");
       expect("get");
       expect(";");
@@ -447,14 +585,26 @@ function tokenize(source: string): Token[] {
       advance(comment[0]);
       continue;
     }
+    const literal = rest.match(/^(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/u);
+    if (literal) {
+      tokens.push({ text: literal[0], position });
+      advance(literal[0]);
+      continue;
+    }
     const identifierMatch = rest.match(identifiers);
     if (identifierMatch) {
       tokens.push({ text: identifierMatch[0], position });
       advance(identifierMatch[0]);
       continue;
     }
+    const number = rest.match(/^\d+(?:\.\d+)?/u);
+    if (number) {
+      tokens.push({ text: number[0], position });
+      advance(number[0]);
+      continue;
+    }
     const punctuation = rest[0]!;
-    if ("{}()[],;<>?.=".includes(punctuation)) {
+    if ("{}()[],;<>?.=:".includes(punctuation)) {
       tokens.push({ text: punctuation, position });
       advance(punctuation);
       continue;

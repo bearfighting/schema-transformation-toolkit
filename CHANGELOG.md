@@ -12,12 +12,19 @@ final version.
 
 ## Unreleased
 
+## 0.7.0 - 2026-09-15
+
 ### C# support
 
 - Verify the C# parser and generator across shared Shape IR routes with
   TypeScript, JSON Schema, Rust, Python, Go, Java, Kotlin, and C#.
 - Document the V1 single-file record/class/symbolic-enum boundary, including
   explicit numeric, collection, and enum metadata caveats.
+
+### Reliability
+
+- Increase the Rust compiler integration test timeout to accommodate slower CI
+  runners without changing the generated output or route behavior.
 
 ## 0.6.0 - 2026-09-06
 

@@ -74,13 +74,18 @@ if (!result.ok) {
 ```
 
 The default registry includes JSON, CSV, TOML, JSON Schema, TypeScript, OpenAPI, Zod, YAML, Rust,
-Python, Go, and Java parsers, plus JSON, CSV, TOML, JSON Schema, TypeScript, Zod, OpenAPI, YAML, Rust,
-Python, Go, and Java generators. The SDK
+Python, Go, Java, and C# parsers, plus JSON, CSV, TOML, JSON Schema, TypeScript, Zod, OpenAPI, YAML, Rust,
+Python, Go, Java, and C# generators. The SDK
 bundles those implementations into its distributable runtime. TypeScript is
 installed as a runtime dependency because the TypeScript parser uses the
 official compiler API; Zod remains a dependency for the public contract
 schemas. Consumers do not need to install any parser or generator package
 separately.
+
+C# support covers the documented single-file record, property-based class, and
+symbolic enum subset. Use `advanced.parser.csharp.entry` to select a root
+declaration when automatic root inference is ambiguous. C# generation accepts
+`advanced.generator.csharp.namespace` and `style` (`record` or `class`).
 
 The SDK keeps the OpenAPI parser's `yaml` dependency external to its ESM
 bundle so Node and strict ESM runtimes can resolve it normally. It is declared

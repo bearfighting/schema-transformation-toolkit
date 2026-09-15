@@ -27,6 +27,7 @@ describe("SDK option metadata", () => {
     expect(
       listOptionCatalogs().map(({ format, role }) => `${role}:${format}`),
     ).toEqual([
+      "parser:csharp",
       "parser:csv",
       "parser:go",
       "parser:java",
@@ -40,6 +41,7 @@ describe("SDK option metadata", () => {
       "parser:typescript",
       "parser:yaml",
       "parser:zod",
+      "generator:csharp",
       "generator:csv",
       "generator:go",
       "generator:java",

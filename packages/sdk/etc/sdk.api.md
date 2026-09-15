@@ -58,6 +58,10 @@ export declare const BUILTIN_FORMAT_CATALOG: {
     readonly source: true;
     readonly target: true;
   };
+  readonly csharp: {
+    readonly source: true;
+    readonly target: true;
+  };
 };
 type BuiltinFormat = keyof typeof BUILTIN_FORMAT_CATALOG;
 type NonEmptyFormatList = readonly [BuiltinFormat, ...BuiltinFormat[]];
@@ -108,6 +112,8 @@ import type { JavaGeneratorOptions } from "@schema-transformation-toolkit/genera
 import type { JavaParseOptions } from "@schema-transformation-toolkit/parser-java";
 import type { KotlinGeneratorOptions } from "@schema-transformation-toolkit/generator-kotlin";
 import type { KotlinParseOptions } from "@schema-transformation-toolkit/parser-kotlin";
+import type { CSharpGeneratorOptions } from "@schema-transformation-toolkit/generator-csharp";
+import type { CSharpParserOptions } from "@schema-transformation-toolkit/parser-csharp";
 /** Compatibility-only builtin output map. Generic registry output is unknown-safe. */
 export interface BuiltinGeneratorOutputs {
   json: JsonOutput;
@@ -122,6 +128,7 @@ export interface BuiltinGeneratorOutputs {
   go: string;
   java: string;
   kotlin: string;
+  csharp: string;
 }
 export interface BuiltinParserOptions {
   json?: JsonParseOptions;
@@ -137,6 +144,7 @@ export interface BuiltinParserOptions {
   go?: GoParseOptions;
   java?: JavaParseOptions;
   kotlin?: KotlinParseOptions;
+  csharp?: CSharpParserOptions;
 }
 export interface BuiltinGeneratorOptions {
   jsonSchema?: JsonSchemaGeneratorOptions;
@@ -150,6 +158,7 @@ export interface BuiltinGeneratorOptions {
   go?: GoGeneratorOptions;
   java?: JavaGeneratorOptions;
   kotlin?: KotlinGeneratorOptions;
+  csharp?: CSharpGeneratorOptions;
 }
 ```
 
@@ -430,6 +439,7 @@ export declare const conversionSourceFormatSchema: z.ZodEnum<{
   go: "go";
   java: "java";
   kotlin: "kotlin";
+  csharp: "csharp";
 }>;
 export declare const conversionTargetFormatSchema: z.ZodEnum<{
   "json-schema": "json-schema";
@@ -445,6 +455,7 @@ export declare const conversionTargetFormatSchema: z.ZodEnum<{
   go: "go";
   java: "java";
   kotlin: "kotlin";
+  csharp: "csharp";
 }>;
 export declare const conversionIrPreferenceSchema: z.ZodEnum<{
   value: "value";
@@ -672,6 +683,7 @@ export declare const conversionOptionCatalogsSchema: z.ZodObject<
       go: "go";
       java: "java";
       kotlin: "kotlin";
+      csharp: "csharp";
     }>;
     targetFormat: z.ZodEnum<{
       "json-schema": "json-schema";
@@ -687,6 +699,7 @@ export declare const conversionOptionCatalogsSchema: z.ZodObject<
       go: "go";
       java: "java";
       kotlin: "kotlin";
+      csharp: "csharp";
     }>;
     parser: z.ZodObject<
       {

@@ -10,7 +10,6 @@
   "schemaTransformationToolkit": {
     "registry": {
       "version": 1,
-      "includeInBuiltinRegistry": false,
       "entries": [
         {
           "role": "parser",

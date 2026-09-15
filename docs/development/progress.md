@@ -27,6 +27,10 @@ Current platform capabilities:
   unit-enum subset, including `List<T>`, `Map<String, T>`, `Set<T>` through
   `unique-items` Constraint IR, nullable nested types, references, recursion,
   and deterministic root selection.
+- Builtin C# parser and generator descriptors for the V1 single-file
+  record/class/symbolic-enum subset, including arrays, string-keyed maps,
+  nullable values, references, deterministic roots, namespaces, and record or
+  class generation.
 - All current conversion routes execute through the shared core pipeline.
 - `createConversionRegistry(...)` supports custom parser, generator, and
   transformer registration.

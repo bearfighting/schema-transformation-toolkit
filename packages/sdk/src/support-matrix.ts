@@ -130,6 +130,11 @@ const FORMAT_LIMITATIONS: Record<string, string[]> = {
     "User-defined generics, ordinary class parsing, mutable or concrete collection implementations, defaults, annotations, inheritance, and sealed hierarchies remain unsupported.",
     "Set is represented as an array with a unique-items constraint and may be generated as List when that constraint is unavailable.",
   ],
+  csharp: [
+    "C# support is limited to single-file records, property-based classes, and symbolic enums.",
+    "Attributes, inheritance, interfaces, generic declarations, methods, and other full-language constructs remain unsupported.",
+    "Enum serializer metadata and non-name wire values are not preserved; collection and numeric representation behavior follows the C# adapter boundary.",
+  ],
 };
 
 const FORMAT_EXPERIMENTAL_AREAS: Record<string, string[]> = {
@@ -172,6 +177,7 @@ const FORMAT_EXPERIMENTAL_AREAS: Record<string, string[]> = {
     "serialization annotations",
     "custom generic declarations",
   ],
+  csharp: ["serializer metadata", "broader C# language syntax"],
 };
 
 export function describeFormatSupport(
@@ -192,7 +198,8 @@ export function describeFormatSupport(
       format === "yaml" ||
       format === "csv" ||
       format === "toml" ||
-      format === "java"
+      format === "java" ||
+      format === "csharp"
         ? []
         : [...CONSTRAINT_FAMILIES],
     notableLimitations: [...(FORMAT_LIMITATIONS[format] ?? [])],

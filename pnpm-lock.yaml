@@ -244,6 +244,9 @@ importers:
       "@schema-transformation-toolkit/core":
         specifier: workspace:*
         version: link:../core
+      "@schema-transformation-toolkit/generator-csharp":
+        specifier: workspace:*
+        version: link:../generators/csharp
       "@schema-transformation-toolkit/generator-csv":
         specifier: workspace:*
         version: link:../generators/csv
@@ -286,6 +289,9 @@ importers:
       "@schema-transformation-toolkit/parser-csv":
         specifier: workspace:*
         version: link:../parsers/csv
+      "@schema-transformation-toolkit/parser-csharp":
+        specifier: workspace:*
+        version: link:../parsers/csharp
       "@schema-transformation-toolkit/parser-go":
         specifier: workspace:*
         version: link:../parsers/go

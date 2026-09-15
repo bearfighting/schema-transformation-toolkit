@@ -13,10 +13,10 @@ describe("registry manifest generator", () => {
   it("discovers all workspace component manifests plus the default transformer", async () => {
     const entries = await collectEntries();
 
-    expect(entries).toHaveLength(27);
-    expect(entries.filter((entry) => entry.role === "parser")).toHaveLength(13);
+    expect(entries).toHaveLength(29);
+    expect(entries.filter((entry) => entry.role === "parser")).toHaveLength(14);
     expect(entries.filter((entry) => entry.role === "generator")).toHaveLength(
-      13,
+      14,
     );
     expect(
       entries.some(
@@ -24,7 +24,7 @@ describe("registry manifest generator", () => {
           entry.packageName ===
           "@schema-transformation-toolkit/generator-csharp",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(entries.at(-1)).toMatchObject({
       role: "transformer",
       exportName: "valueToShapeTransformer",

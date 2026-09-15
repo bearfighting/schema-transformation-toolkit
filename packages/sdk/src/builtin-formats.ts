@@ -12,6 +12,7 @@ export const BUILTIN_FORMAT_CATALOG = {
   go: { source: true, target: true },
   java: { source: true, target: true },
   kotlin: { source: true, target: true },
+  csharp: { source: true, target: true },
 } as const;
 
 type BuiltinFormat = keyof typeof BUILTIN_FORMAT_CATALOG;

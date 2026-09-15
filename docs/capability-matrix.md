@@ -22,6 +22,7 @@ format list is available. Use `listConversionRoutes()` and
 | Go               | Shape              | single-file exported data-model declarations                 | structs, JSON tags, pointers, slices, string-keyed maps, named references, and recursion; no Constraint IR, package resolution, external types, generics, methods, aliases, or embedded-field promotion                                                  |
 | Java             | Shape only         | single-file Java records, structural classes, and unit enums | exactly one public root declaration; structural classes contain instance fields only; arrays, `List<T>`, `Map<String, T>`, references, and recursion; reference nullability is conservative; no JavaBeans, annotations, data-carrying enums, or generics |
 | Kotlin           | Shape + Constraint | single-file data classes and unit enums                      | `List<T>`, `Map<String, T>`, `Set<T>`, references, recursion, and explicit/unique roots; no ordinary class parsing, mutable/concrete collections, defaults, annotations, inheritance, sealed hierarchies, or user-defined generics                       |
+| C#               | Shape only         | single-file records, classes, and symbolic enums             | arrays, common collections, string-keyed maps, nullable values, references, and deterministic roots; no attributes, inheritance, generic declarations, serializer metadata, or full-language syntax                                                      |
 
 ## Builtin route families
 
@@ -29,21 +30,22 @@ The following route families are currently exposed by the builtin registry and
 execute through the shared pipeline. Individual semantic boundaries still apply
 within each family; use the runtime discovery APIs for the exact route set.
 
-| Source      | Targets                                                                                      | Route character                            |
-| ----------- | -------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| JSON        | CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod | Value direct or Value-to-Shape inference   |
-| YAML        | CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod | Value direct or Value-to-Shape inference   |
-| CSV         | CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, YAML, Zod       | flat array-root Value                      |
-| TOML        | Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod      | object-root Value                          |
-| Go          | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | single-file exported structs               |
-| JSON Schema | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape, often with Constraint artifacts     |
-| TypeScript  | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape subset                               |
-| Zod         | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape + Constraint subset                  |
-| OpenAPI     | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | explicit JSON Schema adapter boundary      |
-| Rust        | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | structs, unit enums, maps, numeric hints   |
-| Python      | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | dataclass Shape IR adapter                 |
-| Java        | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | single-public-root record/enum adapter     |
-| Kotlin      | Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | data-class/enum Shape + Constraint adapter |
+| Source      | Targets                                                                                          | Route character                            |
+| ----------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| JSON        | C#, CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod | Value direct or Value-to-Shape inference   |
+| YAML        | C#, CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod | Value direct or Value-to-Shape inference   |
+| CSV         | C#, CSV, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, YAML, Zod       | flat array-root Value                      |
+| TOML        | C#, Go, Java, JSON, JSON Schema, Kotlin, OpenAPI, Python, Rust, TOML, TypeScript, YAML, Zod      | object-root Value                          |
+| Go          | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | single-file exported structs               |
+| JSON Schema | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape, often with Constraint artifacts     |
+| TypeScript  | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape subset                               |
+| Zod         | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | Shape + Constraint subset                  |
+| OpenAPI     | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | explicit JSON Schema adapter boundary      |
+| Rust        | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | structs, unit enums, maps, numeric hints   |
+| Python      | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | dataclass Shape IR adapter                 |
+| Java        | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | single-public-root record/enum adapter     |
+| Kotlin      | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | data-class/enum Shape + Constraint adapter |
+| C#          | C#, Go, Java, JSON Schema, Kotlin, OpenAPI, Python, Rust, TypeScript, Zod                        | record/class/enum Shape adapter            |
 
 The exact route set can vary with registry contents and descriptor capabilities.
 Do not infer support for a route merely because both format names appear in

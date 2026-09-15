@@ -62,8 +62,10 @@ function formatsForProperty(property) {
 }
 
 function hasMatrixRow(format) {
+  const labels =
+    format === "csharp" ? ["csharp", "C#"] : [format.replaceAll("-", " ")];
   return new RegExp(
-    `^\\|\\s*${escapeRegExp(format.replaceAll("-", " "))}\\s*\\|`,
+    `^\\|\\s*(?:${labels.map(escapeRegExp).join("|")})\\s*\\|`,
     "mi",
   ).test(matrix);
 }

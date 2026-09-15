@@ -6,12 +6,12 @@ export const csharpParserOptionCatalog: OptionCatalog = {
     {
       key: "entry",
       label: "Root declaration",
-      description: "Selects the C# root record.",
+      description: "Selects the C# root record, class, or enum.",
       category: "selection",
       defaultValue: "the unique graph root",
       affectedStages: ["parse"],
       semanticEffect:
-        "Selects the Shape IR root; other records become definitions.",
+        "Selects the Shape IR root; other declarations become definitions.",
       diagnosticEffect:
         "Ambiguous, missing, or unknown entries return structured parse failures.",
       supported: true,
@@ -19,7 +19,7 @@ export const csharpParserOptionCatalog: OptionCatalog = {
         {
           title: "Select User",
           options: { entry: "User" },
-          explanation: "Select User as the root record.",
+          explanation: "Select User as the root declaration.",
         },
       ],
     },

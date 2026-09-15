@@ -119,10 +119,10 @@ try {
     const targets = listTargetFormatSupports()
       .map((item) => item.format)
       .sort();
-    if (sources.join(",") !== "csv,go,java,json,json-schema,kotlin,openapi,python,rust,toml,typescript,yaml,zod") {
+    if (sources.join(",") !== "csharp,csv,go,java,json,json-schema,kotlin,openapi,python,rust,toml,typescript,yaml,zod") {
       throw new Error("Unexpected source formats: " + sources.join(","));
     }
-    if (targets.join(",") !== "csv,go,java,json,json-schema,kotlin,openapi,python,rust,toml,typescript,yaml,zod") {
+    if (targets.join(",") !== "csharp,csv,go,java,json,json-schema,kotlin,openapi,python,rust,toml,typescript,yaml,zod") {
       throw new Error("Unexpected target formats: " + targets.join(","));
     }
 
@@ -141,6 +141,7 @@ try {
       { sourceFormat: "python", targetFormat: "python", input: "@dataclass\\nclass User:\\n    id: int" },
       { sourceFormat: "java", targetFormat: "java", input: "public record User(long id, String name) {}" },
       { sourceFormat: "kotlin", targetFormat: "kotlin", input: "data class User(val id: Int, val tags: Set<String>)" },
+      { sourceFormat: "csharp", targetFormat: "csharp", input: "public record User(string Name);" },
       { sourceFormat: "go", targetFormat: "go", input: "package models\\ntype User struct { ID int64 }" },
       { sourceFormat: "json", targetFormat: "csv", input: "[{\\"id\\":1,\\"name\\":\\"Ada\\"}]" },
       { sourceFormat: "json", targetFormat: "toml", input: "{\\"id\\":1,\\"name\\":\\"Ada\\"}" },

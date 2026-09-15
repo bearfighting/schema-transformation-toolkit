@@ -35,6 +35,8 @@ import type { JavaGeneratorOptions } from "@schema-transformation-toolkit/genera
 import type { JavaParseOptions } from "@schema-transformation-toolkit/parser-java";
 import type { KotlinGeneratorOptions } from "@schema-transformation-toolkit/generator-kotlin";
 import type { KotlinParseOptions } from "@schema-transformation-toolkit/parser-kotlin";
+import type { CSharpGeneratorOptions } from "@schema-transformation-toolkit/generator-csharp";
+import type { CSharpParserOptions } from "@schema-transformation-toolkit/parser-csharp";
 
 /** Compatibility-only builtin output map. Generic registry output is unknown-safe. */
 export interface BuiltinGeneratorOutputs {
@@ -50,6 +52,7 @@ export interface BuiltinGeneratorOutputs {
   go: string;
   java: string;
   kotlin: string;
+  csharp: string;
 }
 
 export interface BuiltinParserOptions {
@@ -66,6 +69,7 @@ export interface BuiltinParserOptions {
   go?: GoParseOptions;
   java?: JavaParseOptions;
   kotlin?: KotlinParseOptions;
+  csharp?: CSharpParserOptions;
 }
 
 export interface BuiltinGeneratorOptions {
@@ -80,4 +84,5 @@ export interface BuiltinGeneratorOptions {
   go?: GoGeneratorOptions;
   java?: JavaGeneratorOptions;
   kotlin?: KotlinGeneratorOptions;
+  csharp?: CSharpGeneratorOptions;
 }

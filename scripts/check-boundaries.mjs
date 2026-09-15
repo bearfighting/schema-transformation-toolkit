@@ -81,6 +81,11 @@ const packageConfigs = [
     root: path.join(repoRoot, "packages/parsers/kotlin"),
   },
   {
+    name: "@schema-transformation-toolkit/parser-csharp",
+    category: "parser",
+    root: path.join(repoRoot, "packages/parsers/csharp"),
+  },
+  {
     name: "@schema-transformation-toolkit/generator-json-schema",
     category: "generator",
     root: path.join(repoRoot, "packages/generators/json-schema"),
@@ -144,6 +149,11 @@ const packageConfigs = [
     name: "@schema-transformation-toolkit/generator-kotlin",
     category: "generator",
     root: path.join(repoRoot, "packages/generators/kotlin"),
+  },
+  {
+    name: "@schema-transformation-toolkit/generator-csharp",
+    category: "generator",
+    root: path.join(repoRoot, "packages/generators/csharp"),
   },
 ];
 
@@ -376,6 +386,7 @@ function getAllowedDependencies(pkg) {
     "@schema-transformation-toolkit/parser-go",
     "@schema-transformation-toolkit/parser-java",
     "@schema-transformation-toolkit/parser-kotlin",
+    "@schema-transformation-toolkit/parser-csharp",
     "@schema-transformation-toolkit/generator-json-schema",
     "@schema-transformation-toolkit/generator-json",
     "@schema-transformation-toolkit/generator-openapi",
@@ -389,6 +400,7 @@ function getAllowedDependencies(pkg) {
     "@schema-transformation-toolkit/generator-go",
     "@schema-transformation-toolkit/generator-java",
     "@schema-transformation-toolkit/generator-kotlin",
+    "@schema-transformation-toolkit/generator-csharp",
   ]);
 }
 

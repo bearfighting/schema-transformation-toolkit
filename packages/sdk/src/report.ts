@@ -159,7 +159,8 @@ export function extractEntrySelection(
   const entrySelectionDecision = policyDecisions.find(
     (decision) =>
       decision.phase === "parse" &&
-      decision.code === "typescript-implicit-entry-selected",
+      (decision.code === "typescript-implicit-entry-selected" ||
+        decision.code === "csharp-implicit-entry-selected"),
   );
 
   if (!entrySelectionDecision) {

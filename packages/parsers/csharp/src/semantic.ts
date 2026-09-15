@@ -30,6 +30,8 @@ export interface CSharpSemanticResult {
   semanticNotes: SchemaSemanticNote[];
 }
 
+type CSharpRootSelectionReason = "single-declaration" | "single-graph-root";
+
 const scalarTypes: Record<
   string,
   {
@@ -141,7 +143,8 @@ export function mapCSharpFile(
       );
     names.add(declaration.name);
   }
-  const rootName = selectRoot(file.declarations, names, entry);
+  const rootSelection = selectRoot(file.declarations, names, entry);
+  const rootName = rootSelection.entry;
   const mapped = new Map<string, SchemaNode>();
   for (const declaration of file.declarations)
     mapped.set(declaration.name, mapDeclaration(declaration, names));
@@ -163,7 +166,24 @@ export function mapCSharpFile(
       rootNeedsDefinition ? schemaReferenceNode(rootName) : root,
       { rootName, definitions },
     ),
-    semanticNotes: [],
+    semanticNotes:
+      rootSelection.selectionReason === undefined
+        ? []
+        : [
+            {
+              kind: "policy",
+              code: "csharp-implicit-entry-selected",
+              message: `The C# parser selected entry "${rootName}" implicitly using the ${rootSelection.selectionReason} rule.`,
+              path: ["entry", rootName],
+              nodeKind: "entry",
+              source: "parser-csharp",
+              layer: "shape",
+              evidence: {
+                entry: rootName,
+                selectionReason: rootSelection.selectionReason,
+              },
+            },
+          ],
   };
 }
 
@@ -171,23 +191,28 @@ function selectRoot(
   declarations: CSharpDeclarationSyntax[],
   names: Set<string>,
   entry?: string,
-): string {
+): { entry: string; selectionReason?: CSharpRootSelectionReason } {
   if (entry !== undefined) {
     if (!names.has(entry))
       throw new CSharpSemanticError(
         "invalid-csharp-entry",
         `C# entry "${entry}" does not name a declaration.`,
       );
-    return entry;
+    return { entry };
   }
-  if (declarations.length === 1) return declarations[0]!.name;
+  if (declarations.length === 1)
+    return {
+      entry: declarations[0]!.name,
+      selectionReason: "single-declaration",
+    };
   const referenced = new Set<string>();
   for (const declaration of declarations)
     collectReferences(declaration, names, referenced);
   const roots = declarations
     .map((d) => d.name)
     .filter((name) => !referenced.has(name));
-  if (roots.length === 1) return roots[0]!;
+  if (roots.length === 1)
+    return { entry: roots[0]!, selectionReason: "single-graph-root" };
   if (roots.length === 0)
     throw new CSharpSemanticError(
       "missing-csharp-root",

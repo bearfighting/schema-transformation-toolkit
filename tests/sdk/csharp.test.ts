@@ -104,17 +104,24 @@ describe("SDK C# builtin integration", () => {
     const result = convert({
       sourceFormat: "csharp",
       targetFormat: "csharp",
-      input: "record User(string Name);",
+      input: "record Envelope(User User); record User(string Name);",
       includeArtifacts: true,
     });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    expect(result.artifacts?.shape?.rootName?.source).toBe("User");
+    expect(result.artifacts?.shape?.rootName?.source).toBe("Envelope");
     expect(result.plan.irSequence).toEqual(["shape"]);
     expect(result.report?.irSelection).toMatchObject({
       selected: "shape",
+    });
+    expect(result.report?.entrySelection).toMatchObject({
+      mode: "implicit",
+      entry: "Envelope",
+      strategyCode: "single-graph-root",
+      source: "parser-csharp",
+      path: ["entry", "Envelope"],
     });
   });
 

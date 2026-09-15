@@ -48,6 +48,7 @@ async function main() {
 
 async function collectEntries(manifestPaths = []) {
   const entries = [];
+  const stagedEntries = [];
 
   for (const relativeRoot of builtinRoots) {
     const rootPath = path.join(repoRoot, relativeRoot);
@@ -71,18 +72,21 @@ async function collectEntries(manifestPaths = []) {
       if (!registry) {
         fail(`${relativeDir}: registry manifest is required.`);
       }
-      entries.push(
-        ...normalizeManifest(registry, {
-          packageName: packageJson.name,
-          entry: packageJson.name,
-          validationEntry: resolvePackageRootForValidation(
-            packageDir,
-            packageJson,
-          ),
-          baseDir: packageDir,
-          source: path.join(relativeDir, "package.json"),
-        }),
-      );
+      const normalizedEntries = normalizeManifest(registry, {
+        packageName: packageJson.name,
+        entry: packageJson.name,
+        validationEntry: resolvePackageRootForValidation(
+          packageDir,
+          packageJson,
+        ),
+        baseDir: packageDir,
+        source: path.join(relativeDir, "package.json"),
+      });
+      if (registry.includeInBuiltinRegistry === false) {
+        stagedEntries.push(...normalizedEntries);
+      } else {
+        entries.push(...normalizedEntries);
+      }
     }
   }
 
@@ -116,7 +120,7 @@ async function collectEntries(manifestPaths = []) {
         ),
       ),
   );
-  await validateEntries(entries);
+  await validateEntries([...entries, ...stagedEntries]);
   return entries;
 }
 
@@ -132,6 +136,14 @@ function normalizeManifest(manifest, context) {
   if (!Array.isArray(manifest.entries) || manifest.entries.length === 0) {
     fail(
       `${context.source}: registry manifest entries must be a non-empty array.`,
+    );
+  }
+  if (
+    "includeInBuiltinRegistry" in manifest &&
+    typeof manifest.includeInBuiltinRegistry !== "boolean"
+  ) {
+    fail(
+      `${context.source}: includeInBuiltinRegistry must be a boolean when provided.`,
     );
   }
 

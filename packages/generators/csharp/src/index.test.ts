@@ -4,22 +4,24 @@ import {
   schemaDefinition,
   schemaDocument,
   schemaFieldNode,
+  schemaLiteralNode,
   schemaObjectNode,
+  schemaRecordNode,
   schemaReferenceNode,
   schemaScalarNode,
-  schemaTupleNode,
-  schemaUnknownNode,
+  schemaUnionNode,
   type SchemaDocument,
 } from "@schema-transformation-toolkit/core";
 import {
   csharpGeneratorCapabilities,
   csharpGeneratorDescriptor,
+  csharpGeneratorOptionCatalog,
   generateCSharp,
   tryGenerateCSharp,
 } from "./index.js";
 
 describe("C# generator", () => {
-  it("generates deterministic property-style records", () => {
+  it("generates deterministic records with scalar and nullable fields", () => {
     const document = schemaDocument(
       "User",
       schemaObjectNode([
@@ -30,104 +32,290 @@ describe("C# generator", () => {
         schemaFieldNode("email", schemaScalarNode("string"), {
           nullable: true,
         }),
-        schemaFieldNode("tags", schemaArrayNode(schemaScalarNode("string")), {
+        schemaFieldNode("nickname", schemaScalarNode("string"), {
           required: false,
+          nullable: true,
         }),
       ]),
-      { rootName: "User" },
     );
-    const expected = `#nullable enable\n\npublic sealed record User\n{\n    public long id { get; init; }\n    public string name { get; init; }\n    public bool enabled { get; init; }\n    public double ratio { get; init; }\n    public string? email { get; init; }\n    public string[] tags { get; init; } = default!;\n}\n`;
+    const expected = `#nullable enable\n\npublic sealed record User\n{\n    public required long id { get; init; }\n    public required string name { get; init; }\n    public required bool enabled { get; init; }\n    public required double ratio { get; init; }\n    public required string? email { get; init; }\n    public string? nickname { get; init; } = null;\n}\n`;
     expect(generateCSharp(document)).toBe(expected);
     expect(generateCSharp(document)).toBe(expected);
   });
 
-  it("renders references, recursive references, and definitions in order", () => {
-    const document = schemaDocument("User", schemaReferenceNode("User"), {
-      rootName: "User",
-      definitions: [
-        schemaDefinition(
-          "User",
-          schemaObjectNode([
-            schemaFieldNode("address", schemaReferenceNode("Address")),
-            schemaFieldNode(
-              "related",
-              schemaArrayNode(schemaReferenceNode("Address")),
-            ),
-            schemaFieldNode("manager", schemaReferenceNode("User"), {
-              nullable: true,
-            }),
-          ]),
-        ),
-        schemaDefinition(
-          "Address",
-          schemaObjectNode([
-            schemaFieldNode("city", schemaScalarNode("string")),
-          ]),
-        ),
-      ],
-    });
-    expect(generateCSharp(document)).toBe(
-      `#nullable enable\n\npublic sealed record User\n{\n    public Address address { get; init; }\n    public Address[] related { get; init; }\n    public User? manager { get; init; }\n}\n\npublic sealed record Address\n{\n    public string city { get; init; }\n}\n`,
-    );
-  });
-
-  it("supports nullable union nodes and empty objects", () => {
+  it("renders classes, namespaces, lists, maps, and deterministic imports", () => {
     const document = schemaDocument(
-      "Container",
+      "User",
       schemaObjectNode([
-        schemaFieldNode("value", {
-          kind: "union",
-          members: [schemaScalarNode("integer"), { kind: "null" }],
-        }),
-        schemaFieldNode("empty", schemaReferenceNode("Empty")),
+        schemaFieldNode("tags", schemaArrayNode(schemaScalarNode("string"))),
+        schemaFieldNode(
+          "groups",
+          schemaRecordNode(
+            schemaScalarNode("string"),
+            schemaScalarNode("number"),
+          ),
+        ),
+        schemaFieldNode(
+          "matrix",
+          schemaArrayNode(schemaArrayNode(schemaReferenceNode("Address"))),
+        ),
       ]),
       {
-        definitions: [schemaDefinition("Empty", schemaObjectNode([]))],
+        definitions: [
+          schemaDefinition(
+            "Address",
+            schemaObjectNode([
+              schemaFieldNode("city", schemaScalarNode("string")),
+            ]),
+          ),
+        ],
       },
     );
-    expect(generateCSharp(document)).toContain(
-      "public long? @value { get; init; }",
-    );
-    expect(generateCSharp(document)).toContain(
-      "public sealed record Empty\n{\n}",
+    expect(
+      generateCSharp(document, { style: "class", namespace: "Example.Models" }),
+    ).toBe(
+      `#nullable enable\n\nusing System.Collections.Generic;\n\nnamespace Example.Models;\n\npublic sealed class User\n{\n    public required IReadOnlyList<string> tags { get; init; }\n    public required IReadOnlyDictionary<string, double> groups { get; init; }\n    public required IReadOnlyList<IReadOnlyList<Address>> matrix { get; init; }\n}\n\npublic sealed class Address\n{\n    public required string city { get; init; }\n}\n`,
     );
   });
 
-  it("escapes C# keywords in declaration and property names", () => {
+  it("renders enum roots and referenced enums with normalization notes", () => {
     const document = schemaDocument(
-      "class",
+      "User",
       schemaObjectNode([
-        schemaFieldNode("namespace", schemaScalarNode("string")),
+        schemaFieldNode("status", schemaReferenceNode("Status"), {
+          nullable: true,
+        }),
       ]),
-      { rootName: "class" },
+      {
+        definitions: [
+          schemaDefinition(
+            "Status",
+            schemaUnionNode([
+              schemaLiteralNode("active"),
+              schemaLiteralNode("in-progress"),
+              schemaLiteralNode("fooBAR"),
+              schemaLiteralNode("READY"),
+            ]),
+          ),
+        ],
+      },
     );
-    expect(generateCSharp(document)).toContain(
-      "public sealed record @class\n{\n    public string @namespace",
+    const result = tryGenerateCSharp(document);
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.output).toContain(
+      "public enum Status\n{\n    Active,\n    InProgress,\n    FooBar,\n    Ready\n}",
+    );
+    expect(result.output).toContain("public required Status? status");
+    expect(result.semanticNotes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "csharp-enum-member-renamed",
+          source: "generator-csharp",
+          layer: "target",
+        }),
+      ]),
     );
   });
 
-  it("uses document name when rootName is absent", () => {
+  it("maps numeric representations safely and reports widening", () => {
     const document = schemaDocument(
-      "DocumentName",
-      schemaObjectNode([schemaFieldNode("value", schemaScalarNode("string"))]),
+      "Numbers",
+      schemaObjectNode([
+        schemaFieldNode(
+          "small",
+          schemaScalarNode("integer", {
+            representation: {
+              family: "integer",
+              signedness: "signed",
+              widthBits: 8,
+            },
+          }),
+        ),
+        ...([16, 32, 64] as const).map((widthBits) =>
+          schemaFieldNode(
+            `signed${widthBits}`,
+            schemaScalarNode("integer", {
+              representation: {
+                family: "integer",
+                signedness: "signed",
+                widthBits,
+              },
+            }),
+          ),
+        ),
+        ...([8, 16, 32] as const).map((widthBits) =>
+          schemaFieldNode(
+            `unsigned${widthBits}`,
+            schemaScalarNode("integer", {
+              representation: {
+                family: "integer",
+                signedness: "unsigned",
+                widthBits,
+              },
+            }),
+          ),
+        ),
+        schemaFieldNode(
+          "unsigned",
+          schemaScalarNode("integer", {
+            representation: {
+              family: "integer",
+              signedness: "unsigned",
+              widthBits: 64,
+            },
+          }),
+        ),
+        schemaFieldNode(
+          "float32",
+          schemaScalarNode("number", {
+            representation: { family: "float", widthBits: 32 },
+          }),
+        ),
+        schemaFieldNode(
+          "float64",
+          schemaScalarNode("number", {
+            representation: { family: "float", widthBits: 64 },
+          }),
+        ),
+        schemaFieldNode(
+          "signedPointer",
+          schemaScalarNode("integer", {
+            representation: {
+              family: "integer",
+              signedness: "signed",
+              widthBits: "pointer",
+            },
+          }),
+        ),
+        schemaFieldNode(
+          "unsignedPointer",
+          schemaScalarNode("integer", {
+            representation: {
+              family: "integer",
+              signedness: "unsigned",
+              widthBits: "pointer",
+            },
+          }),
+        ),
+        schemaFieldNode(
+          "decimalValue",
+          schemaScalarNode("number", {
+            representation: { family: "decimal" },
+          }),
+        ),
+        schemaFieldNode(
+          "wide",
+          schemaScalarNode("integer", {
+            representation: {
+              family: "integer",
+              signedness: "signed",
+              widthBits: 128,
+            },
+          }),
+        ),
+      ]),
     );
-    expect(generateCSharp(document)).toContain(
-      "public sealed record DocumentName",
+    const result = tryGenerateCSharp(document);
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.output).toContain("using System.Numerics;");
+    expect(result.output).toContain("public required sbyte small");
+    expect(result.output).toContain("public required short signed16");
+    expect(result.output).toContain("public required int signed32");
+    expect(result.output).toContain("public required long signed64");
+    expect(result.output).toContain("public required byte unsigned8");
+    expect(result.output).toContain("public required ushort unsigned16");
+    expect(result.output).toContain("public required uint unsigned32");
+    expect(result.output).toContain("public required ulong unsigned");
+    expect(result.output).toContain("public required float float32");
+    expect(result.output).toContain("public required double float64");
+    expect(result.output).toContain("public required nint signedPointer");
+    expect(result.output).toContain("public required nuint unsignedPointer");
+    expect(result.output).toContain("public required decimal decimalValue");
+    expect(result.output).toContain("public required BigInteger wide");
+    expect(result.semanticNotes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "csharp-integer-representation-widened",
+          kind: "widening",
+        }),
+      ]),
     );
   });
 
-  it("rejects unsupported roots and nodes", () => {
+  it("validates options and metadata", () => {
+    const document = schemaDocument("User", schemaObjectNode([]));
+    expect(csharpGeneratorOptionCatalog.options).toHaveLength(2);
     expect(
-      tryGenerateCSharp(schemaDocument("Value", schemaScalarNode("string"))),
-    ).toMatchObject({ ok: false, code: "unsupported-csharp-root" });
+      tryGenerateCSharp(document, { style: "invalid" } as never),
+    ).toMatchObject({
+      ok: false,
+      code: "invalid-csharp-style",
+    });
     expect(
-      tryGenerateCSharp(
-        schemaDocument(
-          "Value",
-          schemaObjectNode([schemaFieldNode("value", schemaTupleNode([]))]),
-        ),
-      ),
-    ).toMatchObject({ ok: false, code: "unsupported-csharp-node" });
+      tryGenerateCSharp(document, { namespace: "Example.Bad-Name" }),
+    ).toMatchObject({ ok: false, code: "invalid-csharp-namespace" });
+    expect(generateCSharp(document, { namespace: "Example.record" })).toContain(
+      "namespace Example.@record;",
+    );
+  });
+
+  it("rejects enum collisions and unsupported enum values", () => {
+    const collision = schemaDocument(
+      "Status",
+      schemaUnionNode([
+        schemaLiteralNode("in-progress"),
+        schemaLiteralNode("in_progress"),
+      ]),
+    );
+    expect(tryGenerateCSharp(collision)).toMatchObject({
+      ok: false,
+      code: "csharp-enum-name-collision",
+    });
+    const unsupported = schemaDocument(
+      "Status",
+      schemaUnionNode([schemaLiteralNode("active"), schemaLiteralNode(1)]),
+    );
+    expect(tryGenerateCSharp(unsupported)).toMatchObject({
+      ok: false,
+      code: "unsupported-csharp-enum",
+    });
+  });
+
+  it("falls back safely for an incompatible numeric representation", () => {
+    const baseDocument = schemaDocument("Numbers", schemaObjectNode([]));
+    const document = {
+      ...baseDocument,
+      root: schemaObjectNode([
+        schemaFieldNode("value", {
+          kind: "scalar",
+          scalar: "number",
+          representation: {
+            family: "integer",
+            signedness: "signed",
+            widthBits: 32,
+          },
+        } as never),
+      ]),
+    } as SchemaDocument;
+    const result = tryGenerateCSharp(document);
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.output).toContain("public required double @value");
+    expect(result.semanticNotes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "csharp-scalar-representation-lost",
+          kind: "loss",
+          source: "generator-csharp",
+          layer: "target",
+        }),
+      ]),
+    );
+  });
+
+  it("rejects unsupported map/object semantics and invalid roots", () => {
     expect(
       tryGenerateCSharp(
         schemaDocument(
@@ -140,86 +328,11 @@ describe("C# generator", () => {
       ),
     ).toMatchObject({ ok: false, code: "unsupported-csharp-node" });
     expect(
-      tryGenerateCSharp(
-        schemaDocument(
-          "User",
-          schemaObjectNode([schemaFieldNode("value", schemaUnknownNode())]),
-        ),
-      ),
-    ).toMatchObject({ ok: false, code: "unsupported-csharp-node" });
+      tryGenerateCSharp(schemaDocument("Value", schemaScalarNode("string"))),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-root" });
   });
 
-  it("rejects unresolved references and unsupported representations", () => {
-    const unresolvedDocument = {
-      version: "0.1",
-      kind: "document",
-      name: { source: "User", words: ["User"] },
-      definitions: [],
-      root: schemaObjectNode([
-        schemaFieldNode("address", schemaReferenceNode("Address")),
-      ]),
-    } as SchemaDocument;
-    expect(tryGenerateCSharp(unresolvedDocument)).toMatchObject({
-      ok: false,
-      code: "unresolved-csharp-reference",
-    });
-    expect(
-      tryGenerateCSharp(
-        schemaDocument(
-          "User",
-          schemaObjectNode([
-            schemaFieldNode(
-              "id",
-              schemaScalarNode("integer", {
-                representation: { family: "integer", widthBits: 32 },
-              }),
-            ),
-          ]),
-        ),
-      ),
-    ).toMatchObject({ ok: false, code: "unsupported-csharp-representation" });
-  });
-
-  it("rejects duplicate rendered declaration names", () => {
-    const document = schemaDocument(
-      "User",
-      schemaObjectNode([schemaFieldNode("value", schemaScalarNode("string"))]),
-      {
-        definitions: [
-          schemaDefinition(
-            "User",
-            schemaObjectNode([
-              schemaFieldNode("id", schemaScalarNode("integer")),
-            ]),
-          ),
-        ],
-      },
-    );
-    expect(tryGenerateCSharp(document)).toMatchObject({
-      ok: false,
-      code: "duplicate-csharp-definition",
-    });
-  });
-
-  it("rejects invalid identifiers and preserves structured convenience failures", () => {
-    const result = tryGenerateCSharp(
-      schemaDocument(
-        "User",
-        schemaObjectNode([
-          schemaFieldNode("not-valid", schemaScalarNode("string")),
-        ]),
-      ),
-    );
-    expect(result).toMatchObject({
-      ok: false,
-      code: "invalid-csharp-identifier",
-    });
-    expect(() =>
-      generateCSharp(schemaDocument("Value", schemaScalarNode("string"))),
-    ).toThrow("C# generator requires an object root.");
-  });
-
-  it("exposes a shape-only descriptor and rejects invalid bundles", () => {
+  it("exposes a shape-only descriptor", () => {
     expect(csharpGeneratorDescriptor.format).toBe("csharp");
     expect(csharpGeneratorCapabilities).toMatchObject({
       target: "csharp",
@@ -234,15 +347,83 @@ describe("C# generator", () => {
     expect(
       csharpGeneratorDescriptor.generate(
         {
-          document: schemaDocument(
-            "User",
-            schemaObjectNode([
-              schemaFieldNode("name", schemaScalarNode("string")),
-            ]),
-          ),
+          document: schemaDocument("User", schemaObjectNode([])),
         },
         {},
       ),
     ).toMatchObject({ ok: true });
+  });
+
+  it("keeps the duplicate declaration guard", () => {
+    const document = schemaDocument("User", schemaObjectNode([]), {
+      definitions: [schemaDefinition("User", schemaObjectNode([]))],
+    });
+    expect(tryGenerateCSharp(document)).toMatchObject({
+      ok: false,
+      code: "duplicate-csharp-definition",
+    });
+  });
+
+  it("rejects duplicate root definitions when the root is a reference", () => {
+    const base = schemaDocument("Container", schemaObjectNode([]));
+    const document = {
+      ...base,
+      root: schemaReferenceNode("User"),
+      definitions: [
+        schemaDefinition("User", schemaObjectNode([])),
+        schemaDefinition("User", schemaObjectNode([])),
+      ],
+    } as SchemaDocument;
+    expect(tryGenerateCSharp(document)).toMatchObject({
+      ok: false,
+      code: "duplicate-csharp-definition",
+    });
+  });
+
+  it("supports nested nullable unions and rejects non-string maps", () => {
+    const nullable = schemaDocument(
+      "Container",
+      schemaObjectNode([
+        schemaFieldNode(
+          "value",
+          schemaUnionNode([schemaScalarNode("integer"), { kind: "null" }]),
+        ),
+      ]),
+    );
+    expect(generateCSharp(nullable)).toContain("public required long? @value");
+    const invalidMap = {
+      version: "0.1",
+      kind: "document",
+      name: { source: "Container", words: ["Container"] },
+      definitions: [],
+      root: schemaObjectNode([
+        schemaFieldNode("values", {
+          kind: "record",
+          key: schemaScalarNode("integer"),
+          value: schemaScalarNode("string"),
+        }),
+      ]),
+    } as SchemaDocument;
+    expect(tryGenerateCSharp(invalidMap)).toMatchObject({
+      ok: false,
+      code: "unsupported-csharp-node",
+    });
+  });
+
+  it("retains the PR1 invalid-document convenience behavior", () => {
+    const invalid = {
+      version: "0.1",
+      kind: "document",
+      name: { source: "User", words: ["User"] },
+      definitions: [],
+      root: schemaObjectNode([]),
+    } as SchemaDocument;
+    expect(tryGenerateCSharp(invalid)).toMatchObject({ ok: true });
+    expect(
+      csharpGeneratorDescriptor.generate(
+        { document: { kind: "document" } as never },
+        {},
+      ),
+    ).toMatchObject({ ok: false, code: "invalid-generator-input" });
   });
 });

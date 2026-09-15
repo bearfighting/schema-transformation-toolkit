@@ -1,5 +1,6 @@
 export { csharpGeneratorCapabilities } from "./capabilities.js";
 export { csharpGeneratorDescriptor } from "./descriptor.js";
+export { csharpGeneratorOptionCatalog } from "./option-metadata.js";
 export { generateCSharp, tryGenerateCSharp } from "./api.js";
 export {
   DEFAULT_CSHARP_GENERATOR_OPTIONS,

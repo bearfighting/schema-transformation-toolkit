@@ -1,4 +1,7 @@
-import type { SchemaDocument } from "@schema-transformation-toolkit/core";
+import type {
+  SchemaDocument,
+  SchemaSemanticNote,
+} from "@schema-transformation-toolkit/core";
 import { CSharpGenerationError, type CSharpGenerateResult } from "./failure.js";
 import {
   assertSupportedCSharpGeneratorOptions,
@@ -14,7 +17,20 @@ export function tryGenerateCSharp(
   const resolved = resolveCSharpGeneratorOptions(options);
   try {
     assertSupportedCSharpGeneratorOptions(resolved);
-    return { ok: true, output: renderCSharpDocument(document, resolved) };
+    const result = renderCSharpDocument(document, resolved);
+    const semanticNotes: SchemaSemanticNote[] = result.notes.map((note) => ({
+      kind: note.kind,
+      code: note.code,
+      message: note.message,
+      source: "generator-csharp",
+      layer: "target",
+      ...(note.path ? { path: note.path } : {}),
+    }));
+    return {
+      ok: true,
+      output: result.output,
+      ...(semanticNotes.length ? { semanticNotes } : {}),
+    };
   } catch (error) {
     return {
       ok: false,

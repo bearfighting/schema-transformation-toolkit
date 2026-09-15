@@ -9,8 +9,12 @@ export type CSharpGeneratorFailureCode =
   | "unsupported-csharp-node"
   | "unsupported-csharp-representation"
   | "invalid-csharp-identifier"
+  | "invalid-csharp-namespace"
+  | "invalid-csharp-style"
   | "unresolved-csharp-reference"
-  | "duplicate-csharp-definition";
+  | "duplicate-csharp-definition"
+  | "unsupported-csharp-enum"
+  | "csharp-enum-name-collision";
 
 export class CSharpGenerationError extends Error {
   constructor(

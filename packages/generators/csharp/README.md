@@ -1,18 +1,20 @@
 # @schema-transformation-toolkit/generator-csharp
 
-Deterministic C# generator for the initial Shape IR adapter boundary.
+Deterministic C# generator for the Shape IR adapter boundary.
 
-The PR1 foundation generates object-shaped documents as property-style sealed
-records. It supports string, boolean, integer, number, nullable fields,
-arrays, named references, and empty objects. Arrays are rendered as `T[]` so
-the foundation does not require imports or collection-style configuration.
+The generator generates object-shaped documents as property-style sealed records
+by default and can optionally generate sealed classes. It supports string,
+boolean, integer, number, nullable fields, arrays, string-keyed maps, named
+references, string literal union enums, and empty objects. Arrays are rendered
+as `IReadOnlyList<T>` and maps as `IReadOnlyDictionary<string, T>`.
 
-The generator maps Shape IR integers to `long` and numbers to `double`. It does
-not preserve language-specific numeric widths, collection representations,
-maps, enums, unions, constraints, namespaces, or class-style output yet.
-Those capabilities are planned for later C# adapter work.
+Set `namespace` to emit a file-scoped namespace and `style` to `"class"` for
+class output. Numeric representation hints are mapped to safe C# primitive
+types where possible; wider integer representations use `BigInteger`, and
+any unavoidable widening or loss is returned as a semantic note.
 
 Generated files use `#nullable enable`, four-space indentation, LF line endings,
-and a trailing newline. Declaration and property order follows the Shape IR.
+and a trailing newline. Imports, declarations, properties, and enum members are
+deterministically ordered according to the Shape IR.
 Invalid or unsupported nodes return structured failures from
 `tryGenerateCSharp` rather than being silently discarded.

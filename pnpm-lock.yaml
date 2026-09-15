@@ -59,6 +59,12 @@ importers:
         specifier: ^6.6.0
         version: 6.8.3
 
+  packages/generators/csharp:
+    dependencies:
+      "@schema-transformation-toolkit/core":
+        specifier: workspace:*
+        version: link:../../core
+
   packages/generators/go:
     dependencies:
       "@schema-transformation-toolkit/core":
@@ -148,6 +154,12 @@ importers:
       csv-parse:
         specifier: ^6.1.0
         version: 6.2.1
+
+  packages/parsers/csharp:
+    dependencies:
+      "@schema-transformation-toolkit/core":
+        specifier: workspace:*
+        version: link:../../core
 
   packages/parsers/go:
     dependencies:

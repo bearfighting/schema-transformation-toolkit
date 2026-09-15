@@ -15,6 +15,7 @@ import { tryParsePython } from "../../packages/parsers/python/src/api.js";
 import { tryParseGo } from "../../packages/parsers/go/src/api.js";
 import { tryParseJava } from "../../packages/parsers/java/src/api.js";
 import { tryParseKotlin } from "../../packages/parsers/kotlin/src/api.js";
+import { tryParseCSharp } from "../../packages/parsers/csharp/src/api.js";
 import type {
   SemanticFixture,
   SemanticFixtureFormatId,
@@ -273,6 +274,25 @@ export function parseSemanticFixture(
         ...(constraints ? { constraints } : {}),
         ...(diagnostics ? { diagnostics } : {}),
         ...(semanticNotes ? { semanticNotes } : {}),
+      };
+    }
+    case "csharp": {
+      const source = fixture.sources.csharp;
+      if (!source) missingSource(fixture, formatId);
+      const result = tryParseCSharp(source.input, source.options);
+      if (!result.ok) {
+        throw new SemanticFixtureParseError(
+          fixture.id,
+          formatId,
+          result.code,
+          result.diagnostics,
+        );
+      }
+      return {
+        document: result.document,
+        ...(result.semanticNotes
+          ? { semanticNotes: result.semanticNotes }
+          : {}),
       };
     }
   }

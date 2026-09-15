@@ -13,6 +13,7 @@ import type { PythonParseOptions } from "@schema-transformation-toolkit/parser-p
 import type { GoParseOptions } from "@schema-transformation-toolkit/parser-go";
 import type { JavaParseOptions } from "@schema-transformation-toolkit/parser-java";
 import type { KotlinParseOptions } from "../../../packages/parsers/kotlin/src/options.js";
+import type { CSharpParserOptions } from "../../../packages/parsers/csharp/src/options.js";
 
 export type SemanticFixtureFormatId =
   | "json"
@@ -24,7 +25,8 @@ export type SemanticFixtureFormatId =
   | "python"
   | "go"
   | "java"
-  | "kotlin";
+  | "kotlin"
+  | "csharp";
 export type SemanticFixtureCoverageSubject =
   | SemanticFixtureFormatId
   | "generator:json-schema"
@@ -97,6 +99,11 @@ export interface KotlinSemanticFixtureSource {
   options?: KotlinParseOptions;
 }
 
+export interface CSharpSemanticFixtureSource {
+  input: string;
+  options?: CSharpParserOptions;
+}
+
 export interface SemanticFixtureGeneratorExpectation {
   diagnosticCodes?: string[];
   semanticNoteCodes?: string[];
@@ -144,6 +151,7 @@ export interface SemanticFixture {
     go: GoSemanticFixtureSource;
     java: JavaSemanticFixtureSource;
     kotlin: KotlinSemanticFixtureSource;
+    csharp: CSharpSemanticFixtureSource;
   }>;
   support: Partial<
     Record<SemanticFixtureFormatId, SemanticFixtureSupportLevel>

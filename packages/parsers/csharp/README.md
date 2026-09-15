@@ -13,5 +13,8 @@ full-language constructs are intentionally unsupported. Unsupported syntax
 returns a structured failure with a source position.
 
 Use `tryParseCSharp` for structured failures and `parseCSharp` as the throwing
-convenience API. The package is staged and is not part of the SDK builtin
-registry until the C# parser integration work is complete.
+convenience API. The parser is also available through the SDK builtin registry.
+It accepts the `#nullable enable` header emitted by the C# generator, but
+nullable context directives and serializer metadata are not represented in
+Shape IR. This is a single-file Shape-only adapter: unsupported language
+features fail with a diagnostic rather than being skipped.

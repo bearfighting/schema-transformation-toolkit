@@ -173,6 +173,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
   let index = 0;
   let namespaceSeen = false;
   let usingAllowed = true;
+  let declarationSeen = false;
   const declarations: CSharpDeclarationSyntax[] = [];
   const peek = () => tokens[index];
   const take = () => tokens[index++];
@@ -211,6 +212,27 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
   };
 
   while (peek()) {
+    if (peek()!.text === "#") {
+      if (declarationSeen)
+        fail(
+          "unsupported-csharp-feature",
+          "Preprocessor directives must precede declarations.",
+        );
+      take();
+      if (peek()?.text !== "nullable")
+        fail(
+          "unsupported-csharp-feature",
+          "Only the generator-compatible #nullable enable directive is supported.",
+        );
+      take();
+      if (peek()?.text !== "enable")
+        fail(
+          "unsupported-csharp-feature",
+          "Only #nullable enable is supported.",
+        );
+      take();
+      continue;
+    }
     if (peek()!.text === "[")
       fail(
         "unsupported-csharp-attribute",
@@ -341,6 +363,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
       );
     if (declarationKind.text === "enum") {
       declarations.push(parseEnum(name, start));
+      declarationSeen = true;
       continue;
     }
     if (declarationKind.text === "class") {
@@ -355,6 +378,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
         fields: parsePropertyBody(name),
         position: start,
       });
+      declarationSeen = true;
       continue;
     }
     let fields: CSharpFieldSyntax[];
@@ -375,6 +399,7 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
       position: start,
       positional,
     });
+    declarationSeen = true;
   }
   return { declarations };
 
@@ -482,12 +507,17 @@ export function parseCSharpSyntax(source: string): CSharpFileSyntax {
         required = true;
         take();
       }
-      if (peek()?.text === ownerName || peek()?.text === "this")
+      if (peek()?.text === "this")
         fail(
           "unsupported-csharp-member",
           "Constructors and indexers are not supported in PR4.",
         );
       const type = parseType();
+      if (peek()?.text === "(")
+        fail(
+          "unsupported-csharp-member",
+          "Constructors and indexers are not supported in PR4.",
+        );
       if (peek()?.text === "this")
         fail(
           "unsupported-csharp-member",
@@ -604,7 +634,7 @@ function tokenize(source: string): Token[] {
       continue;
     }
     const punctuation = rest[0]!;
-    if ("{}()[],;<>?.=:".includes(punctuation)) {
+    if ("{}()[],;<>?.=:#".includes(punctuation)) {
       tokens.push({ text: punctuation, position });
       advance(punctuation);
       continue;

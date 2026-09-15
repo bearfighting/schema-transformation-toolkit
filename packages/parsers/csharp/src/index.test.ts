@@ -72,6 +72,30 @@ public sealed record User
     });
   });
 
+  it("accepts the generated nullable header only before declarations", () => {
+    const input = "#nullable enable\nrecord User(string Name);";
+    expect(tryParseCSharp(input)).toMatchObject({ ok: true });
+
+    const trailing = "record User(string Name);\n#nullable enable";
+    const result = tryParseCSharp(trailing);
+    expect(result).toMatchObject({
+      ok: false,
+      code: "unsupported-csharp-feature",
+      diagnostics: [
+        {
+          source: "parser-csharp",
+          evidence: {
+            position: { line: expect.any(Number), column: expect.any(Number) },
+            sourceLength: trailing.length,
+          },
+        },
+      ],
+    });
+    expect(
+      tryParseCSharp("#nullable disable\nrecord User(string Name);"),
+    ).toMatchObject({ ok: false, code: "unsupported-csharp-feature" });
+  });
+
   it("maps classes with required and nullable properties", () => {
     const result = tryParseCSharp(`internal sealed class User
 {

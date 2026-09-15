@@ -10,6 +10,15 @@ feature batches, `0.x.y` for smaller features or focused fixes, and
 `-alpha.N`, `-beta.N`, or `-rc.N` for testing stages before the corresponding
 final version.
 
+## Unreleased
+
+### C# support
+
+- Verify the C# parser and generator across shared Shape IR routes with
+  TypeScript, JSON Schema, Rust, Python, Go, Java, Kotlin, and C#.
+- Document the V1 single-file record/class/symbolic-enum boundary, including
+  explicit numeric, collection, and enum metadata caveats.
+
 ## 0.6.0 - 2026-09-06
 
 ### Kotlin support

@@ -78,6 +78,44 @@ describe("SDK C# builtin integration", () => {
     });
     expect(roundTrip).toMatchObject({ ok: true });
     if (roundTrip.ok) expect(roundTrip.output).toContain("Envelope");
+
+    const java = convert({
+      sourceFormat: "java",
+      targetFormat: "csharp",
+      input:
+        "public record User(java.util.Map<String, String> metadata, java.util.List<String> tags) {}",
+      name: "User",
+    });
+    expect(java).toMatchObject({ ok: true });
+    if (java.ok) expect(java.output).toContain("sealed record User");
+
+    const csharpToJava = convert({
+      sourceFormat: "csharp",
+      targetFormat: "java",
+      input:
+        "public record User(Dictionary<string, string> metadata, string[] tags);",
+      name: "User",
+    });
+    expect(csharpToJava).toMatchObject({ ok: true });
+    if (csharpToJava.ok) expect(csharpToJava.output).toContain("record User");
+  });
+
+  it("retains Shape artifacts and reports the selected C# entry", () => {
+    const result = convert({
+      sourceFormat: "csharp",
+      targetFormat: "csharp",
+      input: "record User(string Name);",
+      includeArtifacts: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.artifacts?.shape?.rootName?.source).toBe("User");
+    expect(result.plan.irSequence).toEqual(["shape"]);
+    expect(result.report?.irSelection).toMatchObject({
+      selected: "shape",
+    });
   });
 
   it("exposes C# option metadata and structured failures", () => {

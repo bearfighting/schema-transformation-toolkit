@@ -449,6 +449,21 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     "go->java",
     "java->kotlin",
     "kotlin->java",
+    "csharp->typescript",
+    "typescript->csharp",
+    "csharp->json-schema",
+    "json-schema->csharp",
+    "csharp->rust",
+    "rust->csharp",
+    "csharp->python",
+    "python->csharp",
+    "csharp->go",
+    "go->csharp",
+    "csharp->java",
+    "java->csharp",
+    "csharp->kotlin",
+    "kotlin->csharp",
+    "csharp->csharp",
   ],
   canonicalShape: schemaDocument(
     "User",
@@ -550,6 +565,11 @@ export const crossLanguageRecordFixture: SemanticFixture = {
         "data class User(val metadata: Map<String, String>, val tags: List<String>)",
       options: { name: "User", entry: "User" },
     },
+    csharp: {
+      input:
+        "public record User(Dictionary<string, string> metadata, string[] tags);",
+      options: { name: "User", entry: "User" },
+    },
   },
   support: {
     "json-schema": "exact",
@@ -561,6 +581,7 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     openapi: "exact",
     java: "normalized",
     kotlin: "exact",
+    csharp: "exact",
   },
   capabilityCoverage: {
     "json-schema": ["shape-ir"],
@@ -572,6 +593,125 @@ export const crossLanguageRecordFixture: SemanticFixture = {
     openapi: ["shape-ir"],
     java: ["shape-ir"],
     kotlin: ["shape-ir"],
+    csharp: ["shape-ir"],
+  },
+  conversionExpectations: {
+    "csharp->typescript": {},
+    "typescript->csharp": {},
+    "csharp->json-schema": {
+      generatorExpectation: {
+        semanticNoteCodes: ["root-declaration-name-not-preserved"],
+      },
+      semanticCaveatCodes: ["root-declaration-name-not-preserved"],
+    },
+    "json-schema->csharp": {},
+    "csharp->rust": {},
+    "rust->csharp": {},
+    "csharp->python": {},
+    "python->csharp": {},
+    "csharp->go": {},
+    "go->csharp": {},
+    "csharp->java": {},
+    "java->csharp": {
+      generatorExpectation: {
+        semanticNoteCodes: [
+          "java-nullability-unspecified",
+          "java-nullability-unspecified",
+        ],
+      },
+    },
+    "csharp->kotlin": {},
+    "kotlin->csharp": {},
+    "csharp->csharp": {},
+  },
+};
+
+export const csharpFeatureFixture: SemanticFixture = {
+  id: "csharp.v1-feature-bundle",
+  description:
+    "C# Shape adapter coverage for records, classes, symbolic enums, nullable references, recursion, collections, and numeric representation hints.",
+  canonicalShape: schemaDocument(
+    "CSharpFeatureDocument",
+    schemaObjectNode([
+      schemaFieldNode("Status", schemaReferenceNode("Status"), {
+        nullable: true,
+      }),
+      schemaFieldNode("Node", schemaReferenceNode("Node")),
+      schemaFieldNode(
+        "Count",
+        schemaScalarNode("integer", {
+          representation: {
+            family: "integer",
+            signedness: "unsigned",
+            widthBits: 64,
+          },
+        }),
+      ),
+      schemaFieldNode("Tags", schemaArrayNode(schemaScalarNode("string"))),
+      schemaFieldNode(
+        "Lookup",
+        schemaRecordNode(
+          schemaScalarNode("string"),
+          schemaReferenceNode("Node"),
+        ),
+      ),
+    ]),
+    {
+      rootName: "User",
+      definitions: [
+        schemaDefinition(
+          "Status",
+          schemaUnionNode([
+            schemaLiteralNode("Active"),
+            schemaLiteralNode("Disabled"),
+          ]),
+        ),
+        schemaDefinition(
+          "Node",
+          schemaObjectNode([
+            schemaFieldNode("Name", schemaScalarNode("string")),
+            schemaFieldNode(
+              "Children",
+              schemaArrayNode(schemaReferenceNode("Node")),
+              { required: true },
+            ),
+          ]),
+        ),
+      ],
+    },
+  ),
+  sources: {
+    csharp: {
+      input: [
+        "public enum Status { Active, Disabled }",
+        "public sealed class Node {",
+        "    public required string Name { get; init; }",
+        "    public required Node[] Children { get; set; }",
+        "}",
+        "public record User(Status? Status, Node Node, ulong Count, string[] Tags, Dictionary<string, Node> Lookup);",
+      ].join("\n"),
+      options: { name: "CSharpFeatureDocument", entry: "User" },
+    },
+    typescript: {
+      input: [
+        'type Status = "Active" | "Disabled";',
+        "type Node = { Name: string; Children: Node[] };",
+        "type User = { Status: Status | null; Node: Node; Count: number; Tags: string[]; Lookup: Record<string, Node> };",
+      ].join("\n"),
+      options: { name: "CSharpFeatureDocument", entry: "User" },
+    },
+  },
+  equivalenceRoutes: ["csharp->csharp", "csharp->typescript"],
+  support: { csharp: "exact", typescript: "lossy" },
+  capabilityCoverage: { csharp: ["shape-ir"], typescript: ["shape-ir"] },
+  conversionExpectations: {
+    "csharp->csharp": {},
+    "csharp->typescript": {
+      generatorExpectation: {
+        semanticNoteCodes: ["integer-widened-to-number"],
+      },
+      semanticCaveatCodes: ["integer-widened-to-number"],
+    },
   },
 };
 
@@ -2785,6 +2925,7 @@ const semanticFixtureDefinitions: SemanticFixture[] = [
   optionalPropertyFixture,
   stringRecordFixture,
   crossLanguageRecordFixture,
+  csharpFeatureFixture,
   nullablePropertyFixture,
   nestedObjectFixture,
   optionalVsNullableFixture,

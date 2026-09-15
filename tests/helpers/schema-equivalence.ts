@@ -59,6 +59,104 @@ export function expectIrEquivalent(
   ).toBe(true);
 }
 
+/** Normalize Java's conservative reference nullability before canonical comparison. */
+export function normalizeJavaReferenceNullabilityForTest(
+  document: SchemaDocument,
+  expected: SchemaDocument,
+): SchemaDocument {
+  const expectedDefinitions = new Map(
+    expected.definitions.map((definition) => [
+      definition.name.source,
+      definition.type,
+    ]),
+  );
+  const normalize = (
+    node: SchemaNode,
+    expectedNode: SchemaNode,
+  ): SchemaNode => {
+    switch (node.kind) {
+      case "array":
+        return {
+          ...node,
+          elementType:
+            expectedNode.kind === "array"
+              ? normalize(node.elementType, expectedNode.elementType)
+              : node.elementType,
+        };
+      case "record":
+        return {
+          ...node,
+          key:
+            expectedNode.kind === "record"
+              ? normalize(node.key, expectedNode.key)
+              : node.key,
+          value:
+            expectedNode.kind === "record"
+              ? normalize(node.value, expectedNode.value)
+              : node.value,
+        };
+      case "object":
+        return {
+          ...node,
+          fields: node.fields.map((field) => {
+            const expectedField =
+              expectedNode.kind === "object"
+                ? expectedNode.fields.find(
+                    (candidate) => candidate.name.source === field.name.source,
+                  )
+                : undefined;
+            return {
+              ...field,
+              nullable: expectedField?.nullable ?? field.nullable,
+              type: normalize(field.type, expectedField?.type ?? field.type),
+            };
+          }),
+        };
+      case "union": {
+        const members = node.members.map((member) => {
+          const expectedMember =
+            expectedNode.kind === "union"
+              ? (expectedNode.members.find(
+                  (candidate) => candidate.kind === member.kind,
+                ) ?? member)
+              : member;
+          return normalize(member, expectedMember);
+        });
+        const nonNullMembers = members.filter(
+          (member) => member.kind !== "null",
+        );
+        return expectedNode.kind !== "union" &&
+          nonNullMembers.length === 1 &&
+          members.length === 2
+          ? nonNullMembers[0]!
+          : { ...node, members };
+      }
+      case "reference": {
+        const expectedReference =
+          expectedNode.kind === "reference"
+            ? expectedDefinitions.get(expectedNode.name)
+            : undefined;
+        return expectedReference ? { ...node, name: node.name } : node;
+      }
+      default:
+        return node;
+    }
+  };
+  return {
+    ...document,
+    root: normalize(document.root, expected.root),
+    definitions: document.definitions.map((definition) => ({
+      ...definition,
+      type: normalize(
+        definition.type,
+        expected.definitions.find(
+          (candidate) => candidate.name.source === definition.name.source,
+        )?.type ?? definition.type,
+      ),
+    })),
+  };
+}
+
 /**
  * Compares the semantic portion of Constraint IR. Diagnostic prose and
  * evidence are deliberately excluded because they are adapter-specific.

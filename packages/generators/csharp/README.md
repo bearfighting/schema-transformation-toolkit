@@ -18,3 +18,9 @@ and a trailing newline. Imports, declarations, properties, and enum members are
 deterministically ordered according to the Shape IR.
 Invalid or unsupported nodes return structured failures from
 `tryGenerateCSharp` rather than being silently discarded.
+
+The generator is available through the SDK builtin registry for generic
+Shape-compatible conversions. Namespace and style are target options, not
+Shape IR properties. Enum member normalization, numeric widening, and other
+target-specific caveats are reported as semantic notes; serializer attributes
+and wire-name metadata are not invented.

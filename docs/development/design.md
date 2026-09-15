@@ -19,9 +19,26 @@ loss. A successful conversion must remain truthful about what it preserved,
 widened, normalized, or discarded.
 
 The builtin families are JSON, YAML, CSV, TOML, JSON Schema, TypeScript, Zod,
-OpenAPI, Rust, Python Dataclass, and Go. Format packages own format policy. Core
-owns shared semantics and execution contracts. SDK is the stable consumer
-boundary and compatibility facade.
+OpenAPI, Rust, Python Dataclass, Go, Java, Kotlin, and C#. Format packages own
+format policy. Core owns shared semantics and execution contracts. SDK is the
+stable consumer boundary and compatibility facade.
+
+### C# adapter boundary
+
+C# is a Shape-only adapter. The parser accepts a single-file subset of records,
+property-based classes, and symbolic enums; records and classes lower to
+`SchemaObjectNode`, while unit enums lower to named string literal unions.
+Arrays, common list types, and string-keyed dictionaries use the existing
+array and record nodes. References, recursion, required presence, and
+nullability remain shared Shape semantics.
+
+Namespace syntax and generator style are target/source metadata, not Core IR.
+Serializer attributes and enum wire-name policies are outside this boundary;
+the adapter does not claim that a normalized C# enum member preserves an
+external serializer's wire value. Numeric representation hints and collection
+choices are preserved where possible and otherwise produce explicit semantic
+notes or failures. Unsupported C# syntax is rejected rather than silently
+discarded.
 
 ## System shape
 

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type {
-  SchemaDocument,
-  SchemaNode,
-} from "@schema-transformation-toolkit/core";
+import type { SchemaDocument } from "@schema-transformation-toolkit/core";
 import { tryGenerateGo } from "../../packages/generators/go/src/api.js";
 import { tryGenerateJava } from "../../packages/generators/java/src/api.js";
 import { tryGenerateJsonSchema } from "@schema-transformation-toolkit/generator-json-schema";
@@ -23,6 +20,7 @@ import {
   expectIrEquivalent,
   expectFixtureConstraintsEquivalent,
   normalizeSchemaDocumentForTest,
+  normalizeJavaReferenceNullabilityForTest,
 } from "../helpers/schema-equivalence.js";
 import { parseSemanticFixture } from "../helpers/semantic-fixture-parser.js";
 
@@ -96,7 +94,7 @@ function runJavaSemanticRoute(
   }
   const sourceDocument =
     sourceFormat === "java"
-      ? normalizeJavaReferenceNullability(
+      ? normalizeJavaReferenceNullabilityForTest(
           source.document,
           fixture.canonicalShape,
         )
@@ -197,113 +195,9 @@ function expectJavaShape(
 ): void {
   const normalized =
     format === "java" && fixture.support.java === "normalized"
-      ? normalizeJavaReferenceNullability(actual, expected)
+      ? normalizeJavaReferenceNullabilityForTest(actual, expected)
       : actual;
   expectIrEquivalent(normalized, expected);
-}
-
-function normalizeJavaReferenceNullability(
-  document: SchemaDocument,
-  expected: SchemaDocument,
-): SchemaDocument {
-  const expectedDefinitions = new Map(
-    expected.definitions.map((definition) => [
-      definition.name.source,
-      definition.type,
-    ]),
-  );
-  const normalize = (
-    node: SchemaNode,
-    expectedNode: SchemaNode,
-  ): SchemaNode => {
-    switch (node.kind) {
-      case "array":
-        return {
-          ...node,
-          elementType:
-            expectedNode.kind === "array"
-              ? normalize(node.elementType, expectedNode.elementType)
-              : node.elementType,
-        };
-      case "record":
-        return {
-          ...node,
-          key:
-            expectedNode.kind === "record"
-              ? normalize(node.key, expectedNode.key)
-              : node.key,
-          value:
-            expectedNode.kind === "record"
-              ? normalize(node.value, expectedNode.value)
-              : node.value,
-        };
-      case "object":
-        return {
-          ...node,
-          fields: node.fields.map((field) => ({
-            ...field,
-            nullable:
-              expectedNode.kind === "object"
-                ? (expectedNode.fields.find(
-                    (candidate) => candidate.name.source === field.name.source,
-                  )?.nullable ?? field.nullable)
-                : field.nullable,
-            type: normalize(
-              field.type,
-              expectedNode.kind === "object"
-                ? (expectedNode.fields.find(
-                    (candidate) => candidate.name.source === field.name.source,
-                  )?.type ?? field.type)
-                : field.type,
-            ),
-          })),
-        };
-      case "union": {
-        const members = node.members.map((member) => {
-          const expectedMember =
-            expectedNode.kind === "union"
-              ? (expectedNode.members.find(
-                  (candidate) => candidate.kind === member.kind,
-                ) ?? member)
-              : member;
-          return normalize(member, expectedMember);
-        });
-        // Java's parser conservatively widens reference-typed components to
-        // nullable. Remove that widening only when the canonical node is not
-        // nullable; a canonical nullable value must remain nullable.
-        const nonNullMembers = members.filter(
-          (member) => member.kind !== "null",
-        );
-        return expectedNode.kind !== "union" &&
-          nonNullMembers.length === 1 &&
-          members.length === 2
-          ? nonNullMembers[0]!
-          : { ...node, members };
-      }
-      case "reference": {
-        const expectedReference =
-          expectedNode.kind === "reference"
-            ? expectedDefinitions.get(expectedNode.name)
-            : undefined;
-        return expectedReference ? { ...node, name: node.name } : node;
-      }
-      default:
-        return node;
-    }
-  };
-  return {
-    ...document,
-    root: normalize(document.root, expected.root),
-    definitions: document.definitions.map((definition) => ({
-      ...definition,
-      type: normalize(
-        definition.type,
-        expected.definitions.find(
-          (candidate) => candidate.name.source === definition.name.source,
-        )?.type ?? definition.type,
-      ),
-    })),
-  };
 }
 
 function generateTarget(document: SchemaDocument, target: JavaRouteFormat) {

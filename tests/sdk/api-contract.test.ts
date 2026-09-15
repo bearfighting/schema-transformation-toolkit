@@ -48,7 +48,8 @@ function getFixtureRouteInput(
     case "python":
     case "go":
     case "java":
-    case "kotlin": {
+    case "kotlin":
+    case "csharp": {
       const source = fixture.sources[sourceFormat];
 
       if (!source) {

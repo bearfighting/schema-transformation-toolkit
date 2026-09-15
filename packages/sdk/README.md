@@ -13,7 +13,7 @@ Project-level readiness and priorities live in [../../docs/development/progress.
 If you are using the toolkit rather than integrating the SDK itself, start with
 the [User Guide](../../docs/user-guide.md) and [Capability Matrix](../../docs/capability-matrix.md).
 
-The current target formats are JSON, CSV, TOML, JSON Schema, TypeScript, OpenAPI 3.1, Zod 4, YAML, Rust, Python dataclasses, Go, and Java records/classes/enums. Selecting
+The current target formats are JSON, CSV, TOML, JSON Schema, TypeScript, OpenAPI 3.1, Zod 4, YAML, Rust, Python dataclasses, Go, Java records/classes/enums, Kotlin data classes/enums, and C# records/classes/enums. Selecting
 `targetFormat: "zod"` generates a single ESM module. The default output is
 TypeScript with a `z.infer` type; pass
 `advanced.generator.zod.outputLanguage: "javascript"` for a plain JavaScript
@@ -86,6 +86,12 @@ C# support covers the documented single-file record, property-based class, and
 symbolic enum subset. Use `advanced.parser.csharp.entry` to select a root
 declaration when automatic root inference is ambiguous. C# generation accepts
 `advanced.generator.csharp.namespace` and `style` (`record` or `class`).
+These adapters participate in the generic Shape routes to and from TypeScript,
+JSON Schema, Rust, Python, Go, Java, and Kotlin. Cross-language verification
+compares Shape IR, not source formatting. Numeric representation widening,
+collection normalization, and enum member/wire-name limitations are reported
+through the normal semantic notes and losses; serializer attributes are not
+inferred.
 
 The SDK keeps the OpenAPI parser's `yaml` dependency external to its ESM
 bundle so Node and strict ESM runtimes can resolve it normally. It is declared

@@ -31,6 +31,11 @@ Current platform capabilities:
   record/class/symbolic-enum subset, including arrays, string-keyed maps,
   nullable values, references, deterministic roots, namespaces, and record or
   class generation.
+- C# V1 has shared Shape-equivalence coverage for C#↔TypeScript, JSON Schema,
+  Rust, Python, Go, Java, and Kotlin, including the direct C#↔C# route. The
+  verified boundary is semantic IR equivalence, not source-text round trips;
+  numeric widening, collection normalization, and enum-name caveats are
+  reported explicitly.
 - All current conversion routes execute through the shared core pipeline.
 - `createConversionRegistry(...)` supports custom parser, generator, and
   transformer registration.
@@ -49,8 +54,8 @@ Validated route families include:
 
 - Value routes: JSON, YAML, CSV, and TOML round trips where root constraints
   allow them.
-- Shape routes: JSON Schema, TypeScript, Zod, OpenAPI, Rust, Python, Go, and
-  Java conversions, plus Value-to-Shape routes where supported.
+- Shape routes: JSON Schema, TypeScript, Zod, OpenAPI, Rust, Python, Go, Java,
+  Kotlin, and C# conversions, plus Value-to-Shape routes where supported.
 - Rust routes: restricted Rust structs to/from Shape-compatible targets, with
   representation hints and typed numeric constraints.
 - Constraint-preserving routes: JSON Schema, Zod, OpenAPI, and Rust routes
